@@ -16,7 +16,7 @@ Per installare WSL aprire una finestra PowerShell con privilegi di amministrazio
 
 ## Struttura
 
-La struttura potrà essere cambiata in caso di necessità.
+La struttura potrà essere cambiata in caso di necessità. (Aggiornare)
 
 can-sat
 ├───host        -> Contiene i file legati alla macchina su cui si programma
