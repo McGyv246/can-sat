@@ -1,0 +1,88 @@
+# ------------------------------------------------------------------------
+# Line ending normalization
+# ------------------------------------------------------------------------
+# This project is edited from VS Code on macOS/Linux and from the Arduino
+# IDE on Windows. Without this file, Windows editors tend to save CRLF
+# while Mac/Linux save LF, which makes every line show up as changed in
+# diffs and can cause noisy merge conflicts.
+#
+# The line below tells Git to detect text files automatically and always
+# store them in the repo with LF endings, then check them out as LF on
+# every platform (including Windows). LF-only checkouts are fine here:
+# avr-gcc, gcc, VS Code and the Arduino IDE all read LF files without any
+# issue on Windows, Mac or Linux.
+* text=auto eol=lf
+
+# ------------------------------------------------------------------------
+# Source code — force text + LF explicitly (belt and suspenders on top of
+# the auto-detection above; also protects files git might misdetect).
+# ------------------------------------------------------------------------
+*.c     text
+*.h     text
+*.cpp   text
+*.cc    text
+*.cxx   text
+*.hpp   text
+*.hh    text
+*.ino   text
+*.pde   text
+*.S     text
+*.s     text
+*.ld    text
+
+*.md    text
+*.txt   text
+*.json  text
+*.yml   text
+*.yaml  text
+*.xml   text
+*.py    text
+
+Makefile  text eol=lf
+makefile  text eol=lf
+*.mk      text eol=lf
+
+# Arduino platform/board definition files (plain text key=value files)
+boards.txt      text
+platform.txt    text
+programmers.txt text
+*.properties    text
+
+# Shell scripts must keep LF — a CRLF shebang line fails to run on
+# Linux/macOS/WSL.
+*.sh    text eol=lf
+
+# Windows-only scripts keep CRLF, since Windows tools expect it.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# ------------------------------------------------------------------------
+# Binary files — never touch, never diff/merge as text.
+# ------------------------------------------------------------------------
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.7z    binary
+
+# Compiled/build output (in case any gets committed by accident)
+*.o     binary
+*.obj   binary
+*.a     binary
+*.so    binary
+*.dll   binary
+*.exe   binary
+*.elf   binary
+*.hex   binary
+*.bin   binary
+*.eep   binary
+
+# ------------------------------------------------------------------------
+# Vendored third-party code — exclude from GitHub language stats and diffs
+# ------------------------------------------------------------------------
+host/test/unity/** linguist-vendored
