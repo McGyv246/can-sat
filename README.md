@@ -82,8 +82,12 @@ Per i nomi delle varie cose sarebbe meglio seguire le seguenti convenzioni (che 
 Struct              TitleCase
 Campi struct        lowerCase
 
-Funzioni            snake_case
+Funzioni (normali)  snake_case
+Funzioni (test)     when_condizioniInizialiTest_expect_risultatoAtteso
 Variabili           lowerCase
+
 ```
 
-Per i file non c'è convenzione, direi di seguire usare anche qui lo `snake_case`.
+Inoltre chiedo di dare nomi a variabili e funzioni in inglese perché leggere le funzioni built-in di C o di arduino assieme alle proprie scritte in italiano è orribile.
+
+Per i file non c'è convenzione, direi di seguire usare anche qui lo `snake_case`. Per i nomi dei file di test preferirei il formato `nome_cosa_che_si_testa_test`, ad esempio per testare il file `hal_time` si usa il file `hal_time_test`.
