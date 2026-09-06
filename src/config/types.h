@@ -2,6 +2,7 @@
 #define TYPES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct
 {
