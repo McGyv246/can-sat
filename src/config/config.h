@@ -22,8 +22,8 @@
 #define A_IN_GAS1 20
 #define A_IN_GAS1 21
 
-// SAMPLE RATES
+// SAMPLE RATES (to be defined)
 
-// THRESHOLDS
+// THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 
 typedef struct
 {
@@ -25,8 +26,8 @@ typedef struct
     float accel[3];
     float gyro[3];
     float mag[3];
-    float quat[4];   /* automatically fused by the sensor dedicated processor */
-    float accel_mag; /* not sure if useful */
+    float quat[4]; /* automatically fused by the sensor dedicated processor */
+    float accel_mag;
 } imu_t;
 
 typedef struct
@@ -38,12 +39,12 @@ typedef struct
     uint32_t utc_s; /* for aligning logs */
 } gps_t;
 
-// Bisognerà capire se questo va bene così o no in base a come è stato collegato (digitale?)
 typedef struct
 {
     stamp_t s;
-    uint16_t lux_raw, uv_raw; /* averaged ADC counts */
-    float lux, uv_index;      /* converted           */
+    bool is_there_light;
+    uint16_t uv_raw; /* averaged ADC counts */
+    float uv_index;  /* converted           */
 } light_t;
 
 typedef struct
@@ -87,5 +88,46 @@ typedef struct
     gas_t gas;
     // health_t health;
 } datastore_t;
+
+/*
+Note that floats are converted to integer to make each field have fixed size.
+For now the choice of the length of such integer has been made by Claude, we will need to adjust them.
+*/
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t sync; /* MUST TO BE FIRST! Needed to handle packet loss (details needed for implementation) */
+    uint8_t version;
+    uint16_t seq; /* needed for packet loss statistics (details needed for implementation) */
+
+    uint32_t ms_since_boot;
+    uint8_t flight_state;
+
+    int16_t temp_c;
+    uint16_t pressure; /* (pa - 30000) / 2) */
+    uint8_t humidity_pct;
+    int16_t altitude_baro_m;
+
+    int16_t orientation[4];
+    int16_t accel_mag;
+
+    uint8_t is_there_light; /* uint_8 instead of bool because bool has unspecified size */
+    uint8_t uv;
+
+    uint16_t gas_raw;
+    uint8_t heater_on_since;
+
+    int32_t lat, lon;
+    int16_t altitude_gps_m;
+    uint8_t satfix;
+
+    uint8_t vbatt;
+    uint16_t status;
+
+    uint16_t crc16; /* MUST BE LAST! */
+} data_to_lora_t;
+#pragma pack(pop)
+
+static_assert(sizeof(data_to_lora_t) == 47, "wire layout changed");
 
 #endif
