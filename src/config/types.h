@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#pragma region main_datastore
+
 typedef struct
 {
     uint32_t t_ms; /* when this block was last updated */
@@ -89,6 +91,9 @@ typedef struct
     // health_t health;
 } datastore_t;
 
+#pragma endregion
+
+#pragma region lora_structs
 /*
 Note that floats are converted to integer to make each field have fixed size.
 For now the choice of the length of such integer has been made by Claude, we will need to adjust them.
@@ -96,7 +101,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 #pragma pack(push, 1)
 typedef struct
 {
-    uint8_t sync; /* MUST TO BE FIRST! Needed to handle packet loss (details needed for implementation) */
+    uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
     uint8_t version;
     uint16_t seq; /* needed for packet loss statistics (details needed for implementation) */
 
@@ -129,5 +134,7 @@ typedef struct
 #pragma pack(pop)
 
 static_assert(sizeof(data_to_lora_t) == 47, "wire layout changed");
+
+#pragma endregion
 
 #endif
