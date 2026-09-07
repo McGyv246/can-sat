@@ -68,12 +68,12 @@ typedef struct
 
 typedef enum
 {
-    BOOT,
-    SELF_TEST,
-    IDLE,
-    ASCENT,
-    DESCENT,
-    LANDED
+    BOOT = 0,
+    SELF_TEST = 1,
+    IDLE = 2,
+    ASCENT = 3,
+    DESCENT = 4,
+    LANDED = 5
 } flight_state_t;
 
 typedef struct
@@ -134,6 +134,32 @@ typedef struct
 #pragma pack(pop)
 
 static_assert(sizeof(data_to_lora_t) == 47, "wire layout changed");
+
+#pragma endregion
+
+#pragma region sd_structs
+
+typedef enum
+{
+    ENV = 0,
+    IMU = 1,
+    GPS = 2,
+    LIGHT = 3,
+    GAS = 4,
+    // HEALTH = 5
+} sensor_type_t;
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
+    uint8_t type;
+    uint16_t len;
+    uint32_t t_ms;
+} sd_header_t;
+#pragma pack(pop)
+
+static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
 
 #pragma endregion
 
