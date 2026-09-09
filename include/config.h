@@ -1,6 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /* PINS */
 #define D_IN_PHOTORESISTOR 5
 
@@ -20,10 +25,14 @@
 
 // Still need to choose which sensors to use, will change names when chosen
 #define A_IN_GAS1 20
-#define A_IN_GAS1 21
+#define A_IN_GAS2 21
 
-// SAMPLE RATES (to be defined)
+    // SAMPLE RATES (to be defined)
 
-// THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
+    // THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
