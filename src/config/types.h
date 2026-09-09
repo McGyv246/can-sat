@@ -163,4 +163,15 @@ static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
 
 #pragma endregion
 
+#pragma region sens_status
+
+typedef enum
+{
+    SENS_NOT_READY,
+    SENS_READY,
+    SENS_ERR,
+}sens_status_t;
+
+#pragma endregion
+
 #endif
