@@ -32,10 +32,6 @@ build/
 # VS Code: ignore personal editor state, keep shared project settings
 # (settings.json, tasks.json, launch.json, extensions.json) if committed.
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 
 # Arduino IDE 2 workspace state
 .vscode-arduino/
