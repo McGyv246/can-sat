@@ -2,7 +2,7 @@
 
 ## Lista strumenti necessari
 
-Per programmare parti che richiedono l'arduino è necessario utilizzare **Arduino IDE**. Se invece si stanno programmando parti che non richiedono l'utilizzo della board io utilizzero Visual Studio Code (VSCode). Lo consiglio perché permette di programmare in modo semplice in puro C. Poi ovviamente le parti di codice programmate senza l'arduino andranno testate anche con esso su Arduino IDE.
+Per programmare parti che richiedono l'arduino è necessario utilizzare **Arduino IDE**. Se invece si stanno programmando parti che non richiedono l'utilizzo della board io utilizzero Visual Studio Code (VSCode). Lo consiglio perché permette di programmare in modo semplice in puro C. Per le parti legate all'arduino per comodità consiglio di usare sempre VSCode con l'estensione PlatformIO.
 
 Per programmare in C su Windows consiglio l'utilizzo di WSL. WSL è una macchina virtuale che simula Linux all'interno di Windows. Non espone un'interfaccia grafica ma ha solo un terminale. Lo consiglio perché installare programmi come il compilatore per C in windows è molto complicato (non sono mai riuscito a farlo funzionare bene). Mentre se lo si installa all'interno di WSL va utilizzato da linea di comando ma funziona molto bene.
 
@@ -25,12 +25,23 @@ Per VSCode consiglio le seguenti estensioni:
 
 - C/C++ (di microsoft)
 - Git Graph (di mhutchie)
+- PlatformIO (di platformio.org)
 
 L'estensione C/C++ è importante averla perché è collegata al compilatore e individua errori di codice (altrimenti VSCode dice cose a caso). Inoltre permette di formattare il codice decentemente in automatico quando si salva un file. Oltre a quello permetterebbe di eseguire codice e debuggarlo ma il setup non è così facile e conviene imparare ad utilizzare i comandi da terminale.
 
+Per l'installazione di PlatformIO conviene seguire le istruzioni [questo link](https://docs.platformio.org/en/latest/integration/ide/pioide.html#pioide). Purtroppo con PlatformIO non conviene utilizzare WSL perché bisogna fare un po' di giri per poter vedere il dispositivo USB.
+
 ## Struttura
 
-La struttura potrà essere cambiata in caso di necessità. In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto.
+La struttura potrà essere cambiata in caso di necessità. Parte della struttura è fissa per via di come funziona PlatformIO senza configurarlo in modo specifico (cosa che fa perdere tempo e rischia di rompere cose).
+
+In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Alla radice della cartella `src/` DEVE esserci il file `main.cpp` che è il file che PlatformIO utilizza per l'Arduino.
+
+Nella cartella `include/` devono esserci i file `.h` necessari a compilare il programma principale SENZA essere messi in sottocartelle (devono stare alla radice di tale cartella). I file `.h` che servono solo per i test o comunque che non devono essere compilati in automatico da PlatformIO li ho lasciati nella cartella dove c'è il file sorgente. Questo farà sì che l'intellisense di VSCode con PlatformIO attivo pensi che ci siano degli errori in caso si includano tali cartelle, ma compilando con la linea di comando non ci sarà questo problema. In caso dia fastidio si potranno spostare tutte in questa specifica cartella.
+
+PlatformIO crea anche una cartella `lib/` ma non dovrebbe servirci.
+
+Nella cartella `mocks/` ci sono i file mock scritti da noi.
 
 Nella cartella `test/` ci andranno tutti i file dei test. I file dei test sarà comodo non metterli in sottocartelle. Mentre eventuali file di utilità andranno messi in sottocartelle. La cartella `test/unity/` contiene il "framework" di testing e non va toccata.
 
@@ -44,6 +55,8 @@ L'unico modo per eseguire il programma senza l'arduino sarà tramite i test.
 ## Test
 
 I test utilizzano [Unity](https://www.throwtheswitch.org/unity). Saranno in futuro creati comandi Make per eseguirli in automatico. Per ora è presente un test di esempio in `test/`, con comandi di compilazione ed esecuzione commentati all'inizio del file.
+
+Da notare che questa cartella di test è considerata da PlatformIO la sua cartella dei suoi test. Noi non la utilizzeremo in questo senso perché tanto non ci servirà mai fare tali test.
 
 ## Convenzioni git (importanti)
 
