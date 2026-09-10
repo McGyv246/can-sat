@@ -1,13 +1,16 @@
 #include<types.h>
+#include<config.h>
 #include<math.h>
-#include<arduino.h>
+#include<stdint.h>
+#include<Arduino.h>
 
 typedef enum {
     UV_IDLE,
     UV_SAMPLING,
     UV_VALIDATING,
+    UV_SLOW_SAMPLE,
     UV_READY,
-}uv_state_t;
+} uv_state_t;
 
 static uv_state_t state = UV_IDLE;
 static uint16_t last_sample_time;
@@ -86,6 +89,9 @@ sens_status_t uv_poll(uint32_t now_ms) {
 
 }
 
-void uv_get(light_t *data) {
-
+sens_status_t uv_get(light_t *data) {
+    *data = latest_sample;
+    //capire se queste righe possono avere un senso oppure se può tornare void e basta
+    if(latest_sample.s.valid) return SENS_READY;
+    return SENS_NOT_READY;
 }
