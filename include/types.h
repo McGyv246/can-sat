@@ -1,6 +1,11 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -173,5 +178,9 @@ typedef enum
 }sens_status_t;
 
 #pragma endregion
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
