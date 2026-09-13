@@ -168,8 +168,17 @@ static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
 
 #pragma endregion
 
-#pragma region sens_status
+#pragma region sensor_states
 
+//internal states
+typedef enum
+{
+    SENS_IDLE,
+    SENS_WAITING,
+    SENS_OK,
+}sens_state_t;
+
+//external status 
 typedef enum
 {
     SENS_NOT_READY,
@@ -180,7 +189,6 @@ typedef enum
 #pragma endregion
 
 #ifdef __cplusplus
-extern "C"
 }
 #endif
 
