@@ -1,45 +1,13 @@
 #include <stdint.h>
 #include "types.h"
 
-// To be moved in types.h
-typedef struct
-{
-    task_t *tasks;
-    uint16_t tasks_number;
-    uint16_t max_exec_time;
-    uint64_t run_count;
-    uint8_t *enabled_tasks; // Eventually change type (to something like bool ig), array that defines if a task is enabled or not.
-} scheduler_t;
-
-/*
-Tasks (so that I can define the friggin structure):
-- sensor reads
-- phase change check
-- (watchdog?)
--
-*/
-typedef struct
-{
-    // This structure is correct for sensors, but it could create problems if I wanted to put some different tasks to run
-    // Maybe I could just wrap sensors in some sort of runnable thing, but I don't know how I could get the sleep and init functions,
-    // while poll and get can be easily wrapped in a function that checks the return status and then gets automatically the value.
-    uint32_t (*run)(void);
-    void (*on_enable)(void);  /* NULL if nothing to do */
-    void (*on_disable)(void); /* NULL if nothing to do */
-    sens_status_t last_status;
-    const char *name;
-    uint16_t period;
-    uint64_t due;
-    uint16_t priority;
-
-} task_t;
-
-void sched_init(scheduler_t *sched, task_t *tasks, uint16_t tasks_number)
+void sched_init(scheduler_t *sched, task_t *tasks, uint16_t tasks_number, uint8_t *enabled_tasks)
 {
     sched->tasks = tasks;
     sched->tasks_number = tasks_number;
     sched->max_exec_time = 0;
     sched->run_count = 0;
+    sched->enabled_tasks = enabled_tasks;
 
     // maybe add check for null pointers for functions in each task
 }

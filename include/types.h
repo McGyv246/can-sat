@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -185,6 +186,42 @@ For now the choice of the length of such integer has been made by Claude, we wil
         SENS_READY,
         SENS_ERR,
     } sens_status_t;
+
+#pragma endregion
+
+#pragma region scheduler
+
+    /*
+        Tasks (so that I can define the friggin structure):
+        - sensor reads
+        - phase change check
+        - (watchdog?)
+        -
+        */
+    typedef struct
+    {
+        // This structure is correct for sensors, but it could create problems if I wanted to put some different tasks to run
+        // Maybe I could just wrap sensors in some sort of runnable thing, but I don't know how I could get the sleep and init functions,
+        // while poll and get can be easily wrapped in a function that checks the return status and then gets automatically the value.
+        uint32_t (*run)(void);
+        void (*on_enable)(void);  /* NULL if nothing to do */
+        void (*on_disable)(void); /* NULL if nothing to do */
+        sens_status_t last_status;
+        const char *name;
+        uint16_t period;
+        uint64_t due;
+        uint8_t priority;
+
+    } task_t;
+
+    typedef struct
+    {
+        task_t *tasks;
+        size_t tasks_number;
+        uint16_t max_exec_time;
+        uint64_t run_count;
+        uint8_t *enabled_tasks; // Eventually change type (to something like bool ig), array that defines if a task is enabled or not.
+    } scheduler_t;
 
 #pragma endregion
 
