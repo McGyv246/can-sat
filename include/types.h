@@ -210,8 +210,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         const char *name;
         uint16_t period;
         uint64_t due;
-        uint8_t priority;
-
+        uint8_t priority; // The lower the number, the higher the priority
     } task_t;
 
     typedef struct
@@ -220,7 +219,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         size_t tasks_number;
         uint16_t max_exec_time;
         uint64_t run_count;
-        uint8_t *enabled_tasks; // Eventually change type (to something like bool ig), array that defines if a task is enabled or not.
+        bool *enabled_tasks;
     } scheduler_t;
 
 #pragma endregion
