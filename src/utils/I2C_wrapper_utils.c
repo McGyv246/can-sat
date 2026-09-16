@@ -1,5 +1,5 @@
-#include <types.h>
-#include <wire_wrapper.h>
+#include "types.h"
+#include "wire_wrapper.h"
 #include <stddef.h>
 
 sens_status_t write_reg_8(uint8_t addr, uint8_t reg, uint8_t value)

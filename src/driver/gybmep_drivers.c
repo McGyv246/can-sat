@@ -1,9 +1,9 @@
-#include <types.h>
-#include <config.h>
 #include <Arduino.h>
-#include <wire_wrapper.h>
-#include <arduino_wrapper.h>
-#include <I2C_wrapper_utils.h>
+#include "types.h"
+#include "config.h"
+#include "wire_wrapper.h"
+#include "arduino_wrapper.h"
+#include "I2C_wrapper_utils.h"
 
 const uint8_t ADDRESS = 0x76;
 const uint8_t ADDRESS_ALTERNATIVE = 0x77;

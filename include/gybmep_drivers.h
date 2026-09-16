@@ -7,7 +7,7 @@ extern "C"
 #endif
 
 #include <stdint.h>
-#include <types.h>
+#include "types.h"
 
     // checks if the address and chip_id of the sensor are correct. this function is to be called once
     // to check everything is in order, the sensor is then initialized in sleep mode

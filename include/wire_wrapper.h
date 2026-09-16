@@ -1,4 +1,3 @@
-
 #ifndef WIRE_WRAPPER_H
 #define WIRE_WRAPPER_H
 
