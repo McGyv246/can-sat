@@ -5,20 +5,21 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void wire_begin_transmission(uint8_t address);
+    void wire_begin_transmission(uint8_t address);
 
-size_t wire_write(byte send);
+    size_t wire_write(byte send);
 
-byte wire_end_transmission(bool stop);
+    byte wire_end_transmission(bool stop);
 
-byte wire_request_from(uint8_t address, size_t quantity, bool stop);
+    byte wire_request_from(uint8_t address, size_t quantity, bool stop);
 
-int wire_available(void);
+    int wire_available(void);
 
-int wire_read(void);
+    int wire_read(void);
 
 #ifdef __cplusplus
 }
