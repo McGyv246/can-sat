@@ -209,7 +209,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         sens_status_t last_status;
         const char *name;
         uint16_t period;
-        uint64_t due;
+        uint32_t due;
         uint8_t priority; // The lower the number, the higher the priority
     } task_t;
 
@@ -218,7 +218,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         task_t *tasks;
         size_t tasks_number;
         uint16_t max_exec_time;
-        uint64_t run_count;
+        uint32_t run_count;
         bool *enabled_tasks;
     } scheduler_t;
 
