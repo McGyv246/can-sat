@@ -30,7 +30,7 @@ void sched_tick(scheduler_t *sched)
     if (task_to_run == NULL)
         return;
 
-    uint32_t reschedule_interval = task_to_run->run();
+    uint32_t reschedule_interval = task_to_run->run(task_to_run, start_millis);
     uint32_t after_task_millis = hal_millis();
 
     sched->run_count += 1;
@@ -93,12 +93,12 @@ void sched_change_enabled_tasks(scheduler_t *sched, bool *new_enabled)
                 For simplicity and time for now it will remain as is.
                 */
                 if (task->on_disable != NULL)
-                    task->on_disable();
+                    task->on_disable(task);
             }
             else // enabled_i == false hence new_i = true: the task is disabled and must be enabled
             {
                 if (task->on_enable != NULL)
-                    task->on_enable();
+                    task->on_enable(task);
             }
 
             // Made the array immutable by assigning directly (below)

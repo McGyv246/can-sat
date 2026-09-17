@@ -11,13 +11,14 @@
 #pragma region setup
 
 void are_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n);
-uint32_t run_task_1();
-uint32_t run_task_2();
-uint32_t run_task_slow();
-void sleep(uint32_t delay);
+uint32_t run_task_1(task_t *self, uint32_t now_millis);
+uint32_t run_task_2(task_t *self, uint32_t now_millis);
+uint32_t run_task_slow(task_t *self, uint32_t now_millis);
 
-void on_enable_task_1();
-void on_disable_task_2();
+void on_enable_task_1(task_t *self);
+void on_disable_task_2(task_t *self);
+
+void sleep(uint32_t delay);
 
 int run_check, enabled_check;
 
@@ -127,21 +128,21 @@ bool tasks_disabled_enabled[] = {false, true};
 bool tasks_all_enabled[] = {true, true};
 bool tasks_all_disabled[] = {false, false};
 
-uint32_t run_task_1()
+uint32_t run_task_1(task_t *self, uint32_t now_millis)
 {
     printf("run_task_1\n");
     run_check += 10;
     return period_task_1;
 }
 
-uint32_t run_task_2()
+uint32_t run_task_2(task_t *self, uint32_t now_millis)
 {
     printf("run_task_2\n");
     run_check += 20;
     return period_task_2;
 }
 
-uint32_t run_task_slow()
+uint32_t run_task_slow(task_t *self, uint32_t now_millis)
 {
     printf("begin_run_task_slow\n");
     sleep(1000);
@@ -150,13 +151,13 @@ uint32_t run_task_slow()
     return period_task_slow;
 }
 
-void on_enable_task_1()
+void on_enable_task_1(task_t *self)
 {
     printf("on_enable_task_1\n");
     enabled_check += 50;
 }
 
-void on_disable_task_2()
+void on_disable_task_2(task_t *self)
 {
     printf("on_disable_task_1\n");
     enabled_check += 20;

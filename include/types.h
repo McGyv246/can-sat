@@ -198,20 +198,22 @@ For now the choice of the length of such integer has been made by Claude, we wil
         - (watchdog?)
         -
         */
-    typedef struct
+
+    typedef struct task_s task_t;
+    struct task_s
     {
         // This structure is correct for sensors, but it could create problems if I wanted to put some different tasks to run
         // Maybe I could just wrap sensors in some sort of runnable thing, but I don't know how I could get the sleep and init functions,
         // while poll and get can be easily wrapped in a function that checks the return status and then gets automatically the value.
-        uint32_t (*run)(void);
-        void (*on_enable)(void);  /* NULL if nothing to do */
-        void (*on_disable)(void); /* NULL if nothing to do */
+        uint32_t (*run)(task_t *self, uint32_t now_millis);
+        void (*on_enable)(task_t *self);  /* NULL if nothing to do */
+        void (*on_disable)(task_t *self); /* NULL if nothing to do */
         sens_status_t last_status;
         const char *name;
         uint16_t period;
         uint32_t due;
         uint8_t priority; // The lower the number, the higher the priority
-    } task_t;
+    };
 
     typedef struct
     {
