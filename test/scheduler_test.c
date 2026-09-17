@@ -13,6 +13,8 @@
 void are_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n);
 uint32_t run_task_1();
 uint32_t run_task_2();
+uint32_t run_task_slow();
+void sleep(uint32_t delay);
 
 void on_enable_task_1();
 void on_disable_task_2();
@@ -25,6 +27,7 @@ const size_t TASKS_NUMBER = 2;
 
 const uint16_t period_task_1 = 100;
 const uint16_t period_task_2 = 1000;
+const uint16_t period_task_slow = 1000;
 
 task_t test_tasks_empty[] = {
     {
@@ -97,6 +100,29 @@ task_t test_tasks_2[] = {
     },
 };
 
+task_t test_tasks_slow[] = {
+    {
+        &run_task_slow,
+        NULL,
+        NULL,
+        SENS_IDLE,
+        "task_slow",
+        period_task_slow,
+        0,
+        0,
+    },
+    {
+        &run_task_1,
+        NULL,
+        NULL,
+        SENS_IDLE,
+        "task_1",
+        period_task_1,
+        0,
+        10,
+    },
+};
+
 bool tasks_disabled_enabled[] = {false, true};
 bool tasks_all_enabled[] = {true, true};
 bool tasks_all_disabled[] = {false, false};
@@ -113,6 +139,15 @@ uint32_t run_task_2()
     printf("run_task_2\n");
     run_check += 20;
     return period_task_2;
+}
+
+uint32_t run_task_slow()
+{
+    printf("begin_run_task_slow\n");
+    sleep(1000);
+    run_check -= 50;
+    printf("finish_run_task_slow\n");
+    return period_task_slow;
 }
 
 void on_enable_task_1()
@@ -164,6 +199,7 @@ void setUp()
         test_tasks_empty[i].due = 0;
         test_tasks_1[i].due = 0;
         test_tasks_2[i].due = 0;
+        test_tasks_slow[i].due = 0;
     }
 }
 
@@ -388,6 +424,40 @@ void when_runningTickMultipleTimes_expect_taskExecutionOrderRespectsPeriod()
     TEST_ASSERT_EQUAL(110, run_check);
 }
 
+void when_runningSlowAndFastTasks_expect_maxExecTimeToBeTheSlowOne()
+{
+    test_tasks_slow[0].due = hal_millis() + 300;
+    test_tasks_slow[1].due = hal_millis() + 200;
+
+    scheduler_t sched;
+    sched_init(&sched, test_tasks_slow, TASKS_NUMBER, tasks_all_enabled);
+
+    // Executes one task when ready (task_1 not task_slow)
+    while (run_check == 0)
+    {
+        sched_tick(&sched);
+    }
+
+    printf("run_check: %d\n", run_check);
+    TEST_ASSERT_EQUAL(10, run_check);
+
+    printf("max_exec_time: %u\n", sched.max_exec_time);
+    TEST_ASSERT_LESS_THAN_UINT16(500, sched.max_exec_time);
+
+    // Continue executing tasks until task_slow gets executed
+    int prev_run_check = run_check;
+    while (prev_run_check <= run_check)
+    {
+        sched_tick(&sched);
+    }
+
+    printf("prev_run_check: %d\n", prev_run_check);
+    printf("run_check: %d\n", run_check);
+    printf("max_exec_time: %u\n", sched.max_exec_time);
+    TEST_ASSERT_GREATER_THAN_UINT16(1000 - MILLIS_TOLERANCE, sched.max_exec_time);
+    TEST_ASSERT_LESS_THAN_UINT16(1000 + MILLIS_TOLERANCE, sched.max_exec_time);
+}
+
 /*
 TEST CASES:
 - check max exec time and run count set correctly
@@ -413,5 +483,6 @@ int main()
     RUN_TEST(when_enablingTaskWithoutOnEnable_expect_notCrashAndTaskSkipped);
     RUN_TEST(when_enablingTask_expect_onEnableExecuteAndTaskSkipped);
     RUN_TEST(when_runningTickMultipleTimes_expect_taskExecutionOrderRespectsPeriod);
+    RUN_TEST(when_runningSlowAndFastTasks_expect_maxExecTimeToBeTheSlowOne);
     return UNITY_END();
 }
