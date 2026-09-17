@@ -1,4 +1,4 @@
-#include <Arduino.h>
+#include "arduino_wrapper.h"
 #include "types.h"
 #include "config.h"
 
@@ -21,7 +21,7 @@ sens_status_t uv_poll(uint32_t now_ms)
     case SENS_IDLE:
         if (now_ms - last_sample_time < UV_WAIT_TIME_MS)
             return SENS_NOT_READY;
-        latest_sample.uv_raw = analogRead(A_IN_UV);
+        latest_sample.uv_raw = analog_read(A_IN_UV);
         latest_sample.uv_index = (float)(latest_sample.uv_raw * ADC_CONVERSION_FACTOR) / VOLTAGE_INDEX_FACTOR;
         if (latest_sample.uv_index > UV_TRESH)
         {
