@@ -13,6 +13,7 @@ sens_status_t write_reg_8(uint8_t addr, uint8_t reg, uint8_t value)
     wire_write(value);
     if (wire_end_transmission(true) != 0)
         return SENS_ERR; // transmission was unsuccessful
+    return SENS_OK;
 }
 
 sens_status_t read_reg_8(uint8_t addr, uint8_t reg, uint8_t *value)

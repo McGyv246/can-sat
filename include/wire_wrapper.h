@@ -1,7 +1,8 @@
 #ifndef WIRE_WRAPPER_H
 #define WIRE_WRAPPER_H
 
-#include <stdint.h>
+#include <Arduino.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C"

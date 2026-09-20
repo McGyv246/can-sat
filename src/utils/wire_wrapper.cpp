@@ -1,4 +1,6 @@
 #include <Wire.h>
+#include <stddef.h>
+#include <Arduino.h> //serve per avere il tipo "byte"
 #include "wire_wrapper.h"
 
 extern "C"
@@ -21,7 +23,7 @@ extern "C"
 
     byte wire_request_from(uint8_t address, size_t quantity, bool stop)
     {
-        Wire.requestFrom(address, quantity, stop);
+        return Wire.requestFrom(address, quantity, stop);
     }
 
     int wire_available(void)
