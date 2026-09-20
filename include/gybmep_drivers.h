@@ -12,9 +12,9 @@ extern "C"
     // checks if the address and chip_id of the sensor are correct. this function is to be called once
     // to check everything is in order, the sensor is then initialized in sleep mode
     // ACHTUNG: Wire.begin() is to be called before this
-    sens_status_t gybmep_setup(void);
-
     sens_status_t gybmep_init(void);
+
+    sens_status_t gybmep_wake(void);
 
     sens_status_t gybmep_poll(uint32_t now_ms);
 
