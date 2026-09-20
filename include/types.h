@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -185,6 +186,39 @@ For now the choice of the length of such integer has been made by Claude, we wil
         SENS_READY,
         SENS_ERR,
     } sens_status_t;
+
+#pragma endregion
+
+#pragma region scheduler
+
+    /*
+    Tasks (so that I can define the friggin structure):
+    - sensor reads
+    - phase change check
+    - (watchdog?)
+    */
+
+    typedef struct task_s task_t;
+    struct task_s
+    {
+        uint32_t (*run)(task_t *self, uint32_t now_millis);
+        void (*on_enable)(task_t *self);  /* NULL if nothing to do */
+        void (*on_disable)(task_t *self); /* NULL if nothing to do */
+        sens_status_t last_status;        // TODO: eventually replace with general task status and wrap the sens_status
+        const char *name;
+        uint16_t period;
+        uint32_t due;
+        uint8_t priority; // The lower the number, the higher the priority
+    };
+
+    typedef struct
+    {
+        task_t *tasks;
+        size_t tasks_number;
+        uint16_t max_exec_time;
+        uint32_t run_count;
+        bool *enabled_tasks;
+    } scheduler_t;
 
 #pragma endregion
 
