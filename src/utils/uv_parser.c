@@ -1,28 +1,29 @@
 #include <math.h>
+#include <stddef.h>
 #include "types.h"
 
 // working voltage
-const float VCC = 3.3;
-const uint16_t MAX_V = 4095;
-const float ADC_CONVERSION_FACTOR = VCC / (float)MAX_V;
+static const float VCC = 3.3;
+static const uint16_t MAX_V = 4095;
+static const float ADC_CONVERSION_FACTOR = VCC / (float)MAX_V;
 // VOLTAGE_INDEX_FACTOR has to be verified
-const float VOLTAGE_INDEX_FACTOR = 0.1;
+static const float VOLTAGE_INDEX_FACTOR = 0.1;
 // the correction factor alone could turn out to be not enough for accurate uv index measures.
 // another correction factor could be needed to account for the offset voltage of the output
 // const float VOLTAGE_OFFSET_FACTOR = ;
 // this factor could be impossible to determine and vary across different operating conditions
 // in case we decide to use it, it has to be subtracted to the measured voltage before dividing
 // for VOLTAGE_INDEX_FACTOR
-const float UV_TRESH = 2;
+static const float UV_TRESH = 2;
 // to avoid incorrect samples due to noise a finite number of measures has to be
 // sampled and then averaged
 // standard deviation is yet to be estimated
-const float MAX_DEV = 6.0;
+static const float MAX_DEV = 6.0;
 
-light_t uv_parse(light_t data[])
+light_t uv_parse(light_t data[], size_t len)
 {
     light_t parsed_sample;
-    size_t sample_count = sizeof(data) / sizeof(data[0]);
+    size_t sample_count = len;
     uint32_t mean_time = 0;
     uint16_t uv_raw_mean = 0;
     for (size_t i = 0; i < sample_count; i++)
