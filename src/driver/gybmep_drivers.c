@@ -33,11 +33,11 @@ typedef struct
 } calibration_variables;
 
 // settings, hardcoded for now. changing these settings from the outside shouldn't be needed
-static const uint8_t OS_T = 1;       // temperature oversampling
-static const uint8_t OS_P = 1;       // pressure oversampling
+static const uint8_t OS_T = 2;       // temperature oversampling
+static const uint8_t OS_P = 3;       // pressure oversampling
 static const uint8_t OS_H = 1;       // humidity oversampling
 static const uint8_t IIR_FILTER = 0; // built in filter to suppress disturbances. increases response time when active. 0 = off
-static const uint8_t STANDBY = 0;    // standby setting for normal mode. can be set between 0.5ms and 1000ms. see datasheet
+static const uint8_t STANDBY = 3;    // standby setting for normal mode. can be set between 0.5ms and 1000ms. see datasheet
 typedef enum
 {
     MODE_SLEEP = 0,  // no operation, all registers accessible
@@ -46,7 +46,7 @@ typedef enum
 } gybmep_mode_t;
 
 // calculated using the formula for typical measurement time from the datasheet
-static const uint32_t ESTIMATED_MEASURE_TIME_MS = (uint32_t)(1 + (2 * OS_T) + (2 * OS_P + 0.5) + (2 * OS_H + 0.5));
+static const uint32_t ESTIMATED_MEASURE_TIME_MS = (uint32_t)(1 + (2 * 2) + (2 * 4 + 0.5) + (2 * 1 + 0.5));
 
 static uint8_t current_address = ADDRESS;
 static sens_state_t state = SENS_IDLE;
