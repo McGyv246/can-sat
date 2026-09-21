@@ -17,6 +17,12 @@ void ds_write_light(light_t *data, uint32_t now_millis);
 void ds_write_gas(gas_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
+// TODO: remove this, it's just a placeholder for when the
+// ring buffer will have the correct saving functions
+static void temp_write_ring_buffer() {};
+
+#pragma region write_fn
+
 static void ds_write_begin()
 {
     ds_seq++;
@@ -48,6 +54,8 @@ void ds_write_env(env_t *data, uint32_t now_millis)
     ds.env.s.t_ms = now_millis;
     ds.env.s.valid = true;
 
+    temp_write_ring_buffer();
+
     ds_write_end(now_millis);
 }
 
@@ -72,6 +80,8 @@ void ds_write_imu(imu_t *data, uint32_t now_millis)
     // TODO: eventually remove these if handled by sensors
     ds.imu.s.t_ms = now_millis;
     ds.imu.s.valid = true;
+
+    temp_write_ring_buffer();
 
     ds_write_end(now_millis);
 }
@@ -101,6 +111,8 @@ void ds_write_gps(gps_t *data, uint32_t now_millis)
     ds.gps.s.t_ms = now_millis;
     ds.gps.s.valid = true;
 
+    temp_write_ring_buffer();
+
     ds_write_end(now_millis);
 }
 
@@ -115,6 +127,8 @@ void ds_write_light(light_t *data, uint32_t now_millis)
     // TODO: eventually remove these if handled by sensors
     ds.light.s.t_ms = now_millis;
     ds.light.s.valid = true;
+
+    temp_write_ring_buffer();
 
     ds_write_end(now_millis);
 }
@@ -131,6 +145,8 @@ void ds_write_gas(gas_t *data, uint32_t now_millis)
     ds.gas.s.t_ms = now_millis;
     ds.gas.s.valid = true;
 
+    temp_write_ring_buffer();
+
     ds_write_end(now_millis);
 }
 
@@ -140,5 +156,60 @@ void ds_write_flight_state(flight_state_t data, uint32_t now_millis)
 
     ds.state = data;
 
+    temp_write_ring_buffer();
+
     ds_write_end(now_millis);
 }
+
+#pragma endregion
+
+#pragma region read_fn
+
+bool ds_read_all(datastore_t *data)
+{
+    if (ds_seq % 2 != 0)
+    {
+        return false;
+    }
+
+    data->t_ms = ds.t_ms;
+    data->state = ds.state;
+    data->alt_peak_env = ds.alt_peak_env;
+    data->alt_peak_gps = ds.alt_peak_gps;
+
+    // Since the first is a shallow copy the second should fix it
+    // (the same applies for other writes)
+    data->env = ds.env;
+    data->env.s = ds.env.s;
+
+    for (size_t i = 0; i < 3; i++)
+    {
+        data->imu.accel[i] = ds.imu.accel[i];
+        data->imu.gyro[i] = ds.imu.gyro[i];
+        data->imu.mag[i] = ds.imu.mag[i];
+    }
+    for (size_t i = 0; i < 4; i++)
+    {
+        data->imu.quat[i] = ds.imu.quat[i];
+    }
+    data->imu.accel_mag = ds.imu.accel_mag;
+    data->imu.s = ds.imu.s;
+
+    data->gps = ds.gps;
+    data->gps.s = ds.gps.s;
+
+    data->light = ds.light;
+    data->light.s = ds.light.s;
+
+    data->gas = ds.gas;
+    data->gas.s = ds.gas.s;
+
+    if (ds_seq % 2 != 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+#pragma endregion
