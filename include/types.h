@@ -86,8 +86,8 @@ extern "C"
     {
         uint32_t t_ms; /* time of last update, any block */
         flight_state_t state;
-        uint32_t t_state_entry; /* for timeouts in the FSM */
-        float alt_peak;
+        // uint32_t t_state_entry; /* for timeouts in the FSM (no idea what this means lol) */
+        float alt_peak_env, alt_peak_gps;
 
         env_t env;
         imu_t imu;
