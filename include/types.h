@@ -160,7 +160,8 @@ For now the choice of the length of such integer has been made by Claude, we wil
         GPS = 2,
         LIGHT = 3,
         GAS = 4,
-        // HEALTH = 5
+        STATS = 5,
+        // HEALTH = 6,
     } sensor_type_t;
 
 #pragma pack(push, 1)
