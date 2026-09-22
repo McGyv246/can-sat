@@ -10,7 +10,7 @@
 
 #pragma region setup
 
-void are_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n);
+void assert_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n);
 uint32_t run_task_1(task_t *self, uint32_t now_millis);
 uint32_t run_task_2(task_t *self, uint32_t now_millis);
 uint32_t run_task_slow(task_t *self, uint32_t now_millis);
@@ -225,7 +225,7 @@ void when_initializingSchedulerTasks_expect_correctValues()
 
     sched_init(&sched, test_tasks_empty, TASKS_NUMBER, tasks_disabled_enabled);
 
-    are_tasks_equal(test_tasks_empty, sched.tasks, TASKS_NUMBER);
+    assert_tasks_equal(test_tasks_empty, sched.tasks, TASKS_NUMBER);
     TEST_ASSERT_EQUAL_size_t(TASKS_NUMBER, sched.tasks_number);
     TEST_ASSERT_EQUAL_PTR(tasks_disabled_enabled, sched.enabled_tasks);
     TEST_ASSERT_EQUAL_UINT16(0, sched.max_exec_time);
