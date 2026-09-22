@@ -303,7 +303,7 @@ void when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly()
     datastore_t expected = ds_empty;
 
     expected.imu = imu;
-    expected.t_ms = mock_now_millis;
+    expected.t_ms = 1000;
 
     printf("EXPECTED\n");
     print_ds(&expected);
