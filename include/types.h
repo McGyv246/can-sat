@@ -13,6 +13,10 @@ extern "C"
 
 #pragma region main_datastore
 
+    /*
+    WHEN UPDATING THESE REMEMBER TO UPDATE ALSO THE PACKED VERSIONS BELOW
+    */
+
     typedef struct
     {
         uint32_t t_ms; /* when this block was last updated */
@@ -145,6 +149,10 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
 #pragma region sd_structs
 
+    /*
+    WHEN UPDATING THESE REMEMBER TO UPDATE ALSO THE NOT PACKED VERSIONS ABOVE
+    */
+
     typedef enum
     {
         ENV = 0,
@@ -156,6 +164,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } sensor_type_t;
 
 #pragma pack(push, 1)
+
     typedef struct
     {
         uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
@@ -163,6 +172,109 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint16_t len;
         uint32_t t_ms;
     } sd_header_t;
+
+    // Packed versions of sensor structs
+    typedef struct
+    {
+        uint32_t t_ms; /* when this block was last updated */
+        bool valid;    /* did the last read succeed?       */
+    } stamp_packed_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        float temp_c;
+        float pressure_pa;
+        float humidity_pct;
+        float altitude_m; /* derived, relative to the pad */
+    } env_packed_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        float accel[3];
+        float gyro[3];
+        float mag[3];
+        float quat[4]; /* automatically fused by the sensor dedicated processor */
+        float accel_mag;
+    } imu_packed_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        double lat, lon;
+        float alt_m, speed_ms, course_deg, hdop; /* HDOP is an accuracy indicator */
+        uint8_t sats, fix_type;
+        uint32_t utc_s; /* for aligning logs */
+    } gps_packed_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        bool is_there_light;
+        uint16_t uv_raw; /* averaged ADC counts */
+        float uv_index;  /* converted           */
+    } light_packed_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        uint16_t raw;
+        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        bool heater_enabled;
+    } gas_packed_t;
+
+    typedef struct
+    {
+        uint32_t t_ms; /* time of last update, any block */
+        uint8_t state;
+        float alt_peak_env;
+        float alt_peak_gps;
+    } stats_packed_t;
+
+    // Structs with header, data and crc for direct sd write
+    typedef struct
+    {
+        sd_header_t header;
+        env_packed_t data;
+        uint16_t crc;
+    } env_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        imu_packed_t data;
+        uint16_t crc;
+    } imu_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        gps_packed_t data;
+        uint16_t crc;
+    } gps_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        light_packed_t data;
+        uint16_t crc;
+    } light_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        gas_packed_t data;
+        uint16_t crc;
+    } gas_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        stats_packed_t data;
+        uint16_t crc;
+    } stats_sd_t;
+
 #pragma pack(pop)
 
     static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
