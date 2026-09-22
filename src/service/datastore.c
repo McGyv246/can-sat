@@ -17,8 +17,12 @@ void ds_write_light(light_t *data, uint32_t now_millis);
 void ds_write_gas(gas_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
+bool ds_read_all(datastore_t *data);
+
 // TODO: remove this, it's just a placeholder for when the
 // ring buffer will have the correct saving functions
+// Maybe it shouldn't even stay here but it should be called
+// by the code that calls writes in the datastore
 static void temp_write_ring_buffer() {};
 
 #pragma region write_fn
@@ -40,10 +44,7 @@ void ds_write_env(env_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    ds.env.temp_c = data->temp_c;
-    ds.env.pressure_pa = data->pressure_pa;
-    ds.env.humidity_pct = data->humidity_pct;
-    ds.env.altitude_m = data->altitude_m;
+    ds.env = *data;
 
     if (data->altitude_m > ds.alt_peak_env)
     {
@@ -63,19 +64,7 @@ void ds_write_imu(imu_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    for (size_t i = 0; i < 3; i++)
-    {
-        ds.imu.accel[i] = data->accel[i];
-        ds.imu.gyro[i] = data->gyro[i];
-        ds.imu.mag[i] = data->mag[i];
-    }
-
-    for (size_t i = 0; i < 4; i++)
-    {
-        ds.imu.quat[i] = data->quat[i];
-    }
-
-    ds.imu.accel_mag = data->accel_mag;
+    ds.imu = *data;
 
     // TODO: eventually remove these if handled by sensors
     ds.imu.s.t_ms = now_millis;
@@ -90,22 +79,12 @@ void ds_write_gps(gps_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    ds.gps.lat = data->lat;
-    ds.gps.lon = data->lon;
+    ds.gps = *data;
 
-    ds.gps.alt_m = data->alt_m;
     if (data->alt_m > ds.alt_peak_gps)
     {
         ds.alt_peak_gps = data->alt_m;
     }
-
-    ds.gps.speed_ms = data->speed_ms;
-    ds.gps.course_deg = data->course_deg;
-    ds.gps.hdop = data->hdop;
-
-    ds.gps.sats = data->sats;
-    ds.gps.fix_type = data->fix_type;
-    ds.gps.utc_s = data->utc_s;
 
     // TODO: eventually remove these if handled by sensors
     ds.gps.s.t_ms = now_millis;
@@ -120,9 +99,7 @@ void ds_write_light(light_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    ds.light.is_there_light = data->is_there_light;
-    ds.light.uv_raw = data->uv_raw;
-    ds.light.uv_index = data->uv_index;
+    ds.light = *data;
 
     // TODO: eventually remove these if handled by sensors
     ds.light.s.t_ms = now_millis;
@@ -137,9 +114,7 @@ void ds_write_gas(gas_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    ds.gas.raw = data->raw;
-    ds.gas.heater_on_s = data->heater_on_s;
-    ds.gas.heater_enabled = data->heater_enabled;
+    ds.gas = *data;
 
     // TODO: eventually remove these if handled by sensors
     ds.gas.s.t_ms = now_millis;
@@ -172,37 +147,7 @@ bool ds_read_all(datastore_t *data)
         return false;
     }
 
-    data->t_ms = ds.t_ms;
-    data->state = ds.state;
-    data->alt_peak_env = ds.alt_peak_env;
-    data->alt_peak_gps = ds.alt_peak_gps;
-
-    // Since the first is a shallow copy the second should fix it
-    // (the same applies for other writes)
-    data->env = ds.env;
-    data->env.s = ds.env.s;
-
-    for (size_t i = 0; i < 3; i++)
-    {
-        data->imu.accel[i] = ds.imu.accel[i];
-        data->imu.gyro[i] = ds.imu.gyro[i];
-        data->imu.mag[i] = ds.imu.mag[i];
-    }
-    for (size_t i = 0; i < 4; i++)
-    {
-        data->imu.quat[i] = ds.imu.quat[i];
-    }
-    data->imu.accel_mag = ds.imu.accel_mag;
-    data->imu.s = ds.imu.s;
-
-    data->gps = ds.gps;
-    data->gps.s = ds.gps.s;
-
-    data->light = ds.light;
-    data->light.s = ds.light.s;
-
-    data->gas = ds.gas;
-    data->gas.s = ds.gas.s;
+    *data = ds;
 
     if (ds_seq % 2 != 0)
     {
