@@ -1,4 +1,4 @@
-// compilazione: gcc -fsanitize=address -I include -I mocks -I test/unity -Wall test/unity/unity.c test/scheduler_test.c mocks/hal_time.c src/service/scheduler.c -o build/scheduler_runner
+// compile: gcc -fsanitize=address -I include -I mocks -I test/unity -Wall test/unity/unity.c test/scheduler_test.c mocks/hal_time.c src/service/scheduler.c -o build/scheduler_runner
 
 #include <stdint.h>
 #include <stdbool.h>
