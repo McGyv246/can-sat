@@ -27,6 +27,12 @@ extern "C"
 #define A_IN_GAS1 20
 #define A_IN_GAS2 21
 
+/* OTHER CONSTANTS */
+#define RESCHEDULE_FAULT_INTERVAL 1000
+
+// Must be power of 2 and multiple of 512
+#define BUF_SIZE 32768
+
     // SAMPLE RATES (to be defined)
 
     // THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
