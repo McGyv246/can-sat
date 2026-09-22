@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include "arduino_wrapper.h"
 
 extern "C"
 {
@@ -31,6 +30,6 @@ extern "C"
 
   uint32_t millis(void)
   {
-    return millis();
+    return (uint32_t)millis();
   }
 }

@@ -1,11 +1,12 @@
-#include <Arduino.h>
 #include <stdint.h>
+
+#include "arduino_wrapper.h"
 
 // #include "pico/time.h" // for time_us_64()
 
 uint32_t hal_millis(void)
 {
-    return (uint32_t)millis();
+    return millis();
 }
 
 // uint64_t hal_micros(void)
