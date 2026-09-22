@@ -2,7 +2,7 @@
 #include "types.h"
 #include "hal_time.h"
 
-void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t now_millis)
+static void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t now_millis)
 {
     out->sync = 0xA5A5;
     out->type = type;
@@ -10,7 +10,7 @@ void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t n
     out->t_ms = now_millis;
 }
 
-void pack_stamp(stamp_packed_t *out, stamp_t *data)
+static void pack_stamp(stamp_packed_t *out, stamp_t *data)
 {
     out->t_ms = data->t_ms;
     out->valid = data->valid;
