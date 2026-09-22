@@ -165,7 +165,7 @@ void on_disable_task_2(task_t *self)
 
 #pragma endregion
 
-void are_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n)
+void assert_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n)
 {
     TEST_ASSERT_EQUAL_PTR_ARRAY(expected_tasks, tasks, n);
 
