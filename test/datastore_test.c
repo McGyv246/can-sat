@@ -1,9 +1,25 @@
+// compile command: gcc -fsanitize=address -I include -I mocks -I test/unity -Wall test/unity/unity.c test/datastore_test.c mocks/hal_time.c src/service/datastore.c -o build/datastore_runner
+
 #include "unity.h"
 #include "types.h"
 #include "hal_time.h"
 #include "datastore.h"
 
 #pragma region helper_functions
+
+void print_ts(stamp_t *stamp, char *name)
+{
+    printf("%s.s.t_ms: %u\n", name, stamp->t_ms);
+    printf("%s.s.valid: %d\n", name, stamp->t_ms);
+}
+
+void print_float_array(float *arr, size_t n, char *name)
+{
+    for (size_t i = 0; i < n; i++)
+    {
+        printf("%s[%lu]: %f\n", name, i, arr[i]);
+    }
+}
 
 void print_ds(datastore_t *ds)
 {
@@ -57,20 +73,6 @@ void print_ds(datastore_t *ds)
     print_ts(&(ds->gas.s), "gas");
 }
 
-void print_float_array(float *arr, size_t n, char *name)
-{
-    for (size_t i = 0; i < n; i++)
-    {
-        printf("%s[%u]: %f\n", name, i, arr[i]);
-    }
-}
-
-void print_ts(stamp_t *stamp, char *name)
-{
-    printf("%s.s.t_ms: %f\n", stamp->t_ms);
-    printf("%s.s.valid: %d\n", stamp->t_ms);
-}
-
 void assert_equal_stamp(stamp_t *expected, stamp_t *actual)
 {
     TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
@@ -96,8 +98,8 @@ void assert_equal_ds_imu_no_ts(datastore_t *expected, datastore_t *actual)
 
 void assert_equal_ds_gps_no_ts(datastore_t *expected, datastore_t *actual)
 {
-    TEST_ASSERT_EQUAL_DOUBLE(expected->gps.lat, actual->gps.lat);
-    TEST_ASSERT_EQUAL_DOUBLE(expected->gps.lon, actual->gps.lon);
+    TEST_ASSERT_EQUAL_FLOAT((float)expected->gps.lat, (float)actual->gps.lat);
+    TEST_ASSERT_EQUAL_FLOAT((float)expected->gps.lon, (float)actual->gps.lon);
     TEST_ASSERT_EQUAL_FLOAT(expected->gps.alt_m, actual->gps.alt_m);
     TEST_ASSERT_EQUAL_FLOAT(expected->gps.speed_ms, actual->gps.speed_ms);
     TEST_ASSERT_EQUAL_FLOAT(expected->gps.course_deg, actual->gps.course_deg);
@@ -129,7 +131,7 @@ void assert_equal_ds_fields(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL_FLOAT(expected->alt_peak_gps, actual->alt_peak_gps);
 }
 
-void assert_equal_ds_embedded_structs(datastore_t *expected, datastore_t *actual)
+void assert_equal_ds(datastore_t *expected, datastore_t *actual)
 {
     assert_equal_ds_fields(expected, actual);
 
@@ -165,11 +167,16 @@ void when_startingProgram_expect_datastoreInitializedToBootAndZero()
     datastore_t ds_copy;
 
     ds_read_all(&ds_copy);
+
+    print_ds(&ds_copy);
+
+    datastore_t ds_expected = {.state = BOOT};
+    assert_equal_ds(&ds_expected, &ds_copy);
 }
 
 int main()
 {
     UNITY_BEGIN();
-    // RUN_TEST();
+    RUN_TEST(when_startingProgram_expect_datastoreInitializedToBootAndZero);
     return UNITY_END();
 }
