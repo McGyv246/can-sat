@@ -177,12 +177,12 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef struct
     {
         uint32_t t_ms; /* when this block was last updated */
-        bool valid;    /* did the last read succeed?       */
+        uint8_t valid; /* did the last read succeed?       */
     } stamp_packed_t;
 
     typedef struct
     {
-        stamp_t s;
+        stamp_packed_t s;
         float temp_c;
         float pressure_pa;
         float humidity_pct;
@@ -191,7 +191,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef struct
     {
-        stamp_t s;
+        stamp_packed_t s;
         float accel[3];
         float gyro[3];
         float mag[3];
@@ -201,7 +201,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef struct
     {
-        stamp_t s;
+        stamp_packed_t s;
         double lat, lon;
         float alt_m, speed_ms, course_deg, hdop; /* HDOP is an accuracy indicator */
         uint8_t sats, fix_type;
@@ -210,18 +210,18 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef struct
     {
-        stamp_t s;
-        bool is_there_light;
+        stamp_packed_t s;
+        uint8_t is_there_light;
         uint16_t uv_raw; /* averaged ADC counts */
         float uv_index;  /* converted           */
     } light_packed_t;
 
     typedef struct
     {
-        stamp_t s;
+        stamp_packed_t s;
         uint16_t raw;
         uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
-        bool heater_enabled;
+        uint8_t heater_enabled;
     } gas_packed_t;
 
     typedef struct

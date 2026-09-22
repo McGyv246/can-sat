@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "config.h"
+#include "types.h"
 
 uint8_t buf[BUF_SIZE];
 
@@ -20,3 +21,9 @@ size_t get_tail_masked()
 {
     return tail % BUF_SIZE;
 }
+
+// void buf_write_env()
+// {
+
+//     __sync_synchronize();
+// }
