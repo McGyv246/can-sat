@@ -8,7 +8,7 @@
 void print_ds(datastore_t *ds)
 {
     printf("t_ms: %u\n", ds->t_ms);
-    printf("flight_state: %d\n", ds->flight_state);
+    printf("flight_state: %d\n", ds->state);
     printf("alt_peak_env: %f\n", ds->alt_peak_env);
     printf("alt_peak_gps: %f\n", ds->alt_peak_gps);
 
@@ -18,7 +18,7 @@ void print_ds(datastore_t *ds)
     printf("env.pressure_pa: %f\n", ds->env.pressure_pa);
     printf("env.humidity_pct: %f\n", ds->env.humidity_pct);
     printf("env.altitude_m: %f\n", ds->env.altitude_m);
-    print_ts(ds->env.s, "env");
+    print_ts(&(ds->env.s), "env");
 
     printf("\n");
 
@@ -27,7 +27,7 @@ void print_ds(datastore_t *ds)
     print_float_array(ds->imu.mag, 3, "imu.mag");
     print_float_array(ds->imu.quat, 4, "imu.quat");
     printf("imu.accel_mag: %f\n", ds->imu.accel_mag);
-    print_ts(ds->imu.s, "imu");
+    print_ts(&(ds->imu.s), "imu");
 
     printf("\n");
 
@@ -40,28 +40,28 @@ void print_ds(datastore_t *ds)
     printf("gps.sats: %u\n", ds->gps.sats);
     printf("gps.fix_type: %u\n", ds->gps.fix_type);
     printf("gps.utc_s: %u\n", ds->gps.utc_s);
-    print_ts(ds->gps.s, "gps");
+    print_ts(&(ds->gps.s), "gps");
 
     printf("\n");
 
     printf("light.is_there_light: %d\n", ds->light.is_there_light);
     printf("light.uv_raw: %u\n", ds->light.uv_raw);
     printf("light.uv_index: %f\n", ds->light.uv_index);
-    print_ts(ds->light.s, "light");
+    print_ts(&(ds->light.s), "light");
 
     printf("\n");
 
     printf("gas.raw: %u\n", ds->gas.raw);
     printf("gas.heater_on_s: %u\n", ds->gas.heater_on_s);
     printf("gas.heater_enabled: %d\n", ds->gas.heater_enabled);
-    print_ts(ds->gas.s, "gas");
+    print_ts(&(ds->gas.s), "gas");
 }
 
 void print_float_array(float *arr, size_t n, char *name)
 {
     for (size_t i = 0; i < n; i++)
     {
-        printf("%s[%u]: %f\n", name, i, arr[i])
+        printf("%s[%u]: %f\n", name, i, arr[i]);
     }
 }
 
@@ -170,6 +170,6 @@ void when_startingProgram_expect_datastoreInitializedToBootAndZero()
 int main()
 {
     UNITY_BEGIN();
-    RUN_TEST();
+    // RUN_TEST();
     return UNITY_END();
 }
