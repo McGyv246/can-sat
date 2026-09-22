@@ -1,4 +1,4 @@
-// compile command: gcc -fsanitize=address -I include -I mocks -I test/unity -Wall test/unity/unity.c test/datastore_test.c mocks/hal_time.c src/service/datastore.c -o build/datastore_runner
+// compile: gcc -fsanitize=address -I include -I mocks -I test/unity -Wall test/unity/unity.c test/datastore_test.c mocks/hal_time.c src/service/datastore.c -o build/datastore_runner
 
 #include "unity.h"
 #include "types.h"
