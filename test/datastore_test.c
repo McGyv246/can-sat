@@ -2,15 +2,17 @@
 
 #include "unity.h"
 #include "types.h"
-#include "hal_time.h"
 #include "datastore.h"
+
+datastore_t ds_empty = {.state = BOOT};
+uint32_t mock_now_millis = 100;
 
 #pragma region helper_functions
 
 void print_ts(stamp_t *stamp, char *name)
 {
     printf("%s.s.t_ms: %u\n", name, stamp->t_ms);
-    printf("%s.s.valid: %d\n", name, stamp->t_ms);
+    printf("%s.s.valid: %d\n", name, stamp->valid);
 }
 
 void print_float_array(float *arr, size_t n, char *name)
@@ -71,6 +73,8 @@ void print_ds(datastore_t *ds)
     printf("gas.heater_on_s: %u\n", ds->gas.heater_on_s);
     printf("gas.heater_enabled: %d\n", ds->gas.heater_enabled);
     print_ts(&(ds->gas.s), "gas");
+
+    printf("\n\n");
 }
 
 void assert_equal_stamp(stamp_t *expected, stamp_t *actual)
@@ -160,7 +164,10 @@ void assert_equal_ds(datastore_t *expected, datastore_t *actual)
 
 void setUp() {}
 
-void tearDown() {}
+void tearDown()
+{
+    _ds_set_full(&ds_empty);
+}
 
 void when_startingProgram_expect_datastoreInitializedToBootAndZero()
 {
@@ -174,9 +181,142 @@ void when_startingProgram_expect_datastoreInitializedToBootAndZero()
     assert_equal_ds(&ds_expected, &ds_copy);
 }
 
+void when_gettingValuesAndEditingEnv_expect_copiedValuesNotToChange()
+{
+    datastore_t ds_copy;
+
+    ds_read_all(&ds_copy);
+
+    printf("BEFORE WRITE\n");
+    print_ds(&ds_copy);
+
+    env_t env = {
+        {
+            mock_now_millis,
+            false,
+        },
+        100.,
+        18000.,
+        30.,
+        200.,
+    };
+
+    ds_write_env(&env, mock_now_millis);
+
+    printf("AFTER WRITE\n");
+    print_ds(&ds_copy);
+
+    assert_equal_ds(&ds_empty, &ds_copy);
+}
+
+void when_gettingValuesAndEditingImu_expect_copiedValuesNotToChange()
+{
+    datastore_t ds_copy;
+
+    ds_read_all(&ds_copy);
+
+    printf("BEFORE WRITE\n");
+    print_ds(&ds_copy);
+
+    imu_t imu = {
+        {
+            mock_now_millis,
+            false,
+        },
+        {
+            10.,
+            10.,
+            10.,
+        },
+        {
+            20.,
+            20.,
+            20.,
+        },
+        {
+            30.,
+            30.,
+            30.,
+        },
+        {
+            40.,
+            40.,
+            40.,
+            40.,
+        },
+        100.,
+    };
+
+    ds_write_imu(&imu, mock_now_millis);
+
+    printf("AFTER WRITE\n");
+    print_ds(&ds_copy);
+
+    assert_equal_ds(&ds_empty, &ds_copy);
+}
+
+void when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly()
+{
+    datastore_t ds_copy;
+
+    ds_read_all(&ds_copy);
+
+    printf("BEFORE WRITE\n");
+    print_ds(&ds_copy);
+
+    imu_t imu = {
+        {
+            mock_now_millis,
+            false,
+        },
+        {
+            10.,
+            10.,
+            10.,
+        },
+        {
+            20.,
+            20.,
+            20.,
+        },
+        {
+            30.,
+            30.,
+            30.,
+        },
+        {
+            40.,
+            40.,
+            40.,
+            40.,
+        },
+        100.,
+    };
+
+    ds_write_imu(&imu, mock_now_millis);
+
+    ds_read_all(&ds_copy);
+
+    printf("AFTER WRITE\n");
+    print_ds(&ds_copy);
+
+    datastore_t expected = ds_empty;
+
+    expected.imu = imu;
+    expected.t_ms = mock_now_millis;
+
+    printf("EXPECTED\n");
+    print_ds(&expected);
+
+    assert_equal_ds(&expected, &ds_copy);
+}
+
 int main()
 {
     UNITY_BEGIN();
     RUN_TEST(when_startingProgram_expect_datastoreInitializedToBootAndZero);
+    RUN_TEST(when_gettingValuesAndEditingEnv_expect_copiedValuesNotToChange);
+    RUN_TEST(when_gettingValuesAndEditingImu_expect_copiedValuesNotToChange);
+    RUN_TEST(when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly);
     return UNITY_END();
 }

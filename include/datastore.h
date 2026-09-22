@@ -18,6 +18,9 @@ extern "C"
 
     bool ds_read_all(datastore_t *data);
 
+    // ONLY for testing purposes
+    void _ds_set_full(datastore_t *new_ds);
+
 #ifdef __cplusplus
 }
 #endif

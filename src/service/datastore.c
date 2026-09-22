@@ -10,6 +10,9 @@ static volatile uint8_t ds_seq = 0;
 static void ds_write_begin();
 static void ds_write_end(uint32_t now_millis);
 
+// ONLY for testing purposes
+void _ds_set_full(datastore_t *new_ds);
+
 void ds_write_env(env_t *data, uint32_t now_millis);
 void ds_write_imu(imu_t *data, uint32_t now_millis);
 void ds_write_gps(gps_t *data, uint32_t now_millis);
@@ -26,6 +29,11 @@ bool ds_read_all(datastore_t *data);
 static void temp_write_ring_buffer() {};
 
 #pragma region write_fn
+
+void _ds_set_full(datastore_t *new_ds)
+{
+    ds = *new_ds;
+}
 
 static void ds_write_begin()
 {
@@ -52,8 +60,8 @@ void ds_write_env(env_t *data, uint32_t now_millis)
     }
 
     // TODO: eventually remove these if handled by sensors
-    ds.env.s.t_ms = now_millis;
-    ds.env.s.valid = true;
+    // ds.env.s.t_ms = now_millis;
+    // ds.env.s.valid = true;
 
     temp_write_ring_buffer();
 
@@ -67,8 +75,8 @@ void ds_write_imu(imu_t *data, uint32_t now_millis)
     ds.imu = *data;
 
     // TODO: eventually remove these if handled by sensors
-    ds.imu.s.t_ms = now_millis;
-    ds.imu.s.valid = true;
+    // ds.imu.s.t_ms = now_millis;
+    // ds.imu.s.valid = true;
 
     temp_write_ring_buffer();
 
@@ -87,8 +95,8 @@ void ds_write_gps(gps_t *data, uint32_t now_millis)
     }
 
     // TODO: eventually remove these if handled by sensors
-    ds.gps.s.t_ms = now_millis;
-    ds.gps.s.valid = true;
+    // ds.gps.s.t_ms = now_millis;
+    // ds.gps.s.valid = true;
 
     temp_write_ring_buffer();
 
@@ -102,8 +110,8 @@ void ds_write_light(light_t *data, uint32_t now_millis)
     ds.light = *data;
 
     // TODO: eventually remove these if handled by sensors
-    ds.light.s.t_ms = now_millis;
-    ds.light.s.valid = true;
+    // ds.light.s.t_ms = now_millis;
+    // ds.light.s.valid = true;
 
     temp_write_ring_buffer();
 
@@ -117,8 +125,8 @@ void ds_write_gas(gas_t *data, uint32_t now_millis)
     ds.gas = *data;
 
     // TODO: eventually remove these if handled by sensors
-    ds.gas.s.t_ms = now_millis;
-    ds.gas.s.valid = true;
+    // ds.gas.s.t_ms = now_millis;
+    // ds.gas.s.valid = true;
 
     temp_write_ring_buffer();
 
