@@ -73,13 +73,50 @@ void print_gas_sd(gas_sd_t *data)
     printf("crc: %u\n", data->crc);
 }
 
+void assert_equal_sd_header(sd_header_t *expected, sd_header_t *actual)
+{
+    TEST_ASSERT_EQUAL_UINT32(expected->sync, actual->sync);
+    TEST_ASSERT_EQUAL_UINT32(expected->type, actual->type);
+    TEST_ASSERT_EQUAL_UINT32(expected->len, actual->len);
+    TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
+}
+
+void assert_equal_stats_sd(stats_sd_t *expected, stats_sd_t *actual)
+{
+    assert_equal_sd_header(&(expected->header), &(actual->header));
+
+    TEST_ASSERT_EQUAL_UINT32(expected->data.t_ms, actual->data.t_ms);
+    TEST_ASSERT_EQUAL_INT(expected->data.state, actual->data.state);
+    TEST_ASSERT_EQUAL_FLOAT(expected->data.alt_peak_env, actual->data.alt_peak_env);
+    TEST_ASSERT_EQUAL_FLOAT(expected->data.alt_peak_gps, actual->data.alt_peak_gps);
+    TEST_ASSERT_EQUAL_UINT32(expected->data.records_dropped, actual->data.records_dropped);
+
+    TEST_ASSERT_EQUAL_UINT32(expected->crc, actual->crc);
+}
+
+void assert_equal_gas_sd(gas_sd_t *expected, gas_sd_t *actual)
+{
+    assert_equal_sd_header(&(expected->header), &(actual->header));
+
+    TEST_ASSERT_EQUAL_UINT32(expected->data.s.t_ms, actual->data.s.t_ms);
+    TEST_ASSERT_EQUAL_UINT32(expected->data.s.valid, actual->data.s.valid);
+    TEST_ASSERT_EQUAL_UINT32(expected->data.raw, actual->data.raw);
+    TEST_ASSERT_EQUAL_UINT32(expected->data.heater_on_s, actual->data.heater_on_s);
+    TEST_ASSERT_EQUAL_UINT32(expected->data.heater_enabled, actual->data.heater_enabled);
+
+    TEST_ASSERT_EQUAL_UINT32(expected->crc, actual->crc);
+}
+
 void setUp() {}
 
-void tearDown() {}
+void tearDown()
+{
+    buf_reset();
+}
 
 void when_insertingOneStructInBuffer_expect_retrievingCorrectData()
 {
-    size_t record_size = sizeof(stats_packed_t) + sizeof(sd_header_t) + sizeof(uint16_t);
+    size_t record_size = sizeof(stats_sd_t);
     buf_write(&test_stats, record_size);
 
     printf("Record size: %lu\n", record_size);
@@ -88,20 +125,98 @@ void when_insertingOneStructInBuffer_expect_retrievingCorrectData()
 
     printf("\n");
 
-    uint8_t out[record_size];
-    stats_sd_t parsed_stats;
-    buf_read(out);
-    memcpy(&parsed_stats, out, record_size);
+    uint8_t stats_bytes[record_size];
+    stats_sd_t stats_parsed;
+    buf_read(stats_bytes);
+    memcpy(&stats_parsed, stats_bytes, record_size);
 
-    print_stats_sd(&parsed_stats);
+    print_stats_sd(&stats_parsed);
+
+    assert_equal_stats_sd(&test_stats, &stats_parsed);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY((uint8_t *)&test_stats, stats_bytes, record_size);
 }
 
 void when_insertingMultipleStructsInBuffer_expect_retrievingCorrectData()
 {
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+
+    stats_sd_t changed_stats = test_stats;
+    changed_stats.data.state = 5;
+    buf_write(&changed_stats, sizeof(stats_sd_t));
+
+    uint8_t bytes_data[BUF_SIZE];
+    buf_read(bytes_data);
+
+    stats_sd_t stats_parsed_1, stats_parsed_2;
+    gas_sd_t gas_parsed;
+
+    memcpy(&stats_parsed_1, bytes_data, sizeof(stats_sd_t));
+    memcpy(&gas_parsed, bytes_data + sizeof(stats_sd_t), sizeof(gas_sd_t));
+    memcpy(&stats_parsed_2, bytes_data + sizeof(stats_sd_t) + sizeof(gas_sd_t), sizeof(stats_sd_t));
+
+    print_stats_sd(&stats_parsed_1);
+    printf("\n");
+    print_gas_sd(&gas_parsed);
+    printf("\n");
+    print_stats_sd(&stats_parsed_2);
+    printf("\n");
+
+    assert_equal_stats_sd(&test_stats, &stats_parsed_1);
+    assert_equal_gas_sd(&test_gas, &gas_parsed);
+    assert_equal_stats_sd(&changed_stats, &stats_parsed_2);
+}
+
+void when_insertingMultipleStructsInBufferAndReadingInTwoTimes_expect_retrievingCorrectData()
+{
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+
+    uint8_t bytes_data[BUF_SIZE];
+    buf_read(bytes_data);
+
+    stats_sd_t changed_stats = test_stats;
+    changed_stats.data.state = 15;
+    buf_write(&changed_stats, sizeof(stats_sd_t));
+
+    buf_read(bytes_data);
+
+    stats_sd_t stats_parsed;
+    memcpy(&stats_parsed, bytes_data, sizeof(stats_sd_t));
+
+    print_stats_sd(&stats_parsed);
+    printf("\n");
+
+    assert_equal_stats_sd(&changed_stats, &stats_parsed);
 }
 
 void when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly()
 {
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+
+    uint8_t bytes_data[BUF_SIZE];
+    buf_read(bytes_data);
+
+    // Now buffer should be empty (head and tail equal)
+    // but only 10 slots should be available before wrapping
+    // So the next record should wrap
+
+    stats_sd_t changed_stats = test_stats;
+    changed_stats.data.state = 25;
+    buf_write(&changed_stats, sizeof(stats_sd_t));
+
+    buf_read(bytes_data);
+
+    stats_sd_t stats_parsed;
+    memcpy(&stats_parsed, bytes_data, sizeof(stats_sd_t));
+
+    print_stats_sd(&stats_parsed);
+    printf("\n");
+
+    assert_equal_stats_sd(&changed_stats, &stats_parsed);
 }
 
 void when_insertingInFullBuffer_expect_frameToBeDroppedAndDatastoreUpdated()
@@ -118,6 +233,7 @@ int main()
     printf("Buf Size (in test): %d\n", BUF_SIZE);
     RUN_TEST(when_insertingOneStructInBuffer_expect_retrievingCorrectData);
     RUN_TEST(when_insertingMultipleStructsInBuffer_expect_retrievingCorrectData);
+    RUN_TEST(when_insertingMultipleStructsInBufferAndReadingInTwoTimes_expect_retrievingCorrectData);
     RUN_TEST(when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly);
     RUN_TEST(when_insertingInFullBuffer_expect_frameToBeDroppedAndDatastoreUpdated);
     RUN_TEST(when_readingFromEmptyBuffer_expect_emptyPointerAndNoCrash);

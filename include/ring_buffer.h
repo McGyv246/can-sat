@@ -12,6 +12,9 @@ extern "C"
     void buf_write(void *data, size_t len);
     void buf_read(uint8_t *out);
 
+    // ONLY for testing purposes
+    void buf_reset();
+
 #ifdef __cplusplus
 }
 #endif
