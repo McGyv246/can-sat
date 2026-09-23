@@ -145,7 +145,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 49, "wire layout changed");
+    static_assert(sizeof(data_to_lora_t) == 49, "LoRa layout changed");
 
 #pragma endregion
 
@@ -281,7 +281,14 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
 #pragma pack(pop)
 
-    static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
+    static_assert(sizeof(sd_header_t) == 8, "Header layout changed");
+    static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
+    static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
+    static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");
+    static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
+    static_assert(sizeof(light_packed_t) == 12, "Light packed layout changed");
+    static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
+    static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
 
 #pragma endregion
 
