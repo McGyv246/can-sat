@@ -131,6 +131,7 @@ void stats_to_sd(stats_sd_t *out, datastore_t *data)
     out->data.state = (uint8_t)data->state;
     out->data.alt_peak_env = data->alt_peak_env;
     out->data.alt_peak_gps = data->alt_peak_gps;
+    out->data.records_dropped = data->records_dropped;
 
     sd_header_t header;
     build_header(&header, STATS, (uint16_t)sizeof(out->data), hal_millis());

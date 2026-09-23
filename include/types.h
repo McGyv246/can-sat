@@ -92,6 +92,7 @@ extern "C"
         flight_state_t state;
         // uint32_t t_state_entry; /* for timeouts in the FSM (no idea what this means lol) */
         float alt_peak_env, alt_peak_gps;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
 
         env_t env;
         imu_t imu;
@@ -117,6 +118,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
         uint32_t ms_since_boot;
         uint8_t flight_state;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
 
         int16_t temp_c;
         uint16_t pressure; /* (pa - 30000) / 2) */
@@ -143,7 +145,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 47, "wire layout changed");
+    static_assert(sizeof(data_to_lora_t) == 49, "wire layout changed");
 
 #pragma endregion
 
@@ -231,6 +233,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint8_t state;
         float alt_peak_env;
         float alt_peak_gps;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
     } stats_packed_t;
 
     // Structs with header, data and crc for direct sd write

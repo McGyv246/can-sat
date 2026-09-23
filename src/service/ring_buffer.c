@@ -4,6 +4,8 @@
 
 #include "config.h"
 #include "types.h"
+#include "datastore.h"
+#include "hal_time.h"
 
 uint8_t buf[BUF_SIZE];
 
@@ -12,6 +14,12 @@ size_t volatile tail = 0;
 
 void buf_write(void *data, size_t len)
 {
+    if (len > BUF_SIZE - (head - tail)) // Not enough free space in the buffer
+    {
+        ds_write_increment_records_dropped(hal_millis());
+        return;
+    }
+
     uint8_t *bytes = (const uint8_t *)data;
 
     size_t head_masked = head % BUF_SIZE;
@@ -46,7 +54,7 @@ void buf_read(uint8_t *out)
     else
     {
         memcpy(out, buf, first_chunk_max_size);
-        memcpy(out[first_chunk_max_size - 1], buf, current_head - tail - first_chunk_max_size);
+        memcpy(out[first_chunk_max_size], buf, current_head - tail - first_chunk_max_size);
     }
 
     __sync_synchronize();
