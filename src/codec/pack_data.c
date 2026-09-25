@@ -1,10 +1,13 @@
 #include <stdint.h>
+#include <string.h>
+
 #include "types.h"
 #include "hal_time.h"
+#include "config.h"
 
 static void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t now_millis)
 {
-    out->sync = 0xA5A5;
+    out->sync = SYNC_WORD;
     out->type = type;
     out->len = len;
     out->t_ms = now_millis;
