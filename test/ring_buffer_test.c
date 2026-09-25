@@ -6,6 +6,7 @@
 #include "unity.h"
 #include "config.h"
 #include "ring_buffer.h"
+#include "datastore.h"
 
 stats_sd_t test_stats = {
     .header = {
@@ -201,7 +202,7 @@ void when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly()
     buf_read(bytes_data);
 
     // Now buffer should be empty (head and tail equal)
-    // but only 10 slots should be available before wrapping
+    // but only 10 bytes should be available before wrapping
     // So the next record should wrap
 
     stats_sd_t changed_stats = test_stats;
@@ -219,12 +220,45 @@ void when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly()
     assert_equal_stats_sd(&changed_stats, &stats_parsed);
 }
 
-void when_insertingInFullBuffer_expect_frameToBeDroppedAndDatastoreUpdated()
+void when_insertingInFullBuffer_expect_recordToBeDroppedAndDatastoreUpdated()
 {
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+    buf_write(&test_gas, sizeof(gas_sd_t));
+
+    // Only 10 bytes should be empty, so next writes should be dropped
+
+    datastore_t ds;
+
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    ds_read_all(&ds);
+    printf("records_dropped: %u\n", ds.records_dropped);
+    TEST_ASSERT_EQUAL_UINT16(1, ds.records_dropped);
+
+    buf_write(&test_gas, sizeof(gas_sd_t));
+    ds_read_all(&ds);
+    printf("records_dropped: %u\n", ds.records_dropped);
+    TEST_ASSERT_EQUAL_UINT16(2, ds.records_dropped);
+
+    uint8_t bytes_data[BUF_SIZE];
+    buf_read(bytes_data);
+
+    // Now there should be space available so records should be added correctly
+
+    buf_write(&test_stats, sizeof(stats_sd_t));
+    ds_read_all(&ds);
+    printf("records_dropped: %u\n", ds.records_dropped);
+    TEST_ASSERT_EQUAL_UINT16(2, ds.records_dropped);
 }
 
 void when_readingFromEmptyBuffer_expect_emptyPointerAndNoCrash()
 {
+    uint8_t bytes_data[BUF_SIZE] = {0};
+    buf_read(bytes_data);
+
+    uint8_t expected_data[BUF_SIZE] = {0};
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_data, bytes_data, BUF_SIZE);
 }
 
 int main()
@@ -235,7 +269,7 @@ int main()
     RUN_TEST(when_insertingMultipleStructsInBuffer_expect_retrievingCorrectData);
     RUN_TEST(when_insertingMultipleStructsInBufferAndReadingInTwoTimes_expect_retrievingCorrectData);
     RUN_TEST(when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly);
-    RUN_TEST(when_insertingInFullBuffer_expect_frameToBeDroppedAndDatastoreUpdated);
+    RUN_TEST(when_insertingInFullBuffer_expect_recordToBeDroppedAndDatastoreUpdated);
     RUN_TEST(when_readingFromEmptyBuffer_expect_emptyPointerAndNoCrash);
     return UNITY_END();
 }

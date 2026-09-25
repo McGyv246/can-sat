@@ -55,6 +55,10 @@ void buf_write(void *data, size_t len)
 void buf_read(uint8_t *out)
 {
     size_t current_head = head; // so if head changes while copying strange errors don't occur (conservative approach)
+
+    if (current_head - tail == 0)
+        return;
+
     size_t tail_masked = tail % BUF_SIZE;
 
     size_t first_chunk_max_size = BUF_SIZE - tail_masked;
