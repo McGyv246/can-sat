@@ -32,12 +32,12 @@ extern "C"
 
 // Must be power of 2 and multiple of 512
 #ifndef BUF_SIZE
-
 // This if is necessary so that I can override this macro in tests
 // by setting it in the compile command.
 #define BUF_SIZE 32768
-
 #endif
+
+#define SYNC_WORD 0xA5A5
 
     // SAMPLE RATES (to be defined)
 

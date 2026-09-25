@@ -218,15 +218,15 @@ sens_status_t gybmep_init(void)
     if (id != CHIP_ID)
         return SENS_ERR;
     write_reg_8(current_address, REG_RESET, 0xB6); // resets device
-    delay_ms((uint32_t)3);
+    wrapper_delay_ms((uint32_t)3);
     while (true)
     {
         uint8_t status;
         if (read_reg_8(current_address, REG_STATUS, &status) == SENS_ERR)
             return SENS_ERR; // reads im_update bit
         if (!(status & 0x01))
-            break;   // checks for im_update bit to be zero
-        delay_ms(1); // waits for reset to be completed
+            break;           // checks for im_update bit to be zero
+        wrapper_delay_ms(1); // waits for reset to be completed
     }
     if (read_calibration() == SENS_ERR)
         return SENS_ERR;

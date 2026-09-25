@@ -11,6 +11,8 @@ extern "C"
 #include <stdbool.h>
 #include <assert.h>
 
+#include "config.h"
+
 #pragma region main_datastore
 
     /*
@@ -112,7 +114,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 #pragma pack(push, 1)
     typedef struct
     {
-        uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
+        uint16_t sync; /* MUST TO BE FIRST! MUST ALWAYS BE SYNC_WORD. Unusual pattern needed to detect packet loss. */
         uint8_t version;
         uint16_t seq; /* needed for packet loss statistics (details needed for implementation) */
 
@@ -145,7 +147,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 49, "LoRa layout changed");
+    static_assert(sizeof(data_to_lora_t) == 50, "LoRa layout changed");
 
 #pragma endregion
 
@@ -170,7 +172,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef struct
     {
-        uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
+        uint16_t sync; /* MUST TO BE FIRST! MUST ALWAYS BE SYNC_WORD. Unusual pattern needed to detect packet loss. */
         uint8_t type;
         uint16_t len;
         uint32_t t_ms;
@@ -281,7 +283,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
 #pragma pack(pop)
 
-    static_assert(sizeof(sd_header_t) == 8, "Header layout changed");
+    static_assert(sizeof(sd_header_t) == 9, "Header layout changed");
     static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
     static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
     static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");

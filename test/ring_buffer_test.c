@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #include "unity.h"
 #include "config.h"
@@ -76,9 +77,9 @@ void print_gas_sd(gas_sd_t *data)
 
 void assert_equal_sd_header(sd_header_t *expected, sd_header_t *actual)
 {
-    TEST_ASSERT_EQUAL_UINT32(expected->sync, actual->sync);
-    TEST_ASSERT_EQUAL_UINT32(expected->type, actual->type);
-    TEST_ASSERT_EQUAL_UINT32(expected->len, actual->len);
+    TEST_ASSERT_EQUAL_UINT16(expected->sync, actual->sync);
+    TEST_ASSERT_EQUAL_UINT8(expected->type, actual->type);
+    TEST_ASSERT_EQUAL_UINT16(expected->len, actual->len);
     TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
 }
 
@@ -87,12 +88,12 @@ void assert_equal_stats_sd(stats_sd_t *expected, stats_sd_t *actual)
     assert_equal_sd_header(&(expected->header), &(actual->header));
 
     TEST_ASSERT_EQUAL_UINT32(expected->data.t_ms, actual->data.t_ms);
-    TEST_ASSERT_EQUAL_INT(expected->data.state, actual->data.state);
+    TEST_ASSERT_EQUAL_UINT8(expected->data.state, actual->data.state);
     TEST_ASSERT_EQUAL_FLOAT(expected->data.alt_peak_env, actual->data.alt_peak_env);
     TEST_ASSERT_EQUAL_FLOAT(expected->data.alt_peak_gps, actual->data.alt_peak_gps);
     TEST_ASSERT_EQUAL_UINT32(expected->data.records_dropped, actual->data.records_dropped);
 
-    TEST_ASSERT_EQUAL_UINT32(expected->crc, actual->crc);
+    TEST_ASSERT_EQUAL_UINT16(expected->crc, actual->crc);
 }
 
 void assert_equal_gas_sd(gas_sd_t *expected, gas_sd_t *actual)
@@ -100,12 +101,12 @@ void assert_equal_gas_sd(gas_sd_t *expected, gas_sd_t *actual)
     assert_equal_sd_header(&(expected->header), &(actual->header));
 
     TEST_ASSERT_EQUAL_UINT32(expected->data.s.t_ms, actual->data.s.t_ms);
-    TEST_ASSERT_EQUAL_UINT32(expected->data.s.valid, actual->data.s.valid);
-    TEST_ASSERT_EQUAL_UINT32(expected->data.raw, actual->data.raw);
-    TEST_ASSERT_EQUAL_UINT32(expected->data.heater_on_s, actual->data.heater_on_s);
-    TEST_ASSERT_EQUAL_UINT32(expected->data.heater_enabled, actual->data.heater_enabled);
+    TEST_ASSERT_EQUAL_UINT8(expected->data.s.valid, actual->data.s.valid);
+    TEST_ASSERT_EQUAL_UINT16(expected->data.raw, actual->data.raw);
+    TEST_ASSERT_EQUAL_UINT16(expected->data.heater_on_s, actual->data.heater_on_s);
+    TEST_ASSERT_EQUAL_UINT8(expected->data.heater_enabled, actual->data.heater_enabled);
 
-    TEST_ASSERT_EQUAL_UINT32(expected->crc, actual->crc);
+    TEST_ASSERT_EQUAL_UINT16(expected->crc, actual->crc);
 }
 
 void setUp() {}
@@ -201,8 +202,10 @@ void when_insertingAtWrapInBufferAndReading_expect_dataToBeRetrievedCorrectly()
     uint8_t bytes_data[BUF_SIZE];
     buf_read(bytes_data);
 
+    static_assert(sizeof(stats_sd_t) == 26, "stats_sd_t size changed: THIS TEST DEPENDS ON THOSE SIZES");
+    static_assert(sizeof(gas_sd_t) == 21, "gas_sd_t size changed: THIS TEST DEPENDS ON THOSE SIZES");
     // Now buffer should be empty (head and tail equal)
-    // but only 10 bytes should be available before wrapping
+    // but only 4 bytes should be available before wrapping
     // So the next record should wrap
 
     stats_sd_t changed_stats = test_stats;
@@ -227,7 +230,9 @@ void when_insertingInFullBuffer_expect_recordToBeDroppedAndDatastoreUpdated()
     buf_write(&test_gas, sizeof(gas_sd_t));
     buf_write(&test_gas, sizeof(gas_sd_t));
 
-    // Only 10 bytes should be empty, so next writes should be dropped
+    static_assert(sizeof(stats_sd_t) == 26, "stats_sd_t size changed: THIS TEST DEPENDS ON THOSE SIZES");
+    static_assert(sizeof(gas_sd_t) == 21, "gas_sd_t size changed: THIS TEST DEPENDS ON THOSE SIZES");
+    // Only 4 bytes should be empty, so next writes should be dropped
 
     datastore_t ds;
 

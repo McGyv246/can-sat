@@ -103,6 +103,7 @@ void assert_equal_ds_imu_no_ts(datastore_t *expected, datastore_t *actual)
 
 void assert_equal_ds_gps_no_ts(datastore_t *expected, datastore_t *actual)
 {
+    // Type cast from double to float needed because testing library doesn't support doubles
     TEST_ASSERT_EQUAL_FLOAT((float)expected->gps.lat, (float)actual->gps.lat);
     TEST_ASSERT_EQUAL_FLOAT((float)expected->gps.lon, (float)actual->gps.lon);
     TEST_ASSERT_EQUAL_FLOAT(expected->gps.alt_m, actual->gps.alt_m);
@@ -134,7 +135,7 @@ void assert_equal_ds_stats(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL(expected->state, actual->state); /* enum -> int-based compare */
     TEST_ASSERT_EQUAL_FLOAT(expected->alt_peak_env, actual->alt_peak_env);
     TEST_ASSERT_EQUAL_FLOAT(expected->alt_peak_gps, actual->alt_peak_gps);
-    TEST_ASSERT_EQUAL_UINT32(expected->records_dropped, actual->records_dropped);
+    TEST_ASSERT_EQUAL_UINT16(expected->records_dropped, actual->records_dropped);
 }
 
 void assert_equal_ds(datastore_t *expected, datastore_t *actual)
