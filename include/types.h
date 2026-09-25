@@ -13,6 +13,10 @@ extern "C"
 
 #pragma region main_datastore
 
+    /*
+    WHEN UPDATING THESE REMEMBER TO UPDATE ALSO THE PACKED VERSIONS BELOW
+    */
+
     typedef struct
     {
         uint32_t t_ms; /* when this block was last updated */
@@ -88,6 +92,7 @@ extern "C"
         flight_state_t state;
         // uint32_t t_state_entry; /* for timeouts in the FSM (no idea what this means lol) */
         float alt_peak_env, alt_peak_gps;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
 
         env_t env;
         imu_t imu;
@@ -113,6 +118,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
         uint32_t ms_since_boot;
         uint8_t flight_state;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
 
         int16_t temp_c;
         uint16_t pressure; /* (pa - 30000) / 2) */
@@ -139,11 +145,15 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 47, "wire layout changed");
+    static_assert(sizeof(data_to_lora_t) == 49, "LoRa layout changed");
 
 #pragma endregion
 
 #pragma region sd_structs
+
+    /*
+    WHEN UPDATING THESE REMEMBER TO UPDATE ALSO THE NOT PACKED VERSIONS ABOVE
+    */
 
     typedef enum
     {
@@ -152,10 +162,12 @@ For now the choice of the length of such integer has been made by Claude, we wil
         GPS = 2,
         LIGHT = 3,
         GAS = 4,
-        // HEALTH = 5
+        STATS = 5,
+        // HEALTH = 6,
     } sensor_type_t;
 
 #pragma pack(push, 1)
+
     typedef struct
     {
         uint8_t sync; /* MUST TO BE FIRST! 0xA5A5 (don't know what it means lol). Needed to handle packet loss (details needed for implementation) */
@@ -163,9 +175,120 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint16_t len;
         uint32_t t_ms;
     } sd_header_t;
+
+    // Packed versions of sensor structs
+    typedef struct
+    {
+        uint32_t t_ms; /* when this block was last updated */
+        uint8_t valid; /* did the last read succeed?       */
+    } stamp_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        float temp_c;
+        float pressure_pa;
+        float humidity_pct;
+        float altitude_m; /* derived, relative to the pad */
+    } env_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        float accel[3];
+        float gyro[3];
+        float mag[3];
+        float quat[4]; /* automatically fused by the sensor dedicated processor */
+        float accel_mag;
+    } imu_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        double lat, lon;
+        float alt_m, speed_ms, course_deg, hdop; /* HDOP is an accuracy indicator */
+        uint8_t sats, fix_type;
+        uint32_t utc_s; /* for aligning logs */
+    } gps_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        uint8_t is_there_light;
+        uint16_t uv_raw; /* averaged ADC counts */
+        float uv_index;  /* converted           */
+    } light_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        uint16_t raw;
+        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        uint8_t heater_enabled;
+    } gas_packed_t;
+
+    typedef struct
+    {
+        uint32_t t_ms; /* time of last update, any block */
+        uint8_t state;
+        float alt_peak_env;
+        float alt_peak_gps;
+        uint16_t records_dropped; /* records dropped due to ring buffer having not enough space*/
+    } stats_packed_t;
+
+    // Structs with header, data and crc for direct sd write
+    typedef struct
+    {
+        sd_header_t header;
+        env_packed_t data;
+        uint16_t crc;
+    } env_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        imu_packed_t data;
+        uint16_t crc;
+    } imu_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        gps_packed_t data;
+        uint16_t crc;
+    } gps_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        light_packed_t data;
+        uint16_t crc;
+    } light_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        gas_packed_t data;
+        uint16_t crc;
+    } gas_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        stats_packed_t data;
+        uint16_t crc;
+    } stats_sd_t;
+
 #pragma pack(pop)
 
-    static_assert(sizeof(sd_header_t) == 8, "wire layout changed");
+    static_assert(sizeof(sd_header_t) == 8, "Header layout changed");
+    static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
+    static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
+    static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");
+    static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
+    static_assert(sizeof(light_packed_t) == 12, "Light packed layout changed");
+    static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
+    static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
 
 #pragma endregion
 

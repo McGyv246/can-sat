@@ -29,6 +29,7 @@ void print_ds(datastore_t *ds)
     printf("flight_state: %d\n", ds->state);
     printf("alt_peak_env: %f\n", ds->alt_peak_env);
     printf("alt_peak_gps: %f\n", ds->alt_peak_gps);
+    printf("records_dropped: %u\n", ds->records_dropped);
 
     printf("\n");
 
@@ -127,17 +128,18 @@ void assert_equal_ds_gas_no_ts(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL(expected->gas.heater_enabled, actual->gas.heater_enabled);
 }
 
-void assert_equal_ds_fields(datastore_t *expected, datastore_t *actual)
+void assert_equal_ds_stats(datastore_t *expected, datastore_t *actual)
 {
     TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
     TEST_ASSERT_EQUAL(expected->state, actual->state); /* enum -> int-based compare */
     TEST_ASSERT_EQUAL_FLOAT(expected->alt_peak_env, actual->alt_peak_env);
     TEST_ASSERT_EQUAL_FLOAT(expected->alt_peak_gps, actual->alt_peak_gps);
+    TEST_ASSERT_EQUAL_UINT32(expected->records_dropped, actual->records_dropped);
 }
 
 void assert_equal_ds(datastore_t *expected, datastore_t *actual)
 {
-    assert_equal_ds_fields(expected, actual);
+    assert_equal_ds_stats(expected, actual);
 
     /* env */
     assert_equal_ds_env_no_ts(expected, actual);

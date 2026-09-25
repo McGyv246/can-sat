@@ -3,9 +3,7 @@
 
 #include "types.h"
 #include "hal_time.h"
-
-// TODO: Eventually move this
-#define RESCHEDULE_FAULT_INTERVAL 1000
+#include "config.h"
 
 void sched_init(scheduler_t *sched, task_t *tasks, uint16_t tasks_number, bool *enabled_tasks);
 void sched_tick(scheduler_t *sched);

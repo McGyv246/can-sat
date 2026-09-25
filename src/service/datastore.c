@@ -144,6 +144,17 @@ void ds_write_flight_state(flight_state_t data, uint32_t now_millis)
     ds_write_end(now_millis);
 }
 
+void ds_write_increment_records_dropped(uint32_t now_millis)
+{
+    ds_write_begin();
+
+    ds.records_dropped += 1;
+
+    temp_write_ring_buffer();
+
+    ds_write_end(now_millis);
+}
+
 #pragma endregion
 
 #pragma region read_fn
