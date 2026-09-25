@@ -1,4 +1,4 @@
-// compile: gcc -I mocks -I test/unity -Wall test/unity/unity.c test/hal_time_test.c mocks/hal_time.c -o build/hal_time_runner
+// compile: gcc -fsanitize=address -I mocks -I test/unity -Wall test/unity/unity.c test/hal_time_test.c mocks/hal_time.c -o build/hal_time_runner
 
 #include "hal_time.h"
 #include "unity.h"
