@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <string.h>
+
 #include "types.h"
 #include "hal_time.h"
 

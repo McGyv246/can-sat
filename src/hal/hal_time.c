@@ -6,7 +6,7 @@
 
 uint32_t hal_millis(void)
 {
-    return millis();
+    return wrapper_millis();
 }
 
 // uint64_t hal_micros(void)

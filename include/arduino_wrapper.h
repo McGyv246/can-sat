@@ -25,12 +25,12 @@ extern "C"
 #define WRAPPER_HIGH 0x1
 #endif
 
-    void pin_mode(uint8_t pin, uint8_t mode);
-    void digital_write(uint8_t pin, uint8_t val);
-    int digital_read(uint8_t pin);
-    int analog_read(uint8_t pin);
-    void delay_ms(uint32_t ms);
-    uint32_t millis(void);
+    void wrapper_pin_mode(uint8_t pin, uint8_t mode);
+    void wrapper_digital_write(uint8_t pin, uint8_t val);
+    int wrapper_digital_read(uint8_t pin);
+    int wrapper_analog_read(uint8_t pin);
+    void wrapper_delay_ms(uint32_t ms);
+    uint32_t wrapper_millis(void);
 
 #ifdef __cplusplus
 }
