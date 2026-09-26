@@ -52,26 +52,30 @@ void buf_write(void *data, size_t len)
 // It might be better to have a function that directly saves to SD without needing this thing,
 // but I am not sure it's viable.
 // Else this would be a great usecase for malloc, but in this project it's better not to use it.
-void buf_read(uint8_t *out)
+size_t buf_read(uint8_t *out)
 {
     size_t current_head = head; // so if head changes while copying strange errors don't occur (conservative approach)
 
-    if (current_head - tail == 0)
-        return;
+    size_t read_size = current_head - tail;
+
+    if (read_size == 0)
+        return 0;
 
     size_t tail_masked = tail % BUF_SIZE;
 
     size_t first_chunk_max_size = BUF_SIZE - tail_masked;
-    if (first_chunk_max_size >= current_head - tail)
+    if (first_chunk_max_size >= read_size)
     {
-        memcpy(out, &buf[tail_masked], current_head - tail);
+        memcpy(out, &buf[tail_masked], read_size);
     }
     else
     {
         memcpy(out, &buf[tail_masked], first_chunk_max_size);
-        memcpy(out + first_chunk_max_size, buf, current_head - tail - first_chunk_max_size);
+        memcpy(out + first_chunk_max_size, buf, read_size - first_chunk_max_size);
     }
 
     __sync_synchronize();
-    tail += current_head - tail;
+    tail += read_size;
+
+    return read_size;
 }

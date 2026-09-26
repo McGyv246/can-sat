@@ -10,7 +10,7 @@ extern "C"
 #include "types.h"
 
     void buf_write(void *data, size_t len);
-    void buf_read(uint8_t *out);
+    size_t buf_read(uint8_t *out);
 
     // ONLY for testing purposes
     void buf_reset();

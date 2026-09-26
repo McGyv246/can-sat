@@ -60,7 +60,7 @@ void imu_to_sd(imu_sd_t *out, imu_t *data)
     out->header = header;
 
     // exclude the crc itself from the crc computation
-    out->crc = crc16_compute((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
 void gps_to_sd(gps_sd_t *out, gps_t *data)
@@ -86,7 +86,7 @@ void gps_to_sd(gps_sd_t *out, gps_t *data)
     out->header = header;
 
     // exclude the crc itself from the crc computation
-    out->crc = crc16_compute((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
 void light_to_sd(light_sd_t *out, light_t *data)
@@ -106,7 +106,7 @@ void light_to_sd(light_sd_t *out, light_t *data)
     out->header = header;
 
     // exclude the crc itself from the crc computation
-    out->crc = crc16_compute((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
 void gas_to_sd(gas_sd_t *out, gas_t *data)
@@ -126,7 +126,7 @@ void gas_to_sd(gas_sd_t *out, gas_t *data)
     out->header = header;
 
     // exclude the crc itself from the crc computation
-    out->crc = crc16_compute((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
 void stats_to_sd(stats_sd_t *out, datastore_t *data)
@@ -143,5 +143,5 @@ void stats_to_sd(stats_sd_t *out, datastore_t *data)
     out->header = header;
 
     // exclude the crc itself from the crc computation
-    out->crc = crc16_compute((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
