@@ -1,21 +1,15 @@
 #ifndef ARDUINO_WRAPPER_H
 #define ARDUINO_WRAPPER_H
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-#ifdef __cplusplus
 #include <Arduino.h>
+
 #define WRAPPER_INPUT INPUT
 #define WRAPPER_OUTPUT OUTPUT
 #define WRAPPER_INPUT_PULLUP INPUT_PULLUP
 #define WRAPPER_INPUT_PULLDOWN INPUT_PULLDOWN
 #define WRAPPER_LOW LOW
 #define WRAPPER_HIGH HIGH
+
 #define WRAPPER_D0 D0
 #define WRAPPER_D1 D1
 #define WRAPPER_D2 D2
@@ -38,14 +32,13 @@ extern "C"
 #define WRAPPER_D19 D19
 #define WRAPPER_D20 D20
 #define WRAPPER_D21 D21
-#else
-#define WRAPPER_INPUT 0x0
-#define WRAPPER_OUTPUT 0x1
-#define WRAPPER_INPUT_PULLUP 0x2
-#define WRAPPER_INPUT_PULLDOWN 0x3
-#define WRAPPER_LOW 0x0
-#define WRAPPER_HIGH 0x1
+
+#ifdef __cplusplus
+extern "C"
+{
 #endif
+
+#include <stdint.h>
 
     void wrapper_pin_mode(uint8_t pin, uint8_t mode);
     void wrapper_digital_write(uint8_t pin, uint8_t val);

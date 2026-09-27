@@ -33,6 +33,7 @@ uint32_t run(task_t *self, uint32_t now_millis)
         */
         break;
     }
+    return now_millis; // added this so that i could compile the code. change it if needed
 }
 
 sens_status_t store_data()
@@ -40,4 +41,5 @@ sens_status_t store_data()
     /*
     Use uv_get to get the value and store it in the
     */
+    return SENS_NOT_READY; // added this so that i could compile the code. change it if needed
 }

@@ -16,6 +16,7 @@ static light_t latest_sample;
 sens_status_t uv_init()
 {
     wrapper_pin_mode(A_IN_UV, WRAPPER_INPUT);
+    return SENS_NOT_READY;
 }
 
 sens_status_t uv_poll(uint32_t now_ms)
