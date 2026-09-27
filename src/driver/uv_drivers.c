@@ -13,6 +13,11 @@ static sens_state_t state = SENS_IDLE;
 static uint32_t last_sample_time;
 static light_t latest_sample;
 
+sens_status_t uv_init()
+{
+    wrapper_pin_mode(A_IN_UV, WRAPPER_INPUT);
+}
+
 sens_status_t uv_poll(uint32_t now_ms)
 {
 
