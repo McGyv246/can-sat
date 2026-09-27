@@ -9,8 +9,8 @@ extern "C"
 #include <stdint.h>
 #include "types.h"
 
-    // there is no implemented way of turning on/off this sensor
-    // sens_status_t uv_init(void);
+    // this function is to be called on startup to set the pins
+    sens_status_t uv_init(void);
 
     sens_status_t uv_poll(uint32_t now_ms);
 
