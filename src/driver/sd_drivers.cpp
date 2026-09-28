@@ -27,11 +27,19 @@ static bool sd_chng_path(const char *path)
     return false;
 }
 
+static bool sd_open_file(const char *filepath)
+{
+    *current_file = SD.open(filepath, FILE_WRITE);
+    if (!*current_file)
+        return false; // for some reason this object can be evaluated in a boolean way
+    return true;
+}
+
 #pragma endregion
 
 #pragma region public_interface
 
-sens_status_t sd_init(const char *path)
+sens_status_t sd_init(const char *path, const char *filepath)
 {
     if (!SD.begin(CHIPSELECT_SD))
         return SENS_ERR;
@@ -39,14 +47,8 @@ sens_status_t sd_init(const char *path)
         return SENS_ERR;
     if (!sd_chng_path(path))
         return SENS_ERR;
-    return SENS_READY;
-}
-
-sens_status_t sd_open_file(const char *filepath)
-{
-    *current_file = SD.open(filepath, FILE_WRITE);
-    if (!*current_file)
-        return SENS_ERR; // for some reason this object can be evaluated in a boolean way
+    if (!sd_open_file(filepath))
+        return SENS_ERR;
     return SENS_READY;
 }
 
@@ -68,6 +70,13 @@ sens_status_t sd_flush_buf(void)
     current_file->flush();
     flushed = true;
     return SENS_READY;
+}
+
+void sd_close()
+{
+    current_file->close();
+    SD.end();
+    return;
 }
 
 #pragma endregion
