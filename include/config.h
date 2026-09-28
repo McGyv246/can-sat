@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-#include <arduino_wrapper.h>
+#include "arduino_wrapper.h"
 
 /* PINS */
 #define D_IN_PHOTORESISTOR WRAPPER_D2

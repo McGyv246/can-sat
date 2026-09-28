@@ -13,7 +13,7 @@
 
 datastore_t store = {
     .t_ms = 45230,
-    .state = ASCENT,
+    .state = FLIGHT_STATE_ASCENT,
     .alt_peak_env = 312.4f,
     .alt_peak_gps = 309.8f,
     .records_dropped = 0,
@@ -170,12 +170,12 @@ int main()
     stats_sd_t r_stats;
 
     size_t off = 0;
-    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, ENV) ||
-        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, IMU) ||
-        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, GPS) ||
-        take(rbuf, rlen, &off, &r_light, sizeof r_light, LIGHT) ||
-        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, GAS) ||
-        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, STATS))
+    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, DATA_TYPE_ENV) ||
+        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, DATA_TYPE_IMU) ||
+        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, DATA_TYPE_GPS) ||
+        take(rbuf, rlen, &off, &r_light, sizeof r_light, DATA_TYPE_LIGHT) ||
+        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
+        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
         free(rbuf);
         return 1;

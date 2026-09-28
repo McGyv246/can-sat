@@ -6,7 +6,7 @@
 #include "config.h"
 #include "crc.h"
 
-static void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t now_millis)
+static void build_header(sd_header_t *out, data_type_t type, uint16_t len, uint32_t now_millis)
 {
     out->sync = SYNC_WORD;
     out->type = type;
@@ -53,7 +53,7 @@ void imu_to_sd(imu_sd_t *out, imu_t *data)
     out->data.accel_mag = data->accel_mag;
 
     sd_header_t header;
-    build_header(&header, IMU_TYPE, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_IMU, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 

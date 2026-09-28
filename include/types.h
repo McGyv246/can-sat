@@ -78,12 +78,12 @@ extern "C"
 
     typedef enum
     {
-        BOOT = 0,
-        SELF_TEST = 1,
-        IDLE = 2,
-        ASCENT = 3,
-        DESCENT = 4,
-        LANDED = 5
+        FLIGHT_STATE_BOOT = 0,
+        FLIGHT_STATE_SELF_TEST = 1,
+        FLIGHT_STATE_IDLE = 2,
+        FLIGHT_STATE_ASCENT = 3,
+        FLIGHT_STATE_DESCENT = 4,
+        FLIGHT_STATE_LANDED = 5
     } flight_state_t;
 
     typedef struct
@@ -157,14 +157,14 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef enum
     {
-        ENV = 0,
-        IMU_TYPE = 1, // had to change this for a conflixt with the imu library
-        GPS = 2,
-        LIGHT = 3,
-        GAS = 4,
-        STATS = 5,
+        DATA_TYPE_ENV = 0,
+        DATA_TYPE_IMU = 1,
+        DATA_TYPE_GPS = 2,
+        DATA_TYPE_LIGHT = 3,
+        DATA_TYPE_GAS = 4,
+        DATA_TYPE_STATS = 5,
         // HEALTH = 6,
-    } sensor_type_t;
+    } data_type_t;
 
 #pragma pack(push, 1)
 

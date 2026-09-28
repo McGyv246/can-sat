@@ -4,7 +4,7 @@
 #include "types.h"
 #include "datastore.h"
 
-datastore_t ds_empty = {.state = BOOT};
+datastore_t ds_empty = {.state = FLIGHT_STATE_BOOT};
 uint32_t mock_now_millis = 100;
 
 #pragma region helper_functions
@@ -180,7 +180,7 @@ void when_startingProgram_expect_datastoreInitializedToBootAndZero()
 
     print_ds(&ds_copy);
 
-    datastore_t ds_expected = {.state = BOOT};
+    datastore_t ds_expected = {.state = FLIGHT_STATE_BOOT};
     assert_equal_ds(&ds_expected, &ds_copy);
 }
 
