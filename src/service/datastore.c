@@ -4,7 +4,7 @@
 #include "types.h"
 
 // This should initialize everything at 0 but needs to be tested
-static datastore_t ds = {.state = BOOT};
+static datastore_t ds = {.state = FLIGHT_STATE_BOOT};
 static volatile uint8_t ds_seq = 0;
 
 static void ds_write_begin();

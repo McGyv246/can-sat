@@ -13,7 +13,7 @@
 
 datastore_t store = {
     .t_ms = 45230,
-    .state = ASCENT,
+    .state = FLIGHT_STATE_ASCENT,
     .alt_peak_env = 312.4f,
     .alt_peak_gps = 309.8f,
     .records_dropped = 0,
@@ -30,8 +30,6 @@ datastore_t store = {
         .s = {.t_ms = 45228, .valid = true},
         .accel = {0.42f, -0.18f, 24.7f}, /* m/s^2, thrust along z */
         .gyro = {0.03f, -0.05f, 1.21f},  /* rad/s */
-        .mag = {22.5f, -4.3f, 41.8f},    /* uT */
-        .quat = {0.9962f, 0.0348f, -0.0523f, 0.0523f},
         .accel_mag = 24.71f,
     },
 
@@ -170,12 +168,12 @@ int main()
     stats_sd_t r_stats;
 
     size_t off = 0;
-    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, ENV) ||
-        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, IMU) ||
-        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, GPS) ||
-        take(rbuf, rlen, &off, &r_light, sizeof r_light, LIGHT) ||
-        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, GAS) ||
-        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, STATS))
+    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, DATA_TYPE_ENV) ||
+        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, DATA_TYPE_IMU) ||
+        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, DATA_TYPE_GPS) ||
+        take(rbuf, rlen, &off, &r_light, sizeof r_light, DATA_TYPE_LIGHT) ||
+        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
+        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
         free(rbuf);
         return 1;
@@ -213,7 +211,6 @@ int main()
     CHECK(r_env.data.altitude_m == store.env.altitude_m);
 
     CHECK(r_imu.data.accel[2] == store.imu.accel[2]);
-    CHECK(r_imu.data.quat[0] == store.imu.quat[0]);
     CHECK(r_imu.data.accel_mag == store.imu.accel_mag);
 
     CHECK(r_gps.data.lat == store.gps.lat);

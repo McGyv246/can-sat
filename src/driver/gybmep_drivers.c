@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "types.h"
 #include "config.h"
+#include "config_arduino.h"
 #include "wire_wrapper.h"
 #include "arduino_wrapper.h"
 #include "I2C_wrapper_utils.h"
@@ -205,6 +206,7 @@ static sens_status_t read_calibration(void)
 // to be called once on setup
 sens_status_t gybmep_init(void)
 {
+    wire_begin_service();
     uint8_t id;
     if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_OK)
     {

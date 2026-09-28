@@ -9,6 +9,8 @@ extern "C"
 {
 #endif
 
+    void wire_begin_service(void);
+
     void wire_begin_transmission(uint8_t address);
 
     size_t wire_write(byte send);

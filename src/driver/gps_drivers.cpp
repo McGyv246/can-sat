@@ -4,6 +4,7 @@
 #include "types.h"
 #include "arduino_wrapper.h"
 #include "config.h"
+#include "config_arduino.h"
 
 const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
 
