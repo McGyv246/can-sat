@@ -5,6 +5,10 @@
 
 extern "C"
 {
+    void wire_begin_service(void)
+    {
+        Wire.begin();
+    }
 
     void wire_begin_transmission(uint8_t address)
     {
