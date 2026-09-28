@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <LoRa.h>
 #include "types.h"
-#include "config.h"
+#include "config_arduino.h"
 #include "arduino_wrapper.h"
 
 // uncomment the chosen lora setting
@@ -70,6 +70,13 @@ static uint32_t tx_start_time;
 static uint32_t tx_end_time;
 static uint32_t wait_time;
 
+void onTxDone()
+{
+    tx_end_time = wrapper_millis();
+    busy = false;
+    wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
+}
+
 sens_status_t lora_init(void)
 {
     LoRa.setPins(CHIPSELECT_LORA, RESET_LORA, DIO_LORA);
@@ -82,13 +89,6 @@ sens_status_t lora_init(void)
     LoRa.setCodingRate4(CODING_RATE_DENOMINATOR);
     LoRa.setSyncWord(SYNC_WORD_LORA);
     return SENS_READY;
-}
-
-void onTxDone()
-{
-    tx_end_time = wrapper_millis();
-    busy = false;
-    wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
 }
 
 void lora_wake(void)

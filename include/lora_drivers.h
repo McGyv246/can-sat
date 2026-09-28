@@ -10,16 +10,16 @@ extern "C"
 #include <stddef.h>
 #include "types.h"
 
-    sens_status_t lora_init(void);
-
     // callback function. should NOT be called anywhere EVER
     void onTxDone(void);
+
+    sens_status_t lora_init(void);
 
     void lora_wake(void);
 
     // sends packets in a non-blocking way. returns "SENS_NOT_READY" if the module is busy sending a packet or duty cycle
     // standby time hasn't expired yet
-    sens_status_t lora_send_packet(byte buffer[], size_t len);
+    sens_status_t lora_send_packet(uint8_t buffer[], size_t len);
 
     void lora_sleep(void);
 
