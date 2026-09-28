@@ -37,10 +37,8 @@ extern "C"
     typedef struct
     {
         stamp_t s;
-        float accel[3];
-        float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
+        float accel[3]; // 0 = x, 1 = y, 2 = z. measured in g's
+        float gyro[3];  // same as above. measured in degrees per second
         float accel_mag;
     } imu_t;
 
@@ -160,7 +158,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef enum
     {
         ENV = 0,
-        IMU = 1,
+        SENS_IMU = 1, // had to change this for a conflixt with the imu library
         GPS = 2,
         LIGHT = 3,
         GAS = 4,
