@@ -307,6 +307,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(imu_packed_t) == 33, "IMU packed layout changed");
     static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
     static_assert(sizeof(uv_packed_t) == 12, "UV packed layout changed");
+    static_assert(sizeof(fotores_packed_t) == 6, "Fotores packed layout changed");
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
     static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
 
