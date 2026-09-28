@@ -46,7 +46,7 @@ datastore_t store = {
         .utc_s = 1790413245, /* 2026-09-26 08:00:45 UTC */
     },
 
-    .light = {
+    .uv = {
         .s = {.t_ms = 45210, .valid = true},
         .is_there_light = true,
         .uv_raw = 512,
@@ -127,20 +127,20 @@ int main()
     env_sd_t env;
     imu_sd_t imu;
     gps_sd_t gps;
-    light_sd_t light;
+    uv_sd_t uv;
     gas_sd_t gas;
     stats_sd_t stats;
     env_to_sd(&env, &store.env);
     imu_to_sd(&imu, &store.imu);
     gps_to_sd(&gps, &store.gps);
-    light_to_sd(&light, &store.light);
+    uv_to_sd(&uv, &store.uv);
     gas_to_sd(&gas, &store.gas);
     stats_to_sd(&stats, &store);
 
     buf_write(&env, sizeof(env_sd_t));
     buf_write(&imu, sizeof(imu_sd_t));
     buf_write(&gps, sizeof(gps_sd_t));
-    buf_write(&light, sizeof(light_sd_t));
+    buf_write(&uv, sizeof(uv_sd_t));
     buf_write(&gas, sizeof(gas_sd_t));
     buf_write(&stats, sizeof(stats_sd_t));
 
@@ -163,7 +163,7 @@ int main()
     env_sd_t r_env;
     imu_sd_t r_imu;
     gps_sd_t r_gps;
-    light_sd_t r_light;
+    uv_sd_t r_uv;
     gas_sd_t r_gas;
     stats_sd_t r_stats;
 
@@ -171,7 +171,7 @@ int main()
     if (take(rbuf, rlen, &off, &r_env, sizeof r_env, DATA_TYPE_ENV) ||
         take(rbuf, rlen, &off, &r_imu, sizeof r_imu, DATA_TYPE_IMU) ||
         take(rbuf, rlen, &off, &r_gps, sizeof r_gps, DATA_TYPE_GPS) ||
-        take(rbuf, rlen, &off, &r_light, sizeof r_light, DATA_TYPE_LIGHT) ||
+        take(rbuf, rlen, &off, &r_uv, sizeof r_uv, DATA_TYPE_UV) ||
         take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
         take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
@@ -199,7 +199,7 @@ int main()
     CHECK(memcmp(&r_env, &env, sizeof env) == 0);
     CHECK(memcmp(&r_imu, &imu, sizeof imu) == 0);
     CHECK(memcmp(&r_gps, &gps, sizeof gps) == 0);
-    CHECK(memcmp(&r_light, &light, sizeof light) == 0);
+    CHECK(memcmp(&r_uv, &uv, sizeof uv) == 0);
     CHECK(memcmp(&r_gas, &gas, sizeof gas) == 0);
     CHECK(memcmp(&r_stats, &stats, sizeof stats) == 0);
 
@@ -218,9 +218,9 @@ int main()
     CHECK(r_gps.data.sats == store.gps.sats);
     CHECK(r_gps.data.utc_s == store.gps.utc_s);
 
-    CHECK(r_light.data.is_there_light == store.light.is_there_light);
-    CHECK(r_light.data.uv_raw == store.light.uv_raw);
-    CHECK(r_light.data.uv_index == store.light.uv_index);
+    CHECK(r_uv.data.is_there_light == store.uv.is_there_light);
+    CHECK(r_uv.data.uv_raw == store.uv.uv_raw);
+    CHECK(r_uv.data.uv_index == store.uv.uv_index);
 
     CHECK(r_gas.data.raw == store.gas.raw);
     CHECK(r_gas.data.heater_on_s == store.gas.heater_on_s);

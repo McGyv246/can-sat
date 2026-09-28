@@ -8,7 +8,7 @@ extern "C"
 
 #include "types.h"
 
-    light_t uv_parse(light_t data[]);
+    uv_t uv_parse(uv_t data[]);
 
 #ifdef __cplusplus
 }

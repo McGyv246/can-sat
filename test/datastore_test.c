@@ -61,10 +61,10 @@ void print_ds(datastore_t *ds)
 
     printf("\n");
 
-    printf("light.is_there_light: %d\n", ds->light.is_there_light);
-    printf("light.uv_raw: %u\n", ds->light.uv_raw);
-    printf("light.uv_index: %f\n", ds->light.uv_index);
-    print_ts(&(ds->light.s), "light");
+    printf("uv.is_there_light: %d\n", ds->uv.is_there_light);
+    printf("uv.uv_raw: %u\n", ds->uv.uv_raw);
+    printf("uv.uv_index: %f\n", ds->uv.uv_index);
+    print_ts(&(ds->uv.s), "uv");
 
     printf("\n");
 
@@ -111,11 +111,11 @@ void assert_equal_ds_gps_no_ts(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL_UINT32(expected->gps.utc_s, actual->gps.utc_s);
 }
 
-void assert_equal_ds_light_no_ts(datastore_t *expected, datastore_t *actual)
+void assert_equal_ds_uv_no_ts(datastore_t *expected, datastore_t *actual)
 {
-    TEST_ASSERT_EQUAL(expected->light.is_there_light, actual->light.is_there_light);
-    TEST_ASSERT_EQUAL_UINT16(expected->light.uv_raw, actual->light.uv_raw);
-    TEST_ASSERT_EQUAL_FLOAT(expected->light.uv_index, actual->light.uv_index);
+    TEST_ASSERT_EQUAL(expected->uv.is_there_light, actual->uv.is_there_light);
+    TEST_ASSERT_EQUAL_UINT16(expected->uv.uv_raw, actual->uv.uv_raw);
+    TEST_ASSERT_EQUAL_FLOAT(expected->uv.uv_index, actual->uv.uv_index);
 }
 
 void assert_equal_ds_gas_no_ts(datastore_t *expected, datastore_t *actual)
@@ -150,9 +150,9 @@ void assert_equal_ds(datastore_t *expected, datastore_t *actual)
     assert_equal_ds_gps_no_ts(expected, actual);
     assert_equal_stamp(&expected->gps.s, &actual->gps.s);
 
-    /* light */
-    assert_equal_ds_light_no_ts(expected, actual);
-    assert_equal_stamp(&expected->light.s, &actual->light.s);
+    /* uv */
+    assert_equal_ds_uv_no_ts(expected, actual);
+    assert_equal_stamp(&expected->uv.s, &actual->uv.s);
 
     /* gas */
     assert_equal_ds_gas_no_ts(expected, actual);

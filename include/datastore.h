@@ -12,7 +12,7 @@ extern "C"
     void ds_write_env(env_t *data, uint32_t now_millis);
     void ds_write_imu(imu_t *data, uint32_t now_millis);
     void ds_write_gps(gps_t *data, uint32_t now_millis);
-    void ds_write_light(light_t *data, uint32_t now_millis);
+    void ds_write_uv(uv_t *data, uint32_t now_millis);
     void ds_write_gas(gas_t *data, uint32_t now_millis);
     void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
     void ds_write_increment_records_dropped(uint32_t now_millis);
