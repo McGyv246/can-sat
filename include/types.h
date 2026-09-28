@@ -37,10 +37,8 @@ extern "C"
     typedef struct
     {
         stamp_t s;
-        float accel[3];
-        float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
+        float accel[3]; // 0 = x, 1 = y, 2 = z. measured in g's
+        float gyro[3];  // same as above. measured in degrees per second
         float accel_mag;
     } imu_t;
 
@@ -80,12 +78,12 @@ extern "C"
 
     typedef enum
     {
-        BOOT = 0,
-        SELF_TEST = 1,
-        IDLE = 2,
-        ASCENT = 3,
-        DESCENT = 4,
-        LANDED = 5
+        FLIGHT_STATE_BOOT = 0,
+        FLIGHT_STATE_SELF_TEST = 1,
+        FLIGHT_STATE_IDLE = 2,
+        FLIGHT_STATE_ASCENT = 3,
+        FLIGHT_STATE_DESCENT = 4,
+        FLIGHT_STATE_LANDED = 5
     } flight_state_t;
 
     typedef struct
@@ -159,14 +157,14 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef enum
     {
-        ENV = 0,
-        IMU = 1,
-        GPS = 2,
-        LIGHT = 3,
-        GAS = 4,
-        STATS = 5,
+        DATA_TYPE_ENV = 0,
+        DATA_TYPE_IMU = 1,
+        DATA_TYPE_GPS = 2,
+        DATA_TYPE_LIGHT = 3,
+        DATA_TYPE_GAS = 4,
+        DATA_TYPE_STATS = 5,
         // HEALTH = 6,
-    } sensor_type_t;
+    } data_type_t;
 
 #pragma pack(push, 1)
 
@@ -199,8 +197,6 @@ For now the choice of the length of such integer has been made by Claude, we wil
         stamp_packed_t s;
         float accel[3];
         float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
         float accel_mag;
     } imu_packed_t;
 
@@ -286,7 +282,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(sd_header_t) == 9, "Header layout changed");
     static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
     static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
-    static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");
+    static_assert(sizeof(imu_packed_t) == 33, "IMU packed layout changed");
     static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
     static_assert(sizeof(light_packed_t) == 12, "Light packed layout changed");
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");

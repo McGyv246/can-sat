@@ -6,7 +6,7 @@
 #include "config.h"
 #include "crc.h"
 
-static void build_header(sd_header_t *out, sensor_type_t type, uint16_t len, uint32_t now_millis)
+static void build_header(sd_header_t *out, data_type_t type, uint16_t len, uint32_t now_millis)
 {
     out->sync = SYNC_WORD;
     out->type = type;
@@ -33,7 +33,7 @@ void env_to_sd(env_sd_t *out, env_t *data)
     out->data.altitude_m = data->altitude_m;
 
     sd_header_t header;
-    build_header(&header, ENV, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_ENV, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -50,12 +50,10 @@ void imu_to_sd(imu_sd_t *out, imu_t *data)
 
     memcpy(out->data.accel, data->accel, sizeof(out->data.accel));
     memcpy(out->data.gyro, data->gyro, sizeof(out->data.gyro));
-    memcpy(out->data.mag, data->mag, sizeof(out->data.mag));
-    memcpy(out->data.quat, data->quat, sizeof(out->data.quat));
     out->data.accel_mag = data->accel_mag;
 
     sd_header_t header;
-    build_header(&header, IMU, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_IMU, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -81,7 +79,7 @@ void gps_to_sd(gps_sd_t *out, gps_t *data)
     out->data.utc_s = data->utc_s;
 
     sd_header_t header;
-    build_header(&header, GPS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_GPS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -101,7 +99,7 @@ void light_to_sd(light_sd_t *out, light_t *data)
     out->data.uv_index = data->uv_index;
 
     sd_header_t header;
-    build_header(&header, LIGHT, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_LIGHT, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -121,7 +119,7 @@ void gas_to_sd(gas_sd_t *out, gas_t *data)
     out->data.heater_enabled = (uint8_t)data->heater_enabled;
 
     sd_header_t header;
-    build_header(&header, GAS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_GAS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -138,7 +136,7 @@ void stats_to_sd(stats_sd_t *out, datastore_t *data)
     out->data.records_dropped = data->records_dropped;
 
     sd_header_t header;
-    build_header(&header, STATS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_STATS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 

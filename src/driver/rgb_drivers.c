@@ -1,5 +1,6 @@
 #include "arduino_wrapper.h"
 #include "config.h"
+#include "config_arduino.h"
 #include "types.h"
 
 void rgb_init(void)
