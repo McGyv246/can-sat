@@ -197,8 +197,6 @@ For now the choice of the length of such integer has been made by Claude, we wil
         stamp_packed_t s;
         float accel[3];
         float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
         float accel_mag;
     } imu_packed_t;
 
@@ -284,7 +282,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(sd_header_t) == 9, "Header layout changed");
     static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
     static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
-    static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");
+    static_assert(sizeof(imu_packed_t) == 33, "IMU packed layout changed");
     static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
     static_assert(sizeof(light_packed_t) == 12, "Light packed layout changed");
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
