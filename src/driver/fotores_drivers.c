@@ -36,6 +36,7 @@ sens_status_t fotores_poll(uint32_t now_ms)
     case SENS_READY:
         current_sample.s.t_ms = now_ms;
         current_sample.s.valid = true;
+        state = SENS_IDLE;
         return SENS_READY;
     }
     return SENS_ERR;
