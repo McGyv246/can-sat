@@ -18,6 +18,11 @@ extern "C"
     return digitalRead(pin);
   }
 
+  void wrapper_analog_write(uint8_t pin, int val)
+  {
+    return analogWrite(pin, val);
+  }
+
   int wrapper_analog_read(uint8_t pin)
   {
     return analogRead(pin);

@@ -28,6 +28,7 @@ extern "C"
     void wrapper_pin_mode(uint8_t pin, uint8_t mode);
     void wrapper_digital_write(uint8_t pin, uint8_t val);
     int wrapper_digital_read(uint8_t pin);
+    void wrapper_analog_write(uint8_t pin, int val);
     int wrapper_analog_read(uint8_t pin);
     void wrapper_delay_ms(uint32_t ms);
     uint32_t wrapper_millis(void);

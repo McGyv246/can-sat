@@ -347,6 +347,21 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
 #pragma endregion
 
+#pragma region colors
+
+    typedef struct
+    {
+        uint8_t red, green, blue;
+    } rgb_colors_t;
+
+#define RED ((rgb_colors_t){255, 0, 0})
+#define GREEN ((rgb_colors_t){0, 255, 0})
+#define BLUE ((rgb_colors_t){0, 0, 255})
+#define YELLOW ((rgb_colors_t){255, 255, 0})
+#define VIOLET ((rgb_colors_t){255, 0, 255})
+
+#pragma endregion
+
 #ifdef __cplusplus
 }
 #endif
