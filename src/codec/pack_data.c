@@ -107,6 +107,23 @@ void uv_to_sd(uv_sd_t *out, uv_t *data)
     out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
+void fotores_to_sd(fotores_sd_t *out, fotores_t *data)
+{
+    stamp_packed_t stamp;
+    pack_stamp(&stamp, &(data->s));
+
+    out->data.s = stamp;
+    out->data.is_there_light = (uint8_t)data->is_there_light;
+
+    sd_header_t header;
+    build_header(&header, DATA_TYPE_FOTORES, (uint16_t)sizeof(out->data), hal_millis());
+
+    out->header = header;
+
+    // exclude the crc itself from the crc computation
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+}
+
 void gas_to_sd(gas_sd_t *out, gas_t *data)
 {
     stamp_packed_t stamp;

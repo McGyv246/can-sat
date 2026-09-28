@@ -53,6 +53,11 @@ datastore_t store = {
         .uv_index = 3.7f,
     },
 
+    .fotores = {
+        .s = {.t_ms = 45220, .valid = true},
+        .is_there_light = true,
+    },
+
     .gas = {
         .s = {.t_ms = 45150, .valid = true},
         .raw = 18432,
@@ -128,12 +133,14 @@ int main()
     imu_sd_t imu;
     gps_sd_t gps;
     uv_sd_t uv;
+    fotores_sd_t fotores;
     gas_sd_t gas;
     stats_sd_t stats;
     env_to_sd(&env, &store.env);
     imu_to_sd(&imu, &store.imu);
     gps_to_sd(&gps, &store.gps);
     uv_to_sd(&uv, &store.uv);
+    fotores_to_sd(&fotores, &store.fotores);
     gas_to_sd(&gas, &store.gas);
     stats_to_sd(&stats, &store);
 
@@ -141,6 +148,7 @@ int main()
     buf_write(&imu, sizeof(imu_sd_t));
     buf_write(&gps, sizeof(gps_sd_t));
     buf_write(&uv, sizeof(uv_sd_t));
+    buf_write(&fotores, sizeof(fotores_sd_t));
     buf_write(&gas, sizeof(gas_sd_t));
     buf_write(&stats, sizeof(stats_sd_t));
 
@@ -164,6 +172,7 @@ int main()
     imu_sd_t r_imu;
     gps_sd_t r_gps;
     uv_sd_t r_uv;
+    fotores_sd_t r_fotores;
     gas_sd_t r_gas;
     stats_sd_t r_stats;
 
@@ -172,6 +181,7 @@ int main()
         take(rbuf, rlen, &off, &r_imu, sizeof r_imu, DATA_TYPE_IMU) ||
         take(rbuf, rlen, &off, &r_gps, sizeof r_gps, DATA_TYPE_GPS) ||
         take(rbuf, rlen, &off, &r_uv, sizeof r_uv, DATA_TYPE_UV) ||
+        take(rbuf, rlen, &off, &r_fotores, sizeof r_fotores, DATA_TYPE_FOTORES) ||
         take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
         take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
@@ -200,6 +210,7 @@ int main()
     CHECK(memcmp(&r_imu, &imu, sizeof imu) == 0);
     CHECK(memcmp(&r_gps, &gps, sizeof gps) == 0);
     CHECK(memcmp(&r_uv, &uv, sizeof uv) == 0);
+    CHECK(memcmp(&r_fotores, &fotores, sizeof fotores) == 0);
     CHECK(memcmp(&r_gas, &gas, sizeof gas) == 0);
     CHECK(memcmp(&r_stats, &stats, sizeof stats) == 0);
 
@@ -222,6 +233,8 @@ int main()
     CHECK(r_uv.data.uv_raw == store.uv.uv_raw);
     CHECK(r_uv.data.uv_index == store.uv.uv_index);
 
+    CHECK(r_fotores.data.is_there_light == store.fotores.is_there_light);
+
     CHECK(r_gas.data.raw == store.gas.raw);
     CHECK(r_gas.data.heater_on_s == store.gas.heater_on_s);
     CHECK(r_gas.data.heater_enabled == store.gas.heater_enabled);
@@ -234,7 +247,7 @@ int main()
 #undef CHECK
 
     if (errors == 0)
-        printf("parse OK: all %d records match\n", 6);
+        printf("parse OK: all %d records match\n", 7);
     else
         printf("parse finished with %d failed checks\n", errors);
 

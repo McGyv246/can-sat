@@ -104,6 +104,7 @@ extern "C"
         imu_t imu;
         gps_t gps;
         uv_t uv;
+        fotores_t fotores;
         gas_t gas;
         // health_t health;
     } datastore_t;
@@ -228,6 +229,12 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef struct
     {
         stamp_packed_t s;
+        uint8_t is_there_light;
+    } fotores_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
         uint16_t raw;
         uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
         uint8_t heater_enabled;
@@ -270,6 +277,13 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uv_packed_t data;
         uint16_t crc;
     } uv_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        fotores_packed_t data;
+        uint16_t crc;
+    } fotores_sd_t;
 
     typedef struct
     {

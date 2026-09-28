@@ -68,6 +68,11 @@ void print_ds(datastore_t *ds)
 
     printf("\n");
 
+    printf("fotores.is_there_light: %d\n", ds->fotores.is_there_light);
+    print_ts(&(ds->fotores.s), "fotores");
+
+    printf("\n");
+
     printf("gas.raw: %u\n", ds->gas.raw);
     printf("gas.heater_on_s: %u\n", ds->gas.heater_on_s);
     printf("gas.heater_enabled: %d\n", ds->gas.heater_enabled);
@@ -118,6 +123,11 @@ void assert_equal_ds_uv_no_ts(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL_FLOAT(expected->uv.uv_index, actual->uv.uv_index);
 }
 
+void assert_equal_ds_fotores_no_ts(datastore_t *expected, datastore_t *actual)
+{
+    TEST_ASSERT_EQUAL(expected->fotores.is_there_light, actual->fotores.is_there_light);
+}
+
 void assert_equal_ds_gas_no_ts(datastore_t *expected, datastore_t *actual)
 {
     TEST_ASSERT_EQUAL_UINT16(expected->gas.raw, actual->gas.raw);
@@ -153,6 +163,10 @@ void assert_equal_ds(datastore_t *expected, datastore_t *actual)
     /* uv */
     assert_equal_ds_uv_no_ts(expected, actual);
     assert_equal_stamp(&expected->uv.s, &actual->uv.s);
+
+    /* fotores */
+    assert_equal_ds_fotores_no_ts(expected, actual);
+    assert_equal_stamp(&expected->fotores.s, &actual->fotores.s);
 
     /* gas */
     assert_equal_ds_gas_no_ts(expected, actual);
