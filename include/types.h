@@ -37,10 +37,8 @@ extern "C"
     typedef struct
     {
         stamp_t s;
-        float accel[3];
-        float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
+        float accel[3]; // 0 = x, 1 = y, 2 = z. measured in g's
+        float gyro[3];  // same as above. measured in degrees per second
         float accel_mag;
     } imu_t;
 
@@ -59,7 +57,13 @@ extern "C"
         bool is_there_light;
         uint16_t uv_raw; /* averaged ADC counts */
         float uv_index;  /* converted           */
-    } light_t;
+    } uv_t;
+
+    typedef struct
+    {
+        stamp_t s;
+        bool is_there_light;
+    } fotores_t;
 
     typedef struct
     {
@@ -80,12 +84,12 @@ extern "C"
 
     typedef enum
     {
-        BOOT = 0,
-        SELF_TEST = 1,
-        IDLE = 2,
-        ASCENT = 3,
-        DESCENT = 4,
-        LANDED = 5
+        FLIGHT_STATE_BOOT = 0,
+        FLIGHT_STATE_SELF_TEST = 1,
+        FLIGHT_STATE_IDLE = 2,
+        FLIGHT_STATE_ASCENT = 3,
+        FLIGHT_STATE_DESCENT = 4,
+        FLIGHT_STATE_LANDED = 5
     } flight_state_t;
 
     typedef struct
@@ -99,7 +103,8 @@ extern "C"
         env_t env;
         imu_t imu;
         gps_t gps;
-        light_t light;
+        uv_t uv;
+        fotores_t fotores;
         gas_t gas;
         // health_t health;
     } datastore_t;
@@ -130,7 +135,8 @@ For now the choice of the length of such integer has been made by Claude, we wil
         int16_t orientation[4];
         int16_t accel_mag;
 
-        uint8_t is_there_light; /* uint_8 instead of bool because bool has unspecified size */
+        uint8_t is_there_light_uv; /* uint_8 instead of bool because bool has unspecified size */
+        uint8_t is_there_light_fotores;
         uint8_t uv;
 
         uint16_t gas_raw;
@@ -147,7 +153,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 50, "LoRa layout changed");
+    static_assert(sizeof(data_to_lora_t) == 51, "LoRa layout changed");
 
 #pragma endregion
 
@@ -159,14 +165,15 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef enum
     {
-        ENV = 0,
-        IMU = 1,
-        GPS = 2,
-        LIGHT = 3,
-        GAS = 4,
-        STATS = 5,
-        // HEALTH = 6,
-    } sensor_type_t;
+        DATA_TYPE_ENV = 0,
+        DATA_TYPE_IMU = 1,
+        DATA_TYPE_GPS = 2,
+        DATA_TYPE_UV = 3,
+        DATA_TYPE_FOTORES = 4,
+        DATA_TYPE_GAS = 5,
+        DATA_TYPE_STATS = 6,
+        // HEALTH = 7,
+    } data_type_t;
 
 #pragma pack(push, 1)
 
@@ -199,8 +206,6 @@ For now the choice of the length of such integer has been made by Claude, we wil
         stamp_packed_t s;
         float accel[3];
         float gyro[3];
-        float mag[3];
-        float quat[4]; /* automatically fused by the sensor dedicated processor */
         float accel_mag;
     } imu_packed_t;
 
@@ -219,7 +224,13 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint8_t is_there_light;
         uint16_t uv_raw; /* averaged ADC counts */
         float uv_index;  /* converted           */
-    } light_packed_t;
+    } uv_packed_t;
+
+    typedef struct
+    {
+        stamp_packed_t s;
+        uint8_t is_there_light;
+    } fotores_packed_t;
 
     typedef struct
     {
@@ -263,9 +274,16 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef struct
     {
         sd_header_t header;
-        light_packed_t data;
+        uv_packed_t data;
         uint16_t crc;
-    } light_sd_t;
+    } uv_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
+        fotores_packed_t data;
+        uint16_t crc;
+    } fotores_sd_t;
 
     typedef struct
     {
@@ -286,9 +304,10 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(sd_header_t) == 9, "Header layout changed");
     static_assert(sizeof(stamp_packed_t) == 5, "Stamp packed layout changed");
     static_assert(sizeof(env_packed_t) == 21, "Env packed layout changed");
-    static_assert(sizeof(imu_packed_t) == 61, "IMU packed layout changed");
+    static_assert(sizeof(imu_packed_t) == 33, "IMU packed layout changed");
     static_assert(sizeof(gps_packed_t) == 43, "GPS packed layout changed");
-    static_assert(sizeof(light_packed_t) == 12, "Light packed layout changed");
+    static_assert(sizeof(uv_packed_t) == 12, "UV packed layout changed");
+    static_assert(sizeof(fotores_packed_t) == 6, "Fotores packed layout changed");
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
     static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
 

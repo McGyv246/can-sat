@@ -13,7 +13,7 @@
 
 datastore_t store = {
     .t_ms = 45230,
-    .state = ASCENT,
+    .state = FLIGHT_STATE_ASCENT,
     .alt_peak_env = 312.4f,
     .alt_peak_gps = 309.8f,
     .records_dropped = 0,
@@ -30,8 +30,6 @@ datastore_t store = {
         .s = {.t_ms = 45228, .valid = true},
         .accel = {0.42f, -0.18f, 24.7f}, /* m/s^2, thrust along z */
         .gyro = {0.03f, -0.05f, 1.21f},  /* rad/s */
-        .mag = {22.5f, -4.3f, 41.8f},    /* uT */
-        .quat = {0.9962f, 0.0348f, -0.0523f, 0.0523f},
         .accel_mag = 24.71f,
     },
 
@@ -48,11 +46,16 @@ datastore_t store = {
         .utc_s = 1790413245, /* 2026-09-26 08:00:45 UTC */
     },
 
-    .light = {
+    .uv = {
         .s = {.t_ms = 45210, .valid = true},
         .is_there_light = true,
         .uv_raw = 512,
         .uv_index = 3.7f,
+    },
+
+    .fotores = {
+        .s = {.t_ms = 45220, .valid = true},
+        .is_there_light = true,
     },
 
     .gas = {
@@ -129,20 +132,23 @@ int main()
     env_sd_t env;
     imu_sd_t imu;
     gps_sd_t gps;
-    light_sd_t light;
+    uv_sd_t uv;
+    fotores_sd_t fotores;
     gas_sd_t gas;
     stats_sd_t stats;
     env_to_sd(&env, &store.env);
     imu_to_sd(&imu, &store.imu);
     gps_to_sd(&gps, &store.gps);
-    light_to_sd(&light, &store.light);
+    uv_to_sd(&uv, &store.uv);
+    fotores_to_sd(&fotores, &store.fotores);
     gas_to_sd(&gas, &store.gas);
     stats_to_sd(&stats, &store);
 
     buf_write(&env, sizeof(env_sd_t));
     buf_write(&imu, sizeof(imu_sd_t));
     buf_write(&gps, sizeof(gps_sd_t));
-    buf_write(&light, sizeof(light_sd_t));
+    buf_write(&uv, sizeof(uv_sd_t));
+    buf_write(&fotores, sizeof(fotores_sd_t));
     buf_write(&gas, sizeof(gas_sd_t));
     buf_write(&stats, sizeof(stats_sd_t));
 
@@ -165,17 +171,19 @@ int main()
     env_sd_t r_env;
     imu_sd_t r_imu;
     gps_sd_t r_gps;
-    light_sd_t r_light;
+    uv_sd_t r_uv;
+    fotores_sd_t r_fotores;
     gas_sd_t r_gas;
     stats_sd_t r_stats;
 
     size_t off = 0;
-    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, ENV) ||
-        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, IMU) ||
-        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, GPS) ||
-        take(rbuf, rlen, &off, &r_light, sizeof r_light, LIGHT) ||
-        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, GAS) ||
-        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, STATS))
+    if (take(rbuf, rlen, &off, &r_env, sizeof r_env, DATA_TYPE_ENV) ||
+        take(rbuf, rlen, &off, &r_imu, sizeof r_imu, DATA_TYPE_IMU) ||
+        take(rbuf, rlen, &off, &r_gps, sizeof r_gps, DATA_TYPE_GPS) ||
+        take(rbuf, rlen, &off, &r_uv, sizeof r_uv, DATA_TYPE_UV) ||
+        take(rbuf, rlen, &off, &r_fotores, sizeof r_fotores, DATA_TYPE_FOTORES) ||
+        take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
+        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
         free(rbuf);
         return 1;
@@ -201,7 +209,8 @@ int main()
     CHECK(memcmp(&r_env, &env, sizeof env) == 0);
     CHECK(memcmp(&r_imu, &imu, sizeof imu) == 0);
     CHECK(memcmp(&r_gps, &gps, sizeof gps) == 0);
-    CHECK(memcmp(&r_light, &light, sizeof light) == 0);
+    CHECK(memcmp(&r_uv, &uv, sizeof uv) == 0);
+    CHECK(memcmp(&r_fotores, &fotores, sizeof fotores) == 0);
     CHECK(memcmp(&r_gas, &gas, sizeof gas) == 0);
     CHECK(memcmp(&r_stats, &stats, sizeof stats) == 0);
 
@@ -213,7 +222,6 @@ int main()
     CHECK(r_env.data.altitude_m == store.env.altitude_m);
 
     CHECK(r_imu.data.accel[2] == store.imu.accel[2]);
-    CHECK(r_imu.data.quat[0] == store.imu.quat[0]);
     CHECK(r_imu.data.accel_mag == store.imu.accel_mag);
 
     CHECK(r_gps.data.lat == store.gps.lat);
@@ -221,9 +229,11 @@ int main()
     CHECK(r_gps.data.sats == store.gps.sats);
     CHECK(r_gps.data.utc_s == store.gps.utc_s);
 
-    CHECK(r_light.data.is_there_light == store.light.is_there_light);
-    CHECK(r_light.data.uv_raw == store.light.uv_raw);
-    CHECK(r_light.data.uv_index == store.light.uv_index);
+    CHECK(r_uv.data.is_there_light == store.uv.is_there_light);
+    CHECK(r_uv.data.uv_raw == store.uv.uv_raw);
+    CHECK(r_uv.data.uv_index == store.uv.uv_index);
+
+    CHECK(r_fotores.data.is_there_light == store.fotores.is_there_light);
 
     CHECK(r_gas.data.raw == store.gas.raw);
     CHECK(r_gas.data.heater_on_s == store.gas.heater_on_s);
@@ -237,7 +247,7 @@ int main()
 #undef CHECK
 
     if (errors == 0)
-        printf("parse OK: all %d records match\n", 6);
+        printf("parse OK: all %d records match\n", 7);
     else
         printf("parse finished with %d failed checks\n", errors);
 

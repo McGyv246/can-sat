@@ -1,6 +1,7 @@
 #include "arduino_wrapper.h"
 #include "types.h"
 #include "config.h"
+#include "config_arduino.h"
 
 static const uint32_t UV_WAIT_TIME_MS = 2;
 static const float VCC = 3.3;
@@ -10,8 +11,8 @@ static const float VOLTAGE_INDEX_FACTOR = 0.1;
 static const float UV_TRESH = 2;
 
 static sens_state_t state = SENS_IDLE;
-static uint32_t last_sample_time;
-static light_t latest_sample;
+static uint32_t last_sample_time = 0;
+static uv_t latest_sample;
 
 sens_status_t uv_init()
 {
@@ -49,7 +50,7 @@ sens_status_t uv_poll(uint32_t now_ms)
     return SENS_ERR;
 }
 
-sens_status_t uv_get(light_t *data)
+sens_status_t uv_get(uv_t *data)
 {
     *data = latest_sample;
     return SENS_NOT_READY;

@@ -20,9 +20,9 @@ static const float UV_TRESH = 2;
 // standard deviation is yet to be estimated
 static const float MAX_DEV = 6.0;
 
-light_t uv_parse(light_t data[], size_t len)
+uv_t uv_parse(uv_t data[], size_t len)
 {
-    light_t parsed_sample;
+    uv_t parsed_sample;
     size_t sample_count = len;
     uint32_t mean_time = 0;
     uint16_t uv_raw_mean = 0;
