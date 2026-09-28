@@ -1,0 +1,73 @@
+#include <stddef.h>
+#include <SPI.h>
+#include <SD.h>
+#include "types.h"
+#include "config_arduino.h"
+
+static bool flushed = true;
+static const char *current_path = nullptr;
+static File *current_file = nullptr;
+
+#pragma region internal_utils
+
+static bool sd_mkdir(const char *path)
+{
+    if (!SD.mkdir(path))
+        return false;
+    return true;
+}
+
+static bool sd_chng_path(const char *path)
+{
+    if (SD.exists(path))
+    {
+        current_path = path;
+        return true;
+    }
+    return false;
+}
+
+#pragma endregion
+
+#pragma region public_interface
+
+sens_status_t sd_init(const char *path)
+{
+    if (!SD.begin(CHIPSELECT_SD))
+        return SENS_ERR;
+    if (!sd_mkdir(path))
+        return SENS_ERR;
+    if (!sd_chng_path(path))
+        return SENS_ERR;
+    return SENS_READY;
+}
+
+sens_status_t sd_open_file(const char *filepath)
+{
+    *current_file = SD.open(filepath, FILE_WRITE);
+    if (!*current_file)
+        return SENS_ERR; // for some reason this object can be evaluated in a boolean way
+    return SENS_READY;
+}
+
+sens_status_t sd_write_uint8_buf(uint8_t *buf, size_t len)
+{
+    if (current_file == nullptr)
+        return SENS_ERR;
+    if (!flushed)
+        return SENS_NOT_READY;
+    current_file->write(buf, len);
+    flushed = false;
+    return SENS_NOT_READY;
+}
+
+sens_status_t sd_flush_buf(void)
+{
+    if (current_file == nullptr)
+        return SENS_ERR;
+    current_file->flush();
+    flushed = true;
+    return SENS_READY;
+}
+
+#pragma endregion
