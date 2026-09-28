@@ -50,12 +50,10 @@ void imu_to_sd(imu_sd_t *out, imu_t *data)
 
     memcpy(out->data.accel, data->accel, sizeof(out->data.accel));
     memcpy(out->data.gyro, data->gyro, sizeof(out->data.gyro));
-    memcpy(out->data.mag, data->mag, sizeof(out->data.mag));
-    memcpy(out->data.quat, data->quat, sizeof(out->data.quat));
     out->data.accel_mag = data->accel_mag;
 
     sd_header_t header;
-    build_header(&header, IMU, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, IMU_TYPE, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 

@@ -158,7 +158,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef enum
     {
         ENV = 0,
-        SENS_IMU = 1, // had to change this for a conflixt with the imu library
+        IMU_TYPE = 1, // had to change this for a conflixt with the imu library
         GPS = 2,
         LIGHT = 3,
         GAS = 4,
