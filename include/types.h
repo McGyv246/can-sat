@@ -73,6 +73,15 @@ extern "C"
         bool heater_enabled;
     } gas_t;
 
+    typedef struct
+    {
+        stamp_t s;
+        uint16_t voltage_raw; // raw ADC counts
+        float voltage;
+        float percentage;
+        bool is_alert_active;
+    } battery_t;
+
     // typedef struct
     // {
     //     stamp_t s;
