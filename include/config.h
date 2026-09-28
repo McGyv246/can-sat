@@ -6,26 +6,30 @@ extern "C"
 {
 #endif
 
+#include <arduino_wrapper.h>
+
 /* PINS */
-#define D_IN_PHOTORESISTOR 5
+#define D_IN_PHOTORESISTOR WRAPPER_D2
 
-#define D_OUT_GAS_COMMAND 6
+#define D_OUT_GAS_COMMAND WRAPPER_D3
 
-#define PWM_OUT_BLUE 7
-#define PWM_OUT_GREEN 8
-#define PWM_OUT_RED 9
+#define PWM_OUT_BLUE WRAPPER_D4
+#define PWM_OUT_GREEN WRAPPER_D5
+#define PWM_OUT_RED WRAPPER_D6
 
-#define CHIPSELECT_SD 10
+#define CHIPSELECT_SD WRAPPER_D7
 
-#define DIO_LORA 11
-#define CHIPSELECT_LORA 12
-#define RESET_LORA 13
+#define DIO_LORA WRAPPER_D8
+#define CHIPSELECT_LORA WRAPPER_D9
+#define RESET_LORA WRAPPER_D10
 
-#define A_IN_UV 19
+#define A_IN_UV WRAPPER_D14
 
-// Still need to choose which sensors to use, will change names when chosen
-#define A_IN_GAS1 20
-#define A_IN_GAS2 21
+#define A_IN_GAS WRAPPER_D15
+
+#define D_OUT_FPV_COMMAND WRAPPER_D16
+
+#define D_OUT_GPS_COMMAND WRAPPER_D17
 
 /* OTHER CONSTANTS */
 #define RESCHEDULE_FAULT_INTERVAL 1000
