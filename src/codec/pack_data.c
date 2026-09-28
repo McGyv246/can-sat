@@ -33,7 +33,7 @@ void env_to_sd(env_sd_t *out, env_t *data)
     out->data.altitude_m = data->altitude_m;
 
     sd_header_t header;
-    build_header(&header, ENV, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_ENV, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -79,7 +79,7 @@ void gps_to_sd(gps_sd_t *out, gps_t *data)
     out->data.utc_s = data->utc_s;
 
     sd_header_t header;
-    build_header(&header, GPS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_GPS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -99,7 +99,7 @@ void light_to_sd(light_sd_t *out, light_t *data)
     out->data.uv_index = data->uv_index;
 
     sd_header_t header;
-    build_header(&header, LIGHT, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_LIGHT, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -119,7 +119,7 @@ void gas_to_sd(gas_sd_t *out, gas_t *data)
     out->data.heater_enabled = (uint8_t)data->heater_enabled;
 
     sd_header_t header;
-    build_header(&header, GAS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_GAS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
@@ -136,7 +136,7 @@ void stats_to_sd(stats_sd_t *out, datastore_t *data)
     out->data.records_dropped = data->records_dropped;
 
     sd_header_t header;
-    build_header(&header, STATS, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_STATS, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 

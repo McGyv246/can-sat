@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "types.h"
 #include "config.h"
+#include "config_arduino.h"
 #include "wire_wrapper.h"
 #include "arduino_wrapper.h"
 #include "I2C_wrapper_utils.h"

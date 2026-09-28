@@ -43,8 +43,6 @@ void print_ds(datastore_t *ds)
 
     print_float_array(ds->imu.accel, 3, "imu.accel");
     print_float_array(ds->imu.gyro, 3, "imu.gyro");
-    print_float_array(ds->imu.mag, 3, "imu.mag");
-    print_float_array(ds->imu.quat, 4, "imu.quat");
     printf("imu.accel_mag: %f\n", ds->imu.accel_mag);
     print_ts(&(ds->imu.s), "imu");
 
@@ -96,8 +94,6 @@ void assert_equal_ds_imu_no_ts(datastore_t *expected, datastore_t *actual)
 {
     TEST_ASSERT_EQUAL_FLOAT_ARRAY(expected->imu.accel, actual->imu.accel, 3);
     TEST_ASSERT_EQUAL_FLOAT_ARRAY(expected->imu.gyro, actual->imu.gyro, 3);
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY(expected->imu.mag, actual->imu.mag, 3);
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY(expected->imu.quat, actual->imu.quat, 4);
     TEST_ASSERT_EQUAL_FLOAT(expected->imu.accel_mag, actual->imu.accel_mag);
 }
 
@@ -236,17 +232,6 @@ void when_gettingValuesAndEditingImu_expect_copiedValuesNotToChange()
             20.,
             20.,
         },
-        {
-            30.,
-            30.,
-            30.,
-        },
-        {
-            40.,
-            40.,
-            40.,
-            40.,
-        },
         100.,
     };
 
@@ -281,17 +266,6 @@ void when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly()
             20.,
             20.,
             20.,
-        },
-        {
-            30.,
-            30.,
-            30.,
-        },
-        {
-            40.,
-            40.,
-            40.,
-            40.,
         },
         100.,
     };

@@ -12,7 +12,7 @@
 stats_sd_t test_stats = {
     .header = {
         .len = sizeof(stats_packed_t),
-        .type = STATS,
+        .type = DATA_TYPE_STATS,
     },
     .data = {
         .t_ms = 1000,
@@ -27,7 +27,7 @@ stats_sd_t test_stats = {
 gas_sd_t test_gas = {
     .header = {
         .len = sizeof(gas_packed_t),
-        .type = GAS,
+        .type = DATA_TYPE_GAS,
     },
     .data = {
         .s = {

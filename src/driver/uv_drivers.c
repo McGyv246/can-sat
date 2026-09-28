@@ -1,6 +1,7 @@
 #include "arduino_wrapper.h"
 #include "types.h"
 #include "config.h"
+#include "config_arduino.h"
 
 static const uint32_t UV_WAIT_TIME_MS = 2;
 static const float VCC = 3.3;

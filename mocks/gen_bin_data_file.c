@@ -30,8 +30,6 @@ datastore_t store = {
         .s = {.t_ms = 45228, .valid = true},
         .accel = {0.42f, -0.18f, 24.7f}, /* m/s^2, thrust along z */
         .gyro = {0.03f, -0.05f, 1.21f},  /* rad/s */
-        .mag = {22.5f, -4.3f, 41.8f},    /* uT */
-        .quat = {0.9962f, 0.0348f, -0.0523f, 0.0523f},
         .accel_mag = 24.71f,
     },
 
@@ -213,7 +211,6 @@ int main()
     CHECK(r_env.data.altitude_m == store.env.altitude_m);
 
     CHECK(r_imu.data.accel[2] == store.imu.accel[2]);
-    CHECK(r_imu.data.quat[0] == store.imu.quat[0]);
     CHECK(r_imu.data.accel_mag == store.imu.accel_mag);
 
     CHECK(r_gps.data.lat == store.gps.lat);
