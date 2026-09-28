@@ -16,7 +16,8 @@ void _ds_set_full(datastore_t *new_ds);
 void ds_write_env(env_t *data, uint32_t now_millis);
 void ds_write_imu(imu_t *data, uint32_t now_millis);
 void ds_write_gps(gps_t *data, uint32_t now_millis);
-void ds_write_light(light_t *data, uint32_t now_millis);
+void ds_write_uv(uv_t *data, uint32_t now_millis);
+void ds_write_fotores(fotores_t *data, uint32_t now_millis);
 void ds_write_gas(gas_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
@@ -103,15 +104,26 @@ void ds_write_gps(gps_t *data, uint32_t now_millis)
     ds_write_end(now_millis);
 }
 
-void ds_write_light(light_t *data, uint32_t now_millis)
+void ds_write_uv(uv_t *data, uint32_t now_millis)
 {
     ds_write_begin();
 
-    ds.light = *data;
+    ds.uv = *data;
 
     // TODO: eventually remove these if handled by sensors
-    // ds.light.s.t_ms = now_millis;
-    // ds.light.s.valid = true;
+    // ds.uv.s.t_ms = now_millis;
+    // ds.uv.s.valid = true;
+
+    temp_write_ring_buffer();
+
+    ds_write_end(now_millis);
+}
+
+void ds_write_fotores(fotores_t *data, uint32_t now_millis)
+{
+    ds_write_begin();
+
+    ds.fotores = *data;
 
     temp_write_ring_buffer();
 

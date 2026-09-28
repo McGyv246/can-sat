@@ -87,7 +87,7 @@ void gps_to_sd(gps_sd_t *out, gps_t *data)
     out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
 
-void light_to_sd(light_sd_t *out, light_t *data)
+void uv_to_sd(uv_sd_t *out, uv_t *data)
 {
     stamp_packed_t stamp;
     pack_stamp(&stamp, &(data->s));
@@ -99,7 +99,24 @@ void light_to_sd(light_sd_t *out, light_t *data)
     out->data.uv_index = data->uv_index;
 
     sd_header_t header;
-    build_header(&header, DATA_TYPE_LIGHT, (uint16_t)sizeof(out->data), hal_millis());
+    build_header(&header, DATA_TYPE_UV, (uint16_t)sizeof(out->data), hal_millis());
+
+    out->header = header;
+
+    // exclude the crc itself from the crc computation
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+}
+
+void fotores_to_sd(fotores_sd_t *out, fotores_t *data)
+{
+    stamp_packed_t stamp;
+    pack_stamp(&stamp, &(data->s));
+
+    out->data.s = stamp;
+    out->data.is_there_light = (uint8_t)data->is_there_light;
+
+    sd_header_t header;
+    build_header(&header, DATA_TYPE_FOTORES, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 
