@@ -10,7 +10,7 @@ static const float VOLTAGE_INDEX_FACTOR = 0.1;
 static const float UV_TRESH = 2;
 
 static sens_state_t state = SENS_IDLE;
-static uint32_t last_sample_time;
+static uint32_t last_sample_time = 0;
 static light_t latest_sample;
 
 sens_status_t uv_init()

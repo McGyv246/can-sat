@@ -64,6 +64,12 @@ extern "C"
     typedef struct
     {
         stamp_t s;
+        bool is_there_light;
+    } fotores_t;
+
+    typedef struct
+    {
+        stamp_t s;
         uint16_t raw;
         uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
         bool heater_enabled;
