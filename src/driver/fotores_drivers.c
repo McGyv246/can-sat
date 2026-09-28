@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "types.h"
 #include "config.h"
+#include "config_arduino.h"
 #include "arduino_wrapper.h"
 
 const uint32_t FOTORES_WAIT_TIME_MS = 2;
