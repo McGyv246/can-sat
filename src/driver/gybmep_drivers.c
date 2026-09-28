@@ -206,6 +206,7 @@ static sens_status_t read_calibration(void)
 // to be called once on setup
 sens_status_t gybmep_init(void)
 {
+    wire_begin_service();
     uint8_t id;
     if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_OK)
     {

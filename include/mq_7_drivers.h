@@ -1,0 +1,26 @@
+#ifndef MQ_7_DRIVERS_H_
+#define MQ_7_DRIVERS_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <stdint.h>
+#include "types.h"
+
+    void mq_7_init(void);
+
+    void mq_7_wake(uint32_t now_ms);
+
+    sens_status_t mq_7_poll(uint32_t now_ms);
+
+    sens_status_t mq_7_get(gas_t *data);
+
+    void mq_7_sleep(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
