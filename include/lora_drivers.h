@@ -17,6 +17,7 @@ extern "C"
     void onReceive(int packetSize);
 
     // initializes as receiver if parameter is true
+    // if lora is initialized as sender, it will be initialized in sleep mode
     sens_state_t lora_init(bool is_receiver);
 
     void lora_wake(void);

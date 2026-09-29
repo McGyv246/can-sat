@@ -108,6 +108,7 @@ sens_state_t lora_init(bool is_receiver)
         return SENS_STATE_READY;
     }
     LoRa.onTxDone(onTxDone);
+    LoRa.sleep();
     return SENS_STATE_READY;
 }
 
