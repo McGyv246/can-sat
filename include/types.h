@@ -142,7 +142,8 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint8_t humidity_pct;
         int16_t altitude_baro_m;
 
-        int16_t orientation[4];
+        int16_t accel[3];
+        int16_t gyro[3];
         int16_t accel_mag;
 
         uint8_t is_there_light_uv; /* uint_8 instead of bool because bool has unspecified size */
@@ -163,7 +164,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 51, "LoRa layout changed");
+    static_assert(sizeof(data_to_lora_t) == 55, "LoRa layout changed");
 
 #pragma endregion
 
