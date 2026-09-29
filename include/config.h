@@ -8,6 +8,8 @@ extern "C"
 
 #define RESCHEDULE_FAULT_INTERVAL 1000
 
+#define SCHED_MAX_FAILS 20
+
 // Must be power of 2 and multiple of 512
 #ifndef BUF_SIZE
 // This if is necessary so that I can override this macro in tests
