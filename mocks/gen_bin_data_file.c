@@ -1,4 +1,4 @@
-// compile: gcc -fsanitize=address -I include -I mocks -Wall src/codec/pack_data.c src/codec/crc.c src/service/datastore.c src/service/ring_buffer.c mocks/hal_time.c mocks/gen_bin_data_file.c -o build/gen_bin_data
+// compile: gcc -fsanitize=address -I include -I mocks -Wall src/codec/pack_data_sd.c src/codec/crc.c src/service/datastore.c src/service/ring_buffer.c mocks/hal_time.c mocks/gen_bin_data_file.c -o build/gen_bin_data
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include "types.h"
-#include "pack_data.h"
+#include "pack_data_sd.h"
 #include "ring_buffer.h"
 #include "config.h"
 
