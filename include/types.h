@@ -344,13 +344,20 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
 #pragma region sensor_states
 
-    // internal states
     typedef enum
     {
         SENS_STATE_IDLE,
         SENS_STATE_NOT_READY,
         SENS_STATE_READY,
+        SENS_STATE_ERR,
     } sens_state_t;
+
+    typedef enum
+    {
+        TASK_STATE_OK,
+        TASK_STATE_BUSY,
+        TASK_STATE_ERR,
+    } task_state_t;
 
 #pragma endregion
 
@@ -369,7 +376,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint32_t (*run)(task_t *self, uint32_t now_millis);
         void (*on_enable)(task_t *self);  /* NULL if nothing to do */
         void (*on_disable)(task_t *self); /* NULL if nothing to do */
-        sens_state_t last_status;         // TODO: eventually replace with general task status and wrap the sens_status
+        task_state_t last_state;
         const char *name;
         uint16_t period;
         uint32_t due;

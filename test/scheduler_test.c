@@ -35,7 +35,7 @@ task_t test_tasks_empty[] = {
         NULL,
         NULL,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_1",
         period_task_1,
         0,
@@ -45,7 +45,7 @@ task_t test_tasks_empty[] = {
         NULL,
         NULL,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_2",
         period_task_2,
         0,
@@ -59,7 +59,7 @@ task_t test_tasks_1[] = {
         &run_task_1,
         &on_enable_task_1,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_1",
         period_task_1,
         0,
@@ -69,7 +69,7 @@ task_t test_tasks_1[] = {
         &run_task_2,
         NULL,
         &on_disable_task_2,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_2",
         period_task_2,
         0,
@@ -83,7 +83,7 @@ task_t test_tasks_2[] = {
         &run_task_1,
         &on_enable_task_1,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_1",
         period_task_1,
         0,
@@ -93,7 +93,7 @@ task_t test_tasks_2[] = {
         &run_task_2,
         NULL,
         &on_disable_task_2,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_2",
         period_task_2,
         0,
@@ -106,7 +106,7 @@ task_t test_tasks_slow[] = {
         &run_task_slow,
         NULL,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_slow",
         period_task_slow,
         0,
@@ -116,7 +116,7 @@ task_t test_tasks_slow[] = {
         &run_task_1,
         NULL,
         NULL,
-        SENS_STATE_NOT_READY,
+        TASK_STATE_OK,
         "task_1",
         period_task_1,
         0,
@@ -175,7 +175,7 @@ void assert_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n)
         TEST_ASSERT_EQUAL_PTR(expected_tasks->run, tasks->run);
         TEST_ASSERT_EQUAL_PTR(expected_tasks->on_enable, tasks->on_enable);
         TEST_ASSERT_EQUAL_PTR(expected_tasks->on_disable, tasks->on_disable);
-        TEST_ASSERT_EQUAL(expected_tasks->last_status, tasks->last_status);
+        TEST_ASSERT_EQUAL(expected_tasks->last_state, tasks->last_state);
         TEST_ASSERT_EQUAL_CHAR_ARRAY(expected_tasks->name, tasks->name, 6);
         TEST_ASSERT_EQUAL_UINT16(expected_tasks->period, tasks->period);
         TEST_ASSERT_EQUAL_UINT32(expected_tasks->due, tasks->due);
