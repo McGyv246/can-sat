@@ -77,18 +77,18 @@ void onTxDone()
     wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
 }
 
-sens_status_t lora_init(void)
+sens_state_t lora_init(void)
 {
     LoRa.setPins(CHIPSELECT_LORA, RESET_LORA, DIO_LORA);
     if (!LoRa.begin(TX_FREQUENCY))
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     LoRa.onTxDone(onTxDone);
     LoRa.setTxPower(TX_POWER);
     LoRa.setSpreadingFactor(SPREADING_FACTOR);
     LoRa.setSignalBandwidth(SIGNAL_BANDWIDTH);
     LoRa.setCodingRate4(CODING_RATE_DENOMINATOR);
     LoRa.setSyncWord(SYNC_WORD_LORA);
-    return SENS_READY;
+    return SENS_STATE_READY;
 }
 
 void lora_wake(void)
@@ -97,20 +97,20 @@ void lora_wake(void)
     return;
 }
 
-sens_status_t lora_send_packet(uint8_t buffer[], size_t len)
+sens_state_t lora_send_packet(uint8_t buffer[], size_t len)
 {
     if ((wrapper_millis() - tx_end_time) < wait_time)
-        return SENS_NOT_READY;
+        return SENS_STATE_NOT_READY;
     if (busy)
-        return SENS_NOT_READY;
+        return SENS_STATE_NOT_READY;
     if (!LoRa.beginPacket())
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     LoRa.write(buffer, len);
     if (!LoRa.endPacket(ASYNC_MODE))
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     tx_start_time = wrapper_millis();
     busy = true;
-    return SENS_READY;
+    return SENS_STATE_READY;
 }
 
 void lora_sleep(void)
