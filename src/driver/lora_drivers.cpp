@@ -124,17 +124,17 @@ sens_status_t lora_send_packet(uint8_t *buffer, size_t len)
     if (receiver)
         return SENS_ERR;
     if ((wrapper_millis() - tx_end_time) < wait_time)
-        return SENS_NOT_READY;
+        return SENS_STATE_NOT_READY;
     if (busy)
-        return SENS_NOT_READY;
+        return SENS_STATE_NOT_READY;
     if (!LoRa.beginPacket())
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     LoRa.write(buffer, len);
     if (!LoRa.endPacket(ASYNC_MODE))
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     tx_start_time = wrapper_millis();
     busy = true;
-    return SENS_READY;
+    return SENS_STATE_READY;
 }
 
 sens_status_t lora_read_packet(uint8_t *buffer, size_t len)

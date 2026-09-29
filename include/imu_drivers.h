@@ -9,11 +9,11 @@ extern "C"
 #include <stdint.h>
 #include "types.h"
 
-    sens_status_t imu_wake(void);
+    sens_state_t imu_wake(void);
 
-    sens_status_t imu_poll(uint32_t now_ms);
+    sens_state_t imu_poll(uint32_t now_ms);
 
-    sens_status_t imu_get(imu_t *data);
+    sens_state_t imu_get(imu_t *data);
 
     void imu_sleep(void);
 
