@@ -1,5 +1,5 @@
-#ifndef GPS_DRIVERS_H_
-#define GGPS_DRIVERS_H_
+#ifndef GPS_DRIVERS_H
+#define GPS_DRIVERS_H
 
 #include <stdint.h>
 #include "types.h"
