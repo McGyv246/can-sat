@@ -78,6 +78,14 @@ void print_ds(datastore_t *ds)
     printf("gas.heater_enabled: %d\n", ds->gas.heater_enabled);
     print_ts(&(ds->gas.s), "gas");
 
+    printf("\n");
+
+    printf("battery.voltage_raw: %u\n", ds->battery.voltage_raw);
+    printf("battery.voltage: %f\n", ds->battery.voltage);
+    printf("battery.percentage: %f\n", ds->battery.percentage);
+    printf("battery.is_alert_active: %u\n", ds->battery.is_alert_active);
+    print_ts(&(ds->battery.s), "battery");
+
     printf("\n\n");
 }
 
@@ -135,6 +143,14 @@ void assert_equal_ds_gas_no_ts(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL(expected->gas.heater_enabled, actual->gas.heater_enabled);
 }
 
+void assert_equal_ds_battery_no_ts(datastore_t *expected, datastore_t *actual)
+{
+    TEST_ASSERT_EQUAL_UINT16(expected->battery.voltage_raw, actual->battery.voltage_raw);
+    TEST_ASSERT_EQUAL_FLOAT(expected->battery.voltage, actual->battery.voltage);
+    TEST_ASSERT_EQUAL_FLOAT(expected->battery.percentage, actual->battery.percentage);
+    TEST_ASSERT_EQUAL_UINT8(expected->battery.is_alert_active, actual->battery.is_alert_active);
+}
+
 void assert_equal_ds_stats(datastore_t *expected, datastore_t *actual)
 {
     TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
@@ -171,6 +187,10 @@ void assert_equal_ds(datastore_t *expected, datastore_t *actual)
     /* gas */
     assert_equal_ds_gas_no_ts(expected, actual);
     assert_equal_stamp(&expected->gas.s, &actual->gas.s);
+
+    /* battery */
+    assert_equal_ds_battery_no_ts(expected, actual);
+    assert_equal_stamp(&expected->battery.s, &actual->battery.s);
 }
 
 #pragma endregion

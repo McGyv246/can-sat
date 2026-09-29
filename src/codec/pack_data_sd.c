@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "types.h"
 #include "hal_time.h"
@@ -137,6 +138,27 @@ void gas_to_sd(gas_sd_t *out, gas_t *data)
 
     sd_header_t header;
     build_header(&header, DATA_TYPE_GAS, (uint16_t)sizeof(out->data), hal_millis());
+
+    out->header = header;
+
+    // exclude the crc itself from the crc computation
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+}
+
+void battery_to_sd(battery_sd_t *out, battery_t *data)
+{
+    stamp_packed_t stamp;
+    pack_stamp(&stamp, &(data->s));
+
+    out->data.s = stamp;
+
+    out->data.voltage_raw = data->voltage_raw;
+    out->data.voltage = data->voltage;
+    out->data.percentage = data->percentage;
+    out->data.is_alert_active = data->is_alert_active;
+
+    sd_header_t header;
+    build_header(&header, DATA_TYPE_BATTERY, (uint16_t)sizeof(out->data), hal_millis());
 
     out->header = header;
 

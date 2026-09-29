@@ -73,6 +73,15 @@ extern "C"
         bool heater_enabled;
     } gas_t;
 
+    typedef struct
+    {
+        stamp_t s;
+        uint16_t voltage_raw; // raw ADC counts
+        float voltage;
+        float percentage;
+        bool is_alert_active;
+    } battery_t;
+
     // typedef struct
     // {
     //     stamp_t s;
@@ -106,6 +115,7 @@ extern "C"
         uv_t uv;
         fotores_t fotores;
         gas_t gas;
+        battery_t battery;
         // health_t health;
     } datastore_t;
 
@@ -132,7 +142,8 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint8_t humidity_pct;
         int16_t altitude_baro_m;
 
-        int16_t orientation[4];
+        int16_t accel[3];
+        int16_t gyro[3];
         int16_t accel_mag;
 
         uint8_t is_there_light_uv; /* uint_8 instead of bool because bool has unspecified size */
@@ -153,7 +164,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     } data_to_lora_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(data_to_lora_t) == 51, "LoRa layout changed");
+    static_assert(sizeof(data_to_lora_t) == 55, "LoRa layout changed");
 
 #pragma endregion
 
@@ -171,8 +182,9 @@ For now the choice of the length of such integer has been made by Claude, we wil
         DATA_TYPE_UV = 3,
         DATA_TYPE_FOTORES = 4,
         DATA_TYPE_GAS = 5,
-        DATA_TYPE_STATS = 6,
-        // HEALTH = 7,
+        DATA_TYPE_BATTERY = 6,
+        DATA_TYPE_STATS = 7,
+        // HEALTH = 8,
     } data_type_t;
 
 #pragma pack(push, 1)
@@ -242,6 +254,15 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     typedef struct
     {
+        stamp_packed_t s;
+        uint16_t voltage_raw; // raw ADC counts
+        float voltage;
+        float percentage;
+        uint8_t is_alert_active;
+    } battery_packed_t;
+
+    typedef struct
+    {
         uint32_t t_ms; /* time of last update, any block */
         uint8_t state;
         float alt_peak_env;
@@ -295,6 +316,13 @@ For now the choice of the length of such integer has been made by Claude, we wil
     typedef struct
     {
         sd_header_t header;
+        battery_packed_t data;
+        uint16_t crc;
+    } battery_sd_t;
+
+    typedef struct
+    {
+        sd_header_t header;
         stats_packed_t data;
         uint16_t crc;
     } stats_sd_t;
@@ -309,6 +337,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(uv_packed_t) == 12, "UV packed layout changed");
     static_assert(sizeof(fotores_packed_t) == 6, "Fotores packed layout changed");
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
+    static_assert(sizeof(battery_packed_t) == 16, "Battery packed layout changed");
     static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
 
 #pragma endregion
