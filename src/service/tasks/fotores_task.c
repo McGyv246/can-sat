@@ -6,7 +6,7 @@
 #include "datastore.h"
 #include "ring_buffer.h"
 
-uint32_t run(task_t *self, uint32_t now_millis)
+uint32_t fotores_task_run(task_t *self, uint32_t now_millis)
 {
     sens_state_t state = fotores_poll(now_millis);
 

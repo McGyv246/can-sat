@@ -6,7 +6,7 @@
 #include "datastore.h"
 #include "ring_buffer.h"
 
-uint32_t run(task_t *self, uint32_t now_millis)
+uint32_t gybmep_task_run(task_t *self, uint32_t now_millis)
 {
     sens_state_t state = gybmep_poll(now_millis);
 
@@ -35,7 +35,7 @@ uint32_t run(task_t *self, uint32_t now_millis)
     return self->period;
 }
 
-void on_enable(task_t *self)
+void gybmep_task_on_enable(task_t *self)
 {
     sens_state_t state = gybmep_wake();
 
@@ -45,7 +45,7 @@ void on_enable(task_t *self)
     }
 }
 
-void on_disable(task_t *self)
+void gybmep_task_on_disable(task_t *self)
 {
     sens_state_t state = gybmep_sleep();
 

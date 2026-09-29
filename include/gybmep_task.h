@@ -9,14 +9,14 @@ extern "C"
 #include <stdint.h>
 #include "types.h"
 
-    uint32_t run(task_t *self, uint32_t now_millis);
-    void on_enable(task_t *self);
-    void on_disable(task_t *self);
+    uint32_t gybmep_task_run(task_t *self, uint32_t now_millis);
+    void gybmep_task_on_enable(task_t *self);
+    void gybmep_task_on_disable(task_t *self);
 
     const task_t GYBMEP_TASK = {
-        .run = &run,
-        .on_enable = &on_enable,
-        .on_disable = &on_disable,
+        .run = &gybmep_task_run,
+        .on_enable = &gybmep_task_on_enable,
+        .on_disable = &gybmep_task_on_disable,
         .last_state = TASK_STATE_OK,
         .name = "GYBMEP",
         .period = 500,

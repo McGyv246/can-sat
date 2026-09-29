@@ -9,10 +9,10 @@ extern "C"
 #include <stdint.h>
 #include "types.h"
 
-    uint32_t run(task_t *self, uint32_t now_millis);
+    uint32_t fotores_task_run(task_t *self, uint32_t now_millis);
 
     const task_t FOTORES_TASK_FAST = {
-        .run = &run,
+        .run = &fotores_task_run,
         .on_enable = NULL,
         .on_disable = NULL,
         .last_state = TASK_STATE_OK,
@@ -24,7 +24,7 @@ extern "C"
     };
 
     const task_t FOTORES_TASK_SLOW = {
-        .run = &run,
+        .run = &fotores_task_run,
         .on_enable = NULL,
         .on_disable = NULL,
         .last_state = TASK_STATE_OK,
