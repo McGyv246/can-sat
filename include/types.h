@@ -347,18 +347,10 @@ For now the choice of the length of such integer has been made by Claude, we wil
     // internal states
     typedef enum
     {
-        SENS_INTERNAL_IDLE,
-        SENS_INTERNAL_WAITING,
-        SENS_INTERNAL_OK,
-    } sens_internal_state_t;
-
-    // external status
-    typedef enum
-    {
-        SENS_EXTERNAL_NOT_READY,
-        SENS_EXTERNAL_READY,
-        SENS_EXTERNAL_ERR,
-    } sens_external_state_t;
+        SENS_STATE_IDLE,
+        SENS_STATE_NOT_READY,
+        SENS_STATE_READY,
+    } sens_state_t;
 
 #pragma endregion
 
@@ -375,9 +367,9 @@ For now the choice of the length of such integer has been made by Claude, we wil
     struct task_s
     {
         uint32_t (*run)(task_t *self, uint32_t now_millis);
-        void (*on_enable)(task_t *self);   /* NULL if nothing to do */
-        void (*on_disable)(task_t *self);  /* NULL if nothing to do */
-        sens_external_state_t last_status; // TODO: eventually replace with general task status and wrap the sens_status
+        void (*on_enable)(task_t *self);  /* NULL if nothing to do */
+        void (*on_disable)(task_t *self); /* NULL if nothing to do */
+        sens_state_t last_status;         // TODO: eventually replace with general task status and wrap the sens_status
         const char *name;
         uint16_t period;
         uint32_t due;
