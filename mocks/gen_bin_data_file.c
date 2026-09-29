@@ -64,6 +64,14 @@ datastore_t store = {
         .heater_on_s = 32,
         .heater_enabled = true,
     },
+
+    .battery = {
+        .s = {.t_ms = 45230, .valid = true},
+        .voltage_raw = 12564,
+        .voltage = 3.25,
+        .percentage = 0.67,
+        .is_alert_active = false,
+    },
 };
 
 static int dump_to_file(const char *path, const uint8_t *data, size_t len)
@@ -135,6 +143,7 @@ int main()
     uv_sd_t uv;
     fotores_sd_t fotores;
     gas_sd_t gas;
+    battery_sd_t battery;
     stats_sd_t stats;
     env_to_sd(&env, &store.env);
     imu_to_sd(&imu, &store.imu);
@@ -142,6 +151,7 @@ int main()
     uv_to_sd(&uv, &store.uv);
     fotores_to_sd(&fotores, &store.fotores);
     gas_to_sd(&gas, &store.gas);
+    battery_to_sd(&battery, &store.battery);
     stats_to_sd(&stats, &store);
 
     buf_write(&env, sizeof(env_sd_t));
@@ -150,6 +160,7 @@ int main()
     buf_write(&uv, sizeof(uv_sd_t));
     buf_write(&fotores, sizeof(fotores_sd_t));
     buf_write(&gas, sizeof(gas_sd_t));
+    buf_write(&battery, sizeof(battery_sd_t));
     buf_write(&stats, sizeof(stats_sd_t));
 
     static uint8_t out[BUF_SIZE];
@@ -174,6 +185,7 @@ int main()
     uv_sd_t r_uv;
     fotores_sd_t r_fotores;
     gas_sd_t r_gas;
+    battery_sd_t r_battery;
     stats_sd_t r_stats;
 
     size_t off = 0;
@@ -183,6 +195,7 @@ int main()
         take(rbuf, rlen, &off, &r_uv, sizeof r_uv, DATA_TYPE_UV) ||
         take(rbuf, rlen, &off, &r_fotores, sizeof r_fotores, DATA_TYPE_FOTORES) ||
         take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
+        take(rbuf, rlen, &off, &r_battery, sizeof r_battery, DATA_TYPE_BATTERY) ||
         take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
     {
         free(rbuf);
@@ -212,6 +225,7 @@ int main()
     CHECK(memcmp(&r_uv, &uv, sizeof uv) == 0);
     CHECK(memcmp(&r_fotores, &fotores, sizeof fotores) == 0);
     CHECK(memcmp(&r_gas, &gas, sizeof gas) == 0);
+    CHECK(memcmp(&r_battery, &battery, sizeof battery) == 0);
     CHECK(memcmp(&r_stats, &stats, sizeof stats) == 0);
 
     /* spot checks against the original datastore */
@@ -239,6 +253,11 @@ int main()
     CHECK(r_gas.data.heater_on_s == store.gas.heater_on_s);
     CHECK(r_gas.data.heater_enabled == store.gas.heater_enabled);
 
+    CHECK(r_battery.data.voltage_raw == store.battery.voltage_raw);
+    CHECK(r_battery.data.voltage == store.battery.voltage);
+    CHECK(r_battery.data.percentage == store.battery.percentage);
+    CHECK(r_battery.data.is_alert_active == store.battery.is_alert_active);
+
     CHECK(r_stats.data.t_ms == store.t_ms);
     CHECK(r_stats.data.state == (uint8_t)store.state);
     CHECK(r_stats.data.alt_peak_env == store.alt_peak_env);
@@ -247,7 +266,7 @@ int main()
 #undef CHECK
 
     if (errors == 0)
-        printf("parse OK: all %d records match\n", 7);
+        printf("parse OK: all %d records match\n", 8);
     else
         printf("parse finished with %d failed checks\n", errors);
 
