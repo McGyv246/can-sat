@@ -15,7 +15,7 @@ extern "C"
 
     sens_state_t imu_get(imu_t *data);
 
-    void imu_sleep(void);
+    sens_state_t imu_sleep(void);
 
 #ifdef __cplusplus
 }

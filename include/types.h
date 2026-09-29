@@ -381,6 +381,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint16_t period;
         uint32_t due;
         uint8_t priority; // The lower the number, the higher the priority
+        uint16_t fail_count;
     };
 
     typedef struct

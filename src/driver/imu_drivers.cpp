@@ -52,7 +52,8 @@ sens_state_t imu_get(imu_t *data)
     return SENS_STATE_NOT_READY;
 }
 
-void imu_sleep(void)
+sens_state_t imu_sleep(void)
 {
     IMU.end();
+    return SENS_STATE_NOT_READY;
 }

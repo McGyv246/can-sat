@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "unity.h"
 #include "types.h"
@@ -40,6 +41,7 @@ task_t test_tasks_empty[] = {
         period_task_1,
         0,
         1,
+        0,
     },
     {
         NULL,
@@ -50,6 +52,7 @@ task_t test_tasks_empty[] = {
         period_task_2,
         0,
         3,
+        0,
     },
 };
 
@@ -64,6 +67,7 @@ task_t test_tasks_1[] = {
         period_task_1,
         0,
         0,
+        0,
     },
     {
         &run_task_2,
@@ -74,6 +78,7 @@ task_t test_tasks_1[] = {
         period_task_2,
         0,
         10,
+        0,
     },
 };
 
@@ -88,6 +93,7 @@ task_t test_tasks_2[] = {
         period_task_1,
         0,
         10,
+        0,
     },
     {
         &run_task_2,
@@ -96,6 +102,7 @@ task_t test_tasks_2[] = {
         TASK_STATE_OK,
         "task_2",
         period_task_2,
+        0,
         0,
         0,
     },
@@ -111,6 +118,7 @@ task_t test_tasks_slow[] = {
         period_task_slow,
         0,
         0,
+        0,
     },
     {
         &run_task_1,
@@ -121,12 +129,17 @@ task_t test_tasks_slow[] = {
         period_task_1,
         0,
         10,
+        0,
     },
 };
 
-bool tasks_disabled_enabled[] = {false, true};
-bool tasks_all_enabled[] = {true, true};
-bool tasks_all_disabled[] = {false, false};
+static const bool INIT_ALL_ENABLED[] = {true, true};
+static const bool INIT_ALL_DISABLED[] = {false, false};
+static const bool INIT_DISABLED_ENABLED[] = {false, true};
+
+bool tasks_disabled_enabled[2];
+bool tasks_all_enabled[2];
+bool tasks_all_disabled[2];
 
 uint32_t run_task_1(task_t *self, uint32_t now_millis)
 {
@@ -180,6 +193,7 @@ void assert_tasks_equal(task_t *expected_tasks, task_t *tasks, size_t n)
         TEST_ASSERT_EQUAL_UINT16(expected_tasks->period, tasks->period);
         TEST_ASSERT_EQUAL_UINT32(expected_tasks->due, tasks->due);
         TEST_ASSERT_EQUAL_UINT8(expected_tasks->priority, tasks->priority);
+        TEST_ASSERT_EQUAL_UINT16(expected_tasks->fail_count, tasks->fail_count);
     }
 }
 
@@ -194,6 +208,10 @@ void setUp()
 {
     run_check = 0;
     enabled_check = 0;
+
+    memcpy(tasks_all_enabled, INIT_ALL_ENABLED, sizeof tasks_all_enabled);
+    memcpy(tasks_all_disabled, INIT_ALL_DISABLED, sizeof tasks_all_disabled);
+    memcpy(tasks_disabled_enabled, INIT_DISABLED_ENABLED, sizeof tasks_disabled_enabled);
 
     for (size_t i = 0; i < TASKS_NUMBER; i++)
     {
