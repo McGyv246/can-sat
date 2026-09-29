@@ -4,6 +4,7 @@
 #include "types.h"
 #include "fotores_drivers.h"
 #include "datastore.h"
+#include "ring_buffer.h"
 
 uint32_t run(task_t *self, uint32_t now_millis)
 {
@@ -13,7 +14,9 @@ uint32_t run(task_t *self, uint32_t now_millis)
     {
         fotores_t data;
         fotores_get(&data);
+
         ds_write_fotores(&data, now_millis);
+        buf_write(&data, sizeof(data));
 
         self->last_state = TASK_STATE_OK;
     }
