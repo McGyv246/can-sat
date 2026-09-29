@@ -19,6 +19,7 @@ void ds_write_gps(gps_t *data, uint32_t now_millis);
 void ds_write_uv(uv_t *data, uint32_t now_millis);
 void ds_write_fotores(fotores_t *data, uint32_t now_millis);
 void ds_write_gas(gas_t *data, uint32_t now_millis);
+void ds_write_battery(battery_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
 bool ds_read_all(datastore_t *data);
@@ -139,6 +140,17 @@ void ds_write_gas(gas_t *data, uint32_t now_millis)
     // TODO: eventually remove these if handled by sensors
     // ds.gas.s.t_ms = now_millis;
     // ds.gas.s.valid = true;
+
+    temp_write_ring_buffer();
+
+    ds_write_end(now_millis);
+}
+
+void ds_write_battery(battery_t *data, uint32_t now_millis)
+{
+    ds_write_begin();
+
+    ds.battery = *data;
 
     temp_write_ring_buffer();
 
