@@ -90,12 +90,12 @@ void onReceive(int packet_size)
     return;
 }
 
-sens_status_t lora_init(bool is_receiver)
+sens_state_t lora_init(bool is_receiver)
 {
     receiver = is_receiver;
     LoRa.setPins(CHIPSELECT_LORA, RESET_LORA, DIO_LORA);
     if (!LoRa.begin(TX_FREQUENCY))
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     LoRa.setTxPower(TX_POWER);
     LoRa.setSpreadingFactor(SPREADING_FACTOR);
     LoRa.setSignalBandwidth(SIGNAL_BANDWIDTH);
@@ -105,10 +105,10 @@ sens_status_t lora_init(bool is_receiver)
     {
         LoRa.onReceive(onReceive);
         LoRa.receive();
-        return SENS_READY;
+        return SENS_STATE_READY;
     }
     LoRa.onTxDone(onTxDone);
-    return SENS_READY;
+    return SENS_STATE_READY;
 }
 
 void lora_wake(void)
@@ -119,10 +119,10 @@ void lora_wake(void)
     return;
 }
 
-sens_status_t lora_send_packet(uint8_t *buffer, size_t len)
+sens_state_t lora_send_packet(uint8_t *buffer, size_t len)
 {
     if (receiver)
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     if ((wrapper_millis() - tx_end_time) < wait_time)
         return SENS_STATE_NOT_READY;
     if (busy)
@@ -137,15 +137,15 @@ sens_status_t lora_send_packet(uint8_t *buffer, size_t len)
     return SENS_STATE_READY;
 }
 
-sens_status_t lora_read_packet(uint8_t *buffer, size_t len)
+sens_state_t lora_read_packet(uint8_t *buffer, size_t len)
 {
     if (!packet_received)
-        return SENS_NOT_READY;
+        return SENS_STATE_NOT_READY;
     if (len < received_size)
-        return SENS_ERR;
+        return SENS_STATE_ERR;
     LoRa.readBytes(buffer, received_size);
     packet_received = false;
-    return SENS_NOT_READY;
+    return SENS_STATE_NOT_READY;
 }
 
 void lora_sleep(void)
