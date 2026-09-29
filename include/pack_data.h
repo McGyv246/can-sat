@@ -15,6 +15,7 @@ extern "C"
     void uv_to_sd(uv_sd_t *out, uv_t *data);
     void fotores_to_sd(fotores_sd_t *out, fotores_t *data);
     void gas_to_sd(gas_sd_t *out, gas_t *data);
+    void battery_to_sd(battery_sd_t *out, battery_t *data);
     void stats_to_sd(stats_sd_t *out, datastore_t *data);
 
 #ifdef __cplusplus
