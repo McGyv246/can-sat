@@ -50,14 +50,14 @@ typedef enum
 static const uint32_t ESTIMATED_MEASURE_TIME_MS = (uint32_t)(1 + (2 * 2) + (2 * 4 + 0.5) + (2 * 1 + 0.5));
 
 static uint8_t current_address = ADDRESS;
-static sens_state_t state = SENS_IDLE;
+static sens_internal_state_t state = SENS_INTERNAL_IDLE;
 static calibration_variables calib_data;
 static env_t latest_sample;
 static int32_t current_temp; // needed for pressure compensation
 
 #pragma region internal_utils
 
-static sens_status_t set_sampling(uint8_t os_t, uint8_t os_p, uint8_t os_h, uint8_t iir, uint8_t standby, uint8_t mode)
+static sens_external_state_t set_sampling(uint8_t os_t, uint8_t os_p, uint8_t os_h, uint8_t iir, uint8_t standby, uint8_t mode)
 {
     os_t = os_t & 7;
     os_p = os_p & 7;
@@ -66,30 +66,30 @@ static sens_status_t set_sampling(uint8_t os_t, uint8_t os_p, uint8_t os_h, uint
     standby = standby & 7;
     mode = mode & 3;
 
-    if (write_reg_8(current_address, REG_CTRL_HUM, os_h & 0x07) == SENS_ERR)
-        return SENS_ERR;
+    if (write_reg_8(current_address, REG_CTRL_HUM, os_h & 0x07) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
     uint8_t config = (uint8_t)((standby & 0x07) << 5 | (iir & 0x07) << 2);
-    if (write_reg_8(current_address, REG_CONFIG, config) == SENS_ERR)
-        return SENS_ERR;
+    if (write_reg_8(current_address, REG_CONFIG, config) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
     uint8_t ctrl_meas = (uint8_t)((os_t & 0x07) << 5 | (os_p & 0x07) << 2 | (mode & 0x03));
-    if (write_reg_8(current_address, REG_CTRL_MEAS, ctrl_meas) == SENS_ERR)
-        return SENS_ERR;
+    if (write_reg_8(current_address, REG_CTRL_MEAS, ctrl_meas) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
-    return SENS_OK;
+    return SENS_INTERNAL_OK;
 }
 
-sens_status_t read_data_raw(int32_t *adc_P, int32_t *adc_T, int32_t *adc_H)
+sens_external_state_t read_data_raw(int32_t *adc_P, int32_t *adc_T, int32_t *adc_H)
 {
     size_t len = 8;
     uint8_t buf[len];
-    if (read_reg_buffered(current_address, REG_PRESS_MSB, buf, len) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_buffered(current_address, REG_PRESS_MSB, buf, len) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
     *adc_P = ((int32_t)buf[0] << 12) | ((int32_t)buf[1] << 4) | (buf[2] >> 4);
     *adc_T = ((int32_t)buf[3] << 12) | ((int32_t)buf[4] << 4) | (buf[5] >> 4);
     *adc_H = ((int32_t)buf[6] << 8) | (int32_t)buf[7];
-    return SENS_OK;
+    return SENS_INTERNAL_OK;
 }
 
 float compensate_T(int32_t adc_T)
@@ -142,51 +142,51 @@ float calculate_altitude(float temperature, float pressure)
 
 #pragma region setup
 
-static sens_status_t read_calibration(void)
+static sens_external_state_t read_calibration(void)
 {
-    if (read_reg_16(current_address, 0x88, &calib_data.dig_T1) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x8A, &calib_data.dig_T2) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x8C, &calib_data.dig_T3) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_16(current_address, 0x88, &calib_data.dig_T1) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x8A, &calib_data.dig_T2) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x8C, &calib_data.dig_T3) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
-    if (read_reg_16(current_address, 0x8E, &calib_data.dig_P1) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x90, &calib_data.dig_P2) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x92, &calib_data.dig_P3) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x94, &calib_data.dig_P4) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x96, &calib_data.dig_P5) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x98, &calib_data.dig_P6) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x9A, &calib_data.dig_P7) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x9C, &calib_data.dig_P8) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0x9E, &calib_data.dig_P9) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_16(current_address, 0x8E, &calib_data.dig_P1) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x90, &calib_data.dig_P2) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x92, &calib_data.dig_P3) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x94, &calib_data.dig_P4) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x96, &calib_data.dig_P5) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x98, &calib_data.dig_P6) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x9A, &calib_data.dig_P7) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x9C, &calib_data.dig_P8) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0x9E, &calib_data.dig_P9) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
-    if (read_reg_8(current_address, 0xA1, &calib_data.dig_H1) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_16_signed(current_address, 0xE1, &calib_data.dig_H2) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_8(current_address, 0xE3, &calib_data.dig_H3) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_8(current_address, 0xA1, &calib_data.dig_H1) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_16_signed(current_address, 0xE1, &calib_data.dig_H2) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_8(current_address, 0xE3, &calib_data.dig_H3) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
     uint8_t lo;
     uint8_t mid;
     uint8_t hi;
 
-    if (read_reg_8(current_address, 0xE4, &lo) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_8(current_address, 0xE5, &mid) == SENS_ERR)
-        return SENS_ERR;
-    if (read_reg_8(current_address, 0xE6, &hi) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_8(current_address, 0xE4, &lo) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_8(current_address, 0xE5, &mid) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (read_reg_8(current_address, 0xE6, &hi) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
 
     calib_data.dig_H4 = (int16_t)((((int16_t)lo) << 4) | (mid & 0x0F));
     if (calib_data.dig_H4 & 0x0800)
@@ -197,101 +197,101 @@ static sens_status_t read_calibration(void)
         calib_data.dig_H5 -= 4096;
 
     uint8_t temp_H6;
-    if (read_reg_8(current_address, 0xE7, &temp_H6) == SENS_ERR)
-        return SENS_ERR;
+    if (read_reg_8(current_address, 0xE7, &temp_H6) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
     calib_data.dig_H6 = (int8_t)temp_H6;
-    return SENS_OK;
+    return SENS_INTERNAL_OK;
 }
 
 // to be called once on setup
-sens_status_t gybmep_init(void)
+sens_external_state_t gybmep_init(void)
 {
     wire_begin_service();
     uint8_t id;
-    if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_OK)
+    if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_INTERNAL_OK)
     {
-        if (read_reg_8(ADDRESS_ALTERNATIVE, REG_ID, &id) != SENS_OK)
+        if (read_reg_8(ADDRESS_ALTERNATIVE, REG_ID, &id) != SENS_INTERNAL_OK)
         {
-            return SENS_ERR; // no address is correct (device might be disconnected)
+            return SENS_EXTERNAL_ERR; // no address is correct (device might be disconnected)
         }
         current_address = ADDRESS_ALTERNATIVE;
     }
     current_address = ADDRESS;
     if (id != CHIP_ID)
-        return SENS_ERR;
+        return SENS_EXTERNAL_ERR;
     write_reg_8(current_address, REG_RESET, 0xB6); // resets device
     wrapper_delay_ms((uint32_t)3);
     while (true)
     {
         uint8_t status;
-        if (read_reg_8(current_address, REG_STATUS, &status) == SENS_ERR)
-            return SENS_ERR; // reads im_update bit
+        if (read_reg_8(current_address, REG_STATUS, &status) == SENS_EXTERNAL_ERR)
+            return SENS_EXTERNAL_ERR; // reads im_update bit
         if (!(status & 0x01))
             break;           // checks for im_update bit to be zero
         wrapper_delay_ms(1); // waits for reset to be completed
     }
-    if (read_calibration() == SENS_ERR)
-        return SENS_ERR;
-    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_SLEEP) == SENS_ERR)
-        return SENS_ERR;
-    return SENS_NOT_READY;
+    if (read_calibration() == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_SLEEP) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
 #pragma endregion
 
 #pragma region public_interface_functions
 
-sens_status_t gybmep_wake(void)
+sens_external_state_t gybmep_wake(void)
 {
-    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_NORMAL) == SENS_ERR)
-        return SENS_ERR;
-    state = SENS_IDLE;
-    return SENS_NOT_READY;
+    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_NORMAL) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    state = SENS_INTERNAL_IDLE;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t gybmep_poll(uint32_t now_ms)
+sens_external_state_t gybmep_poll(uint32_t now_ms)
 {
     switch (state)
     {
-    case SENS_IDLE:
+    case SENS_INTERNAL_IDLE:
         uint8_t status;
-        if (read_reg_8(current_address, REG_STATUS, &status) == SENS_ERR)
-            return SENS_ERR;
+        if (read_reg_8(current_address, REG_STATUS, &status) == SENS_EXTERNAL_ERR)
+            return SENS_EXTERNAL_ERR;
         if (status & 0x08)
-            return SENS_NOT_READY; // checks measuring bit to see if a measure is in progress
+            return SENS_EXTERNAL_NOT_READY; // checks measuring bit to see if a measure is in progress
         int32_t adc_P, adc_T, adc_H;
-        if (read_data_raw(&adc_P, &adc_T, &adc_H) == SENS_ERR)
-            return SENS_ERR;
+        if (read_data_raw(&adc_P, &adc_T, &adc_H) == SENS_EXTERNAL_ERR)
+            return SENS_EXTERNAL_ERR;
         latest_sample.temp_c = compensate_T(adc_T); // compensate_T MUST be the first compensation called
         latest_sample.pressure_pa = compensate_P(adc_P);
         latest_sample.humidity_pct = compensate_H(adc_H);
         latest_sample.altitude_m = calculate_altitude(latest_sample.temp_c, latest_sample.pressure_pa);
         latest_sample.s.t_ms = now_ms - ESTIMATED_MEASURE_TIME_MS;
         latest_sample.s.valid = true;
-        state = SENS_OK;
+        state = SENS_INTERNAL_OK;
 
-    case SENS_WAITING:
+    case SENS_INTERNAL_WAITING:
         // no conversion needed
-        return SENS_ERR;
+        return SENS_EXTERNAL_ERR;
 
-    case SENS_OK:
-        return SENS_READY;
+    case SENS_INTERNAL_OK:
+        return SENS_EXTERNAL_READY;
     }
-    return SENS_ERR;
+    return SENS_EXTERNAL_ERR;
 }
 
-sens_status_t gybmep_get(env_t *data)
+sens_external_state_t gybmep_get(env_t *data)
 {
     *data = latest_sample;
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t gybmep_sleep(void)
+sens_external_state_t gybmep_sleep(void)
 {
-    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_SLEEP) == SENS_ERR)
-        return SENS_ERR;
-    state = SENS_IDLE;
-    return SENS_NOT_READY;
+    if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_SLEEP) == SENS_EXTERNAL_ERR)
+        return SENS_EXTERNAL_ERR;
+    state = SENS_INTERNAL_IDLE;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
 #pragma endregion

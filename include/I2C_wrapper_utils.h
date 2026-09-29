@@ -8,15 +8,15 @@ extern "C"
 
 #include <types.h>
 
-    sens_status_t write_reg_8(uint8_t addr, uint8_t reg, uint8_t value);
+    sens_external_state_t write_reg_8(uint8_t addr, uint8_t reg, uint8_t value);
 
-    sens_status_t read_reg_8(uint8_t addr, uint8_t reg, uint8_t *value);
+    sens_external_state_t read_reg_8(uint8_t addr, uint8_t reg, uint8_t *value);
 
-    sens_status_t read_reg_16(uint8_t addr, uint8_t reg, uint16_t *value);
+    sens_external_state_t read_reg_16(uint8_t addr, uint8_t reg, uint16_t *value);
 
-    sens_status_t read_reg_16_signed(uint8_t addr, uint8_t reg, int16_t *value);
+    sens_external_state_t read_reg_16_signed(uint8_t addr, uint8_t reg, int16_t *value);
 
-    sens_status_t read_reg_buffered(uint8_t addr, uint8_t reg, uint8_t *buff, size_t len);
+    sens_external_state_t read_reg_buffered(uint8_t addr, uint8_t reg, uint8_t *buff, size_t len);
 
 #ifdef __cplusplus
 }

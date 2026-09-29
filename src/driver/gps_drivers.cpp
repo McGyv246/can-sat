@@ -9,11 +9,11 @@
 const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
 
 static bool is_on = false;
-static sens_state_t state = SENS_IDLE;
+static sens_internal_state_t state = SENS_INTERNAL_IDLE;
 static TinyGPSPlus gps;
 static gps_t latest_sample;
 
-sens_status_t gps_init(void)
+sens_external_state_t gps_init(void)
 {
     if (!is_on)
     {
@@ -21,44 +21,44 @@ sens_status_t gps_init(void)
         wrapper_digital_write(D_OUT_GPS_COMMAND, WRAPPER_HIGH);
         Serial1.begin(9600);
         is_on = true;
-        state = SENS_IDLE;
+        state = SENS_INTERNAL_IDLE;
     }
     if (Serial1.available() > 0)
     {
         gps.encode(Serial1.read());
         // some other checks, like hdop validity, could be used to ensure enough satellites are locked
         if (gps.location.isValid() && (gps.location.age() < MAX_SAMPLE_AGE) && gps.satellites.isValid() && (gps.satellites.value() >= 4))
-            return SENS_READY;
+            return SENS_EXTERNAL_READY;
     }
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t gps_wake(void)
+sens_external_state_t gps_wake(void)
 {
     if (!is_on)
     {
         wrapper_digital_write(D_OUT_GPS_COMMAND, WRAPPER_HIGH);
         Serial1.begin(9600);
         is_on = true;
-        state = SENS_IDLE;
+        state = SENS_INTERNAL_IDLE;
     }
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t gps_poll(uint32_t now_ms)
+sens_external_state_t gps_poll(uint32_t now_ms)
 {
     switch (state)
     {
-    case SENS_IDLE:
+    case SENS_INTERNAL_IDLE:
         if (Serial1.available())
         {
-            state = SENS_OK;
+            state = SENS_INTERNAL_OK;
         }
         else
         {
-            return SENS_NOT_READY;
+            return SENS_EXTERNAL_NOT_READY;
         }
-    case SENS_OK:
+    case SENS_INTERNAL_OK:
         gps.encode(Serial1.read());
 
         if (gps.satellites.isValid() && (gps.satellites.age() < MAX_SAMPLE_AGE) && gps.satellites.isUpdated())
@@ -135,25 +135,25 @@ sens_status_t gps_poll(uint32_t now_ms)
 
         latest_sample.s.valid = true;
         latest_sample.s.t_ms = now_ms;
-        return SENS_READY;
+        return SENS_EXTERNAL_READY;
     }
-    return SENS_ERR;
+    return SENS_EXTERNAL_ERR;
 }
 
-sens_status_t gps_get(gps_t *data)
+sens_external_state_t gps_get(gps_t *data)
 {
     *data = latest_sample;
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t gps_sleep(void)
+sens_external_state_t gps_sleep(void)
 {
     if (is_on)
     {
         wrapper_digital_write(D_OUT_GPS_COMMAND, WRAPPER_LOW);
         Serial1.end();
         is_on = false;
-        state = SENS_IDLE;
+        state = SENS_INTERNAL_IDLE;
     }
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }

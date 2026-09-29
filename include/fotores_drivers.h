@@ -12,9 +12,9 @@ extern "C"
     // this function is to be called once on setup to set the pins
     void fotores_init(void);
 
-    sens_status_t fotores_poll(uint32_t now_ms);
+    sens_external_state_t fotores_poll(uint32_t now_ms);
 
-    sens_status_t fotores_get(fotores_t *data);
+    sens_external_state_t fotores_get(fotores_t *data);
 
 #ifdef __cplusplus
 }

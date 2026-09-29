@@ -6,7 +6,7 @@
 
 const uint32_t FOTORES_WAIT_TIME_MS = 2;
 
-static sens_state_t state = SENS_IDLE;
+static sens_internal_state_t state = SENS_INTERNAL_IDLE;
 static uint32_t last_sample_time = 0;
 static fotores_t current_sample;
 
@@ -16,35 +16,35 @@ void fotores_init(void)
     return;
 }
 
-sens_status_t fotores_poll(uint32_t now_ms)
+sens_external_state_t fotores_poll(uint32_t now_ms)
 {
 
     switch (state)
     {
-    case SENS_IDLE:
+    case SENS_INTERNAL_IDLE:
         if ((now_ms - last_sample_time) < FOTORES_WAIT_TIME_MS)
-            return SENS_NOT_READY;
+            return SENS_EXTERNAL_NOT_READY;
         if (wrapper_digital_read(D_IN_PHOTORESISTOR) == WRAPPER_LOW)
         {
             current_sample.is_there_light = true;
-            state = SENS_READY;
+            state = SENS_EXTERNAL_READY;
         }
         else
         {
             current_sample.is_there_light = false;
-            state = SENS_READY;
+            state = SENS_EXTERNAL_READY;
         }
-    case SENS_READY:
+    case SENS_EXTERNAL_READY:
         current_sample.s.t_ms = now_ms;
         current_sample.s.valid = true;
-        state = SENS_IDLE;
-        return SENS_READY;
+        state = SENS_INTERNAL_IDLE;
+        return SENS_EXTERNAL_READY;
     }
-    return SENS_ERR;
+    return SENS_EXTERNAL_ERR;
 }
 
-sens_status_t fotores_get(fotores_t *data)
+sens_external_state_t fotores_get(fotores_t *data)
 {
     *data = current_sample;
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }

@@ -10,24 +10,24 @@ static const float ADC_CONVERSION_FACTOR = VCC / (float)MAX_V;
 static const float VOLTAGE_INDEX_FACTOR = 0.1;
 static const float UV_TRESH = 2;
 
-static sens_state_t state = SENS_IDLE;
+static sens_internal_state_t state = SENS_INTERNAL_IDLE;
 static uint32_t last_sample_time = 0;
 static uv_t latest_sample;
 
-sens_status_t uv_init()
+sens_external_state_t uv_init()
 {
     wrapper_pin_mode(A_IN_UV, WRAPPER_INPUT);
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }
 
-sens_status_t uv_poll(uint32_t now_ms)
+sens_external_state_t uv_poll(uint32_t now_ms)
 {
 
     switch (state)
     {
-    case SENS_IDLE:
+    case SENS_INTERNAL_IDLE:
         if (now_ms - last_sample_time < UV_WAIT_TIME_MS)
-            return SENS_NOT_READY;
+            return SENS_EXTERNAL_NOT_READY;
         latest_sample.uv_raw = wrapper_analog_read(A_IN_UV);
         latest_sample.uv_index = (float)(latest_sample.uv_raw * ADC_CONVERSION_FACTOR) / VOLTAGE_INDEX_FACTOR;
         if (latest_sample.uv_index > UV_TRESH)
@@ -39,19 +39,19 @@ sens_status_t uv_poll(uint32_t now_ms)
         latest_sample.s.valid = true;
         latest_sample.s.t_ms = now_ms;
         last_sample_time = now_ms;
-        state = SENS_OK;
+        state = SENS_INTERNAL_OK;
 
-    case SENS_WAITING:
-        return SENS_ERR;
+    case SENS_INTERNAL_WAITING:
+        return SENS_EXTERNAL_ERR;
 
-    case SENS_OK:
-        return SENS_READY;
+    case SENS_INTERNAL_OK:
+        return SENS_EXTERNAL_READY;
     }
-    return SENS_ERR;
+    return SENS_EXTERNAL_ERR;
 }
 
-sens_status_t uv_get(uv_t *data)
+sens_external_state_t uv_get(uv_t *data)
 {
     *data = latest_sample;
-    return SENS_NOT_READY;
+    return SENS_EXTERNAL_NOT_READY;
 }

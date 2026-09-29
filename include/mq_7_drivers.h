@@ -13,9 +13,9 @@ extern "C"
 
     void mq_7_wake(uint32_t now_ms);
 
-    sens_status_t mq_7_poll(uint32_t now_ms);
+    sens_external_state_t mq_7_poll(uint32_t now_ms);
 
-    sens_status_t mq_7_get(gas_t *data);
+    sens_external_state_t mq_7_get(gas_t *data);
 
     void mq_7_sleep(void);
 
