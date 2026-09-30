@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <MAX17043.h>
 #include "types.h"
+#include "fuel_gauge_drivers.h"
 #include "arduino_wrapper.h"
 
 const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 5; // default is 4%. can be between 1 and 32

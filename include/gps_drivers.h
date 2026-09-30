@@ -1,20 +1,29 @@
 #ifndef GPS_DRIVERS_H
 #define GPS_DRIVERS_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include "types.h"
 
-// this function starts the gps up to let it find satellites. it can be recaled to check on the sensor.
-// if satellites have been found, SENS_STATE_READY will be returned. SENS_STATE_NOT_READY will be returned otherwise
-// note: final checks chould be the led light on the gps module
-sens_state_t gps_init(void);
+    // this function starts the gps up to let it find satellites. it can be recaled to check on the sensor.
+    // if satellites have been found, SENS_STATE_READY will be returned. SENS_STATE_NOT_READY will be returned otherwise
+    // note: final checks chould be the led light on the gps module
+    sens_state_t gps_init(void);
 
-sens_state_t gps_wake(void);
+    sens_state_t gps_wake(void);
 
-sens_state_t gps_poll(uint32_t now_ms);
+    sens_state_t gps_poll(uint32_t now_ms);
 
-sens_state_t gps_get(gps_t *data);
+    sens_state_t gps_get(gps_t *data);
 
-sens_state_t gps_sleep(void);
+    sens_state_t gps_sleep(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
