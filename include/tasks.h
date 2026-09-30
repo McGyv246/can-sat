@@ -38,9 +38,15 @@ extern "C"
     /* Defined in tasks.c, to be passed to sched_init */
     extern task_t tasks_core0[TASK_CORE0_COUNT];
     extern bool tasks_enabled_core0[TASK_CORE0_COUNT];
+    extern bool tasks_enabled_core0_idle[TASK_CORE0_COUNT];
+    extern bool tasks_enabled_core0_descent[TASK_CORE0_COUNT];
+    extern bool tasks_enabled_core0_landed[TASK_CORE0_COUNT];
 
     extern task_t tasks_core1[TASK_CORE1_COUNT];
     extern bool tasks_enabled_core1[TASK_CORE1_COUNT];
+    extern bool tasks_enabled_core1_idle[TASK_CORE1_COUNT];
+    extern bool tasks_enabled_core1_descent[TASK_CORE1_COUNT];
+    extern bool tasks_enabled_core1_landed[TASK_CORE1_COUNT];
 
 #pragma region task_callbacks
     /* Only needed by the tasks table in tasks.c */

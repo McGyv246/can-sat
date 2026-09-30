@@ -95,9 +95,52 @@ task_t tasks_core1[TASK_CORE1_COUNT] = {
     },
 };
 
-/*
-All disabled at start: enable them with sched_change_enabled_tasks / sched_change_enabled_i
-so that on_enable gets called (sched_init does not call it).
-*/
 bool tasks_enabled_core0[TASK_CORE0_COUNT] = {false};
+bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_GPS] = false,
+    [TASK_CORE0_IMU] = false,
+    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_GAS] = false,
+    [TASK_CORE0_UV_FAST] = true,
+    [TASK_CORE0_UV_SLOW] = false,
+    [TASK_CORE0_FOTORES_FAST] = true,
+    [TASK_CORE0_FOTORES_SLOW] = false,
+    [TASK_CORE0_BATTERY] = true,
+};
+bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_IMU] = true,
+    [TASK_CORE0_ENV] = true,
+    [TASK_CORE0_GAS] = true,
+    [TASK_CORE0_UV_FAST] = false,
+    [TASK_CORE0_UV_SLOW] = true,
+    [TASK_CORE0_FOTORES_FAST] = false,
+    [TASK_CORE0_FOTORES_SLOW] = true,
+    [TASK_CORE0_BATTERY] = true,
+};
+bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_IMU] = false,
+    [TASK_CORE0_ENV] = true,
+    [TASK_CORE0_GAS] = true,
+    [TASK_CORE0_UV_FAST] = false,
+    [TASK_CORE0_UV_SLOW] = true,
+    [TASK_CORE0_FOTORES_FAST] = false,
+    [TASK_CORE0_FOTORES_SLOW] = true,
+    [TASK_CORE0_BATTERY] = true,
+};
+
 bool tasks_enabled_core1[TASK_CORE1_COUNT] = {false};
+bool tasks_enabled_core1_idle[TASK_CORE1_COUNT] = {
+    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_LORA] = false,
+};
+bool tasks_enabled_core1_descent[TASK_CORE1_COUNT] = {
+    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_LORA] = true,
+};
+
+bool tasks_enabled_core1_landed[TASK_CORE1_COUNT] = {
+    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_LORA] = true,
+};

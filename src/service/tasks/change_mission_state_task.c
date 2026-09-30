@@ -15,6 +15,7 @@ uint32_t run(task_t *self, uint32_t now_millis)
         the scheduler shouldn't run in this state.
         Likely it's better to run all sensor's init functions and just
         change the state to the next one.
+        Maybe get the gps on until it streams data so that I know that it locked satellites.
         */
         break;
     case FLIGHT_STATE_SELF_TEST:
