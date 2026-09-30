@@ -23,6 +23,16 @@ extern "C"
 
     // THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
 
+#define MISSION_STATE_PERIOD 50 /* ms between two flight state checks */
+
+// IDLE / ASCENT -> DESCENT: light must be seen continuously for this long
+#define EJECTION_LIGHT_HOLD_MS 2000
+
+// DESCENT -> LANDED: altitude and acceleration must stay stable for this long
+#define LANDED_HOLD_MS 5000
+#define LANDED_ALT_TOL_M 1.0f    /* max altitude drift from the start of the window */
+#define LANDED_ACCEL_TOL_G 0.15f /* max distance of accel_mag from 1 g */
+
 #ifdef __cplusplus
 }
 #endif

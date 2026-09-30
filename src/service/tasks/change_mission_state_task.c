@@ -1,60 +1,169 @@
 #include <stdint.h>
+#include <stdbool.h>
+#include <math.h>
+
+#include "config.h"
 #include "types.h"
+#include "tasks.h"
 #include "datastore.h"
 
-uint32_t run(task_t *self, uint32_t now_millis)
+/*
+Decides when the flight state changes and writes it in the datastore.
+It doesn't touch the schedulers: each core reads the state from the datastore and
+applies its own profile (see tasks_profile_core0/1 in tasks.c).
+
+Since the datastore only holds the latest measure, conditions over a timespan are
+checked with the persistence helpers below, which only remember when the condition
+started being true instead of the whole history.
+*/
+
+#pragma region persistence_helpers
+
+typedef struct
+{
+    uint32_t since_ms; /* when the condition became true */
+    bool active;       /* is the condition currently true? */
+} persist_t;
+
+typedef struct
+{
+    persist_t p;
+    float ref; /* value at the start of the window */
+} stable_t;
+
+// Returns true once cond has been continuously true for at least hold_ms
+static bool persist_update(persist_t *p, bool cond, uint32_t now_millis, uint32_t hold_ms)
+{
+    if (!cond)
+    {
+        p->active = false;
+        return false;
+    }
+
+    if (!p->active)
+    {
+        p->active = true;
+        p->since_ms = now_millis;
+    }
+
+    return (now_millis - p->since_ms) >= hold_ms;
+}
+
+// Returns true once value has stayed within tol of the value at the start of the window for at least hold_ms.
+// If value drifts farther than tol the window restarts from the current value.
+static bool stable_update(stable_t *s, float value, bool valid, float tol, uint32_t now_millis, uint32_t hold_ms)
+{
+    if (!valid)
+    {
+        s->p.active = false;
+        return false;
+    }
+
+    if (!s->p.active || fabsf(value - s->ref) > tol)
+    {
+        s->ref = value;
+        s->p.active = false;
+    }
+
+    return persist_update(&s->p, true, now_millis, hold_ms);
+}
+
+#pragma endregion
+
+#pragma region state_machine
+
+/* Detectors state, reset on every state change */
+typedef struct
+{
+    persist_t light;
+    stable_t altitude;
+    persist_t accel_still;
+} detectors_t;
+
+static detectors_t det;
+
+static void reset_detectors(void)
+{
+    det = (detectors_t){0};
+}
+
+static void change_state(flight_state_t new_state, uint32_t now_millis)
+{
+    ds_write_flight_state(new_state, now_millis);
+    reset_detectors();
+}
+
+static bool is_there_light(datastore_t *ds)
+{
+    return (ds->fotores.s.valid && ds->fotores.is_there_light) ||
+           (ds->uv.s.valid && ds->uv.is_there_light);
+}
+
+static bool is_landed(datastore_t *ds, uint32_t now_millis)
+{
+    // Both detectors must be updated every run, don't short circuit them
+    bool alt_stable = stable_update(&det.altitude, ds->env.altitude_m, ds->env.s.valid,
+                                    LANDED_ALT_TOL_M, now_millis, LANDED_HOLD_MS);
+
+    bool accel_is_1g = ds->imu.s.valid && fabsf(ds->imu.accel_mag - 1.0f) <= LANDED_ACCEL_TOL_G;
+    bool accel_still = persist_update(&det.accel_still, accel_is_1g, now_millis, LANDED_HOLD_MS);
+
+    return alt_stable && accel_still;
+}
+
+uint32_t mission_state_task_run(task_t *self, uint32_t now_millis)
 {
     datastore_t ds;
-    ds_read_all(&ds);
+    if (!ds_read_all(&ds))
+    {
+        // A write is in progress, try again at the next run
+        self->last_state = TASK_STATE_BUSY;
+        return self->period;
+    }
+
+    self->last_state = TASK_STATE_OK;
 
     switch (ds.state)
     {
     case FLIGHT_STATE_BOOT:
-        /*
-        Don't really know what's necessary here, likely nothing
-        the scheduler shouldn't run in this state.
-        Likely it's better to run all sensor's init functions and just
-        change the state to the next one.
-        Maybe get the gps on until it streams data so that I know that it locked satellites.
-        */
+        // Sensors are initialized in setup(), nothing else to do for now
+        change_state(FLIGHT_STATE_SELF_TEST, now_millis);
         break;
+
     case FLIGHT_STATE_SELF_TEST:
-        /*
-        The same of above applies here, likely it's a thing that should
-        be done just on startup.
-        For now it's not even implemented yet any self test
-        */
+        // TODO: no self test implemented yet
+        change_state(FLIGHT_STATE_IDLE, now_millis);
         break;
+
     case FLIGHT_STATE_IDLE:
-        /*
-        Should poll photoresistor and uv quite frequently,
-        detect if there are spikes in light for a few seconds
-        and then pass onto the descent step.
-        Maybe it could even check for accelerations and eventually
-        pass to the ascent step, but it might not be worth it since the
-        ascent only lasts a few seconds.
-        */
-        break;
+        // TODO: eventually detect the ascent from accelerations, for now IDLE goes straight to DESCENT
     case FLIGHT_STATE_ASCENT:
-        /*
-        Should poll the photoresistor and uv to detect ejection.
-        */
+        if (persist_update(&det.light, is_there_light(&ds), now_millis, EJECTION_LIGHT_HOLD_MS))
+            change_state(FLIGHT_STATE_DESCENT, now_millis);
         break;
+
     case FLIGHT_STATE_DESCENT:
-        /*
-        Lower polling rate for photoresistor and uv, enable every other sensor.
-        Detect sudden stop of accelerations, rotations, gps position, altitude
-        to detect when the CanSat lands
-        */
+        if (is_landed(&ds, now_millis))
+            change_state(FLIGHT_STATE_LANDED, now_millis);
         break;
+
     case FLIGHT_STATE_LANDED:
-        /*
-        Disable / lower polling rate for everything.
-        Keep sending position over LoRa.
-        */
+        // Final state
         break;
 
     default:
+        self->fail_count += 1;
+        self->last_state = TASK_STATE_ERR;
         break;
     }
+
+    return self->period;
 }
+
+void mission_state_task_on_enable(task_t *self)
+{
+    (void)self;
+    reset_detectors();
+}
+
+#pragma endregion

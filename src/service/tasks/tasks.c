@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "config.h"
 #include "types.h"
 #include "tasks.h"
 
@@ -75,6 +76,13 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .period = 20,
         .priority = 6,
     },
+    [TASK_CORE0_MISSION_STATE] = {
+        .name = "MISSION_STATE",
+        .run = mission_state_task_run,
+        .on_enable = mission_state_task_on_enable,
+        .period = MISSION_STATE_PERIOD,
+        .priority = 1,
+    },
 };
 
 task_t tasks_core1[TASK_CORE1_COUNT] = {
@@ -95,8 +103,21 @@ task_t tasks_core1[TASK_CORE1_COUNT] = {
     },
 };
 
+/*
+Live enabled arrays owned by the schedulers: everything starts disabled,
+the right profile is applied as soon as each core reads the flight state.
+*/
 bool tasks_enabled_core0[TASK_CORE0_COUNT] = {false};
-bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
+bool tasks_enabled_core1[TASK_CORE1_COUNT] = {false};
+
+/*
+Per flight state profiles.
+TASK_CORE0_MISSION_STATE must be enabled in every profile, otherwise the state would never change again.
+*/
+const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_MISSION_STATE] = true,
+};
+const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = false,
@@ -106,8 +127,9 @@ bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_FAST] = true,
     [TASK_CORE0_FOTORES_SLOW] = false,
     [TASK_CORE0_BATTERY] = true,
+    [TASK_CORE0_MISSION_STATE] = true,
 };
-bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
+const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = true,
     [TASK_CORE0_ENV] = true,
@@ -117,8 +139,9 @@ bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_FAST] = false,
     [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
+    [TASK_CORE0_MISSION_STATE] = true,
 };
-bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
+const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true,
@@ -128,19 +151,40 @@ bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_FAST] = false,
     [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
+    [TASK_CORE0_MISSION_STATE] = true,
 };
 
-bool tasks_enabled_core1[TASK_CORE1_COUNT] = {false};
-bool tasks_enabled_core1_idle[TASK_CORE1_COUNT] = {
+const bool tasks_enabled_core1_boot[TASK_CORE1_COUNT] = {
+    [TASK_CORE1_SD] = false,
+    [TASK_CORE1_LORA] = false,
+};
+const bool tasks_enabled_core1_idle[TASK_CORE1_COUNT] = {
     [TASK_CORE1_SD] = true,
     [TASK_CORE1_LORA] = false,
 };
-bool tasks_enabled_core1_descent[TASK_CORE1_COUNT] = {
+const bool tasks_enabled_core1_descent[TASK_CORE1_COUNT] = {
+    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_LORA] = true,
+};
+const bool tasks_enabled_core1_landed[TASK_CORE1_COUNT] = {
     [TASK_CORE1_SD] = true,
     [TASK_CORE1_LORA] = true,
 };
 
-bool tasks_enabled_core1_landed[TASK_CORE1_COUNT] = {
-    [TASK_CORE1_SD] = true,
-    [TASK_CORE1_LORA] = true,
+/* Which profile to apply in each flight state. ASCENT is short and behaves like IDLE */
+const bool *const tasks_profile_core0[FLIGHT_STATE_COUNT] = {
+    [FLIGHT_STATE_BOOT] = tasks_enabled_core0_boot,
+    [FLIGHT_STATE_SELF_TEST] = tasks_enabled_core0_boot,
+    [FLIGHT_STATE_IDLE] = tasks_enabled_core0_idle,
+    [FLIGHT_STATE_ASCENT] = tasks_enabled_core0_idle,
+    [FLIGHT_STATE_DESCENT] = tasks_enabled_core0_descent,
+    [FLIGHT_STATE_LANDED] = tasks_enabled_core0_landed,
+};
+const bool *const tasks_profile_core1[FLIGHT_STATE_COUNT] = {
+    [FLIGHT_STATE_BOOT] = tasks_enabled_core1_boot,
+    [FLIGHT_STATE_SELF_TEST] = tasks_enabled_core1_boot,
+    [FLIGHT_STATE_IDLE] = tasks_enabled_core1_idle,
+    [FLIGHT_STATE_ASCENT] = tasks_enabled_core1_idle,
+    [FLIGHT_STATE_DESCENT] = tasks_enabled_core1_descent,
+    [FLIGHT_STATE_LANDED] = tasks_enabled_core1_landed,
 };
