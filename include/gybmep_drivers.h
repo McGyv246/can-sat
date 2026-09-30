@@ -17,7 +17,7 @@ extern "C"
 
     sens_state_t gybmep_poll(uint32_t now_ms);
 
-    sens_state_t gybmep_get(env_t *data);
+    void gybmep_get(env_t *data);
 
     // if a measure is currently being taken by the sensor it will have to finish it before going to sleep
     // it shouldn't be a problem here: once this function is called the configuration registers are written

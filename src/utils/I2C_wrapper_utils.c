@@ -6,13 +6,10 @@ sens_state_t write_reg_8(uint8_t addr, uint8_t reg, uint8_t value)
 {
     wire_begin_transmission(addr);
     wire_write(reg);
-    if (wire_end_transmission(false) != 0)
-    {
-        return SENS_STATE_ERR; // no ack was received (device might be disconnected)
-    }
     wire_write(value);
     if (wire_end_transmission(true) != 0)
-        return SENS_STATE_ERR; // transmission was unsuccessful
+        return SENS_STATE_ERR; // transmission was unsuccessful. device might be disconnected
+    // return value of "wire_end_transmission" could be analyzed to determine point of failure
     return SENS_STATE_READY;
 }
 
@@ -32,6 +29,7 @@ sens_state_t read_reg_8(uint8_t addr, uint8_t reg, uint8_t *value)
     return SENS_STATE_READY;
 }
 
+// only use on little endian registers!!!!!
 sens_state_t read_reg_16(uint8_t addr, uint8_t reg, uint16_t *value)
 {
     wire_begin_transmission(addr);
