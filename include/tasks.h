@@ -17,7 +17,7 @@ extern "C"
     typedef enum
     {
         TASK_CORE0_GPS,
-        TASK_CORE0_IM,
+        TASK_CORE0_IMU,
         TASK_CORE0_ENV,
         TASK_CORE0_GAS,
         TASK_CORE0_UV_FAST,

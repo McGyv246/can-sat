@@ -19,12 +19,12 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .period = 500,
         .priority = 0,
     },
-    [TASK_CORE0_IM] = {
+    [TASK_CORE0_IMU] = {
         .name = "IMU",
         .run = imu_task_run,
         .on_enable = imu_task_on_enable,
         .on_disable = imu_task_on_disable,
-        .period = 500,
+        .period = 50,
         .priority = 1,
     },
     [TASK_CORE0_ENV] = {
