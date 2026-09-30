@@ -1,5 +1,5 @@
-#ifndef UV_DRIVERS_H_
-#define UV_DRIVERS_H_
+#ifndef UV_DRIVERS_H
+#define UV_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

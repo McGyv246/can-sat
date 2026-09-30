@@ -1,5 +1,5 @@
-#ifndef FOTORES_DRIVERS_H_
-#define FOTORES_DRIVERS_H_
+#ifndef FOTORES_DRIVERS_H
+#define FOTORES_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

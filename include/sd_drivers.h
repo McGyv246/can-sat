@@ -1,5 +1,5 @@
-#ifndef SD_DRIVERS_H_
-#define SD_DRIVERS_H_
+#ifndef SD_DRIVERS_H
+#define SD_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"
