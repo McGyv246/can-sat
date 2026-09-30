@@ -98,7 +98,8 @@ extern "C"
         FLIGHT_STATE_IDLE = 2,
         FLIGHT_STATE_ASCENT = 3,
         FLIGHT_STATE_DESCENT = 4,
-        FLIGHT_STATE_LANDED = 5
+        FLIGHT_STATE_LANDED = 5,
+        FLIGHT_STATE_COUNT, /* MUST BE LAST! */
     } flight_state_t;
 
     typedef struct

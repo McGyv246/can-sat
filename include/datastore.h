@@ -20,6 +20,7 @@ extern "C"
     void ds_write_increment_records_dropped(uint32_t now_millis);
 
     bool ds_read_all(datastore_t *data);
+    flight_state_t ds_read_state(void);
 
     // ONLY for testing purposes
     void _ds_set_full(datastore_t *new_ds);

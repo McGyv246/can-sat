@@ -23,6 +23,7 @@ void ds_write_battery(battery_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
 bool ds_read_all(datastore_t *data);
+flight_state_t ds_read_state(void);
 
 // TODO: remove this, it's just a placeholder for when the
 // ring buffer will have the correct saving functions
@@ -198,6 +199,13 @@ bool ds_read_all(datastore_t *data)
     }
 
     return true;
+}
+
+flight_state_t ds_read_state(void)
+{
+    // The state is a single aligned word so its read can't be torn,
+    // no need to check ds_seq. volatile so that the read isn't cached.
+    return *(volatile flight_state_t *)&ds.state;
 }
 
 #pragma endregion
