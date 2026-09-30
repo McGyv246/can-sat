@@ -6,6 +6,7 @@
 #include "datastore.h"
 #include "ring_buffer.h"
 #include "hal_time.h"
+#include "pack_data_sd.h"
 
 #include "fotores_drivers.h"
 #include "fuel_gauge_drivers.h"
@@ -57,9 +58,11 @@ uint32_t fotores_task_run(task_t *self, uint32_t now_millis)
     {
         fotores_t data;
         fotores_get(&data);
-
         ds_write_fotores(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        fotores_sd_t packed_data;
+        fotores_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -77,9 +80,11 @@ uint32_t fuel_gauge_task_run(task_t *self, uint32_t now_millis)
     {
         battery_t data;
         fuel_gauge_get(&data);
-
         ds_write_battery(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        battery_sd_t packed_data;
+        battery_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -100,9 +105,11 @@ uint32_t gps_task_run(task_t *self, uint32_t now_millis)
     {
         gps_t data;
         gps_get(&data);
-
         ds_write_gps(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        gps_sd_t packed_data;
+        gps_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -123,9 +130,11 @@ uint32_t gybmep_task_run(task_t *self, uint32_t now_millis)
     {
         env_t data;
         gybmep_get(&data);
-
         ds_write_env(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        env_sd_t packed_data;
+        env_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -146,9 +155,11 @@ uint32_t imu_task_run(task_t *self, uint32_t now_millis)
     {
         imu_t data;
         imu_get(&data);
-
         ds_write_imu(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        imu_sd_t packed_data;
+        imu_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -169,9 +180,11 @@ uint32_t mq_7_task_run(task_t *self, uint32_t now_millis)
     {
         gas_t data;
         mq_7_get(&data);
-
         ds_write_gas(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        gas_sd_t packed_data;
+        gas_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
@@ -199,9 +212,11 @@ uint32_t uv_task_run(task_t *self, uint32_t now_millis)
     {
         uv_t data;
         uv_get(&data);
-
         ds_write_uv(&data, now_millis);
-        buf_write(&data, sizeof(data));
+
+        uv_sd_t packed_data;
+        uv_to_sd(&packed_data, &data);
+        buf_write(&packed_data, sizeof(packed_data));
     }
 
     return task_report(self, state);
