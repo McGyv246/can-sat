@@ -4,8 +4,8 @@
 #include "fuel_gauge_drivers.h"
 #include "arduino_wrapper.h"
 
-const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 5; // default is 4%. can be between 1 and 32
-const uint32_t FUEL_GAUGE_WAIT_TIME_MS = 1000; // don't think reading more than once a second could be beneficial...
+static const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 10; // default is 4%. can be between 1 and 32
+static const uint32_t FUEL_GAUGE_WAIT_TIME_MS = 1000;  // don't think reading more than once a second could be beneficial...
 
 static sens_state_t state = SENS_STATE_IDLE;
 static uint32_t last_sample_time = 0;
@@ -83,9 +83,9 @@ extern "C"
         return SENS_STATE_ERR;
     }
 
-    sens_state_t fuel_gauge_get(battery_t *data)
+    void fuel_gauge_get(battery_t *data)
     {
         *data = current_sample;
-        return SENS_STATE_NOT_READY;
+        return;
     }
 }

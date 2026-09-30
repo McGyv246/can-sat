@@ -12,7 +12,7 @@ extern "C"
     {
         if (!IMU.begin())
             return SENS_STATE_ERR;
-        return SENS_STATE_NOT_READY;
+        return SENS_STATE_READY;
     }
 
     sens_state_t imu_poll(uint32_t now_ms)
@@ -49,10 +49,10 @@ extern "C"
         return SENS_STATE_ERR;
     }
 
-    sens_state_t imu_get(imu_t *data)
+    void imu_get(imu_t *data)
     {
         *data = current_sample;
-        return SENS_STATE_NOT_READY;
+        return;
     }
 
     sens_state_t imu_sleep(void)

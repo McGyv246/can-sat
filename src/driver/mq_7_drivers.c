@@ -4,7 +4,7 @@
 #include "config.h"
 #include "config_arduino.h"
 
-const uint32_t MQ_7_WAIT_TIME_MS = 2;
+static const uint32_t MQ_7_WAIT_TIME_MS = 2;
 
 static sens_state_t state = SENS_STATE_IDLE;
 static uint32_t heater_start_time = 0; // instant the last heater on event happened
@@ -46,10 +46,10 @@ sens_state_t mq_7_poll(uint32_t now_ms)
     return SENS_STATE_ERR;
 }
 
-sens_state_t mq_7_get(gas_t *data)
+void mq_7_get(gas_t *data)
 {
     *data = current_sample;
-    return SENS_STATE_NOT_READY;
+    return;
 }
 
 void mq_7_sleep(void)

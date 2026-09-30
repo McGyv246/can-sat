@@ -22,7 +22,7 @@ extern "C"
 
     sens_state_t fuel_gauge_poll(uint32_t now_ms);
 
-    sens_state_t fuel_gauge_get(battery_t *data);
+    void fuel_gauge_get(battery_t *data);
 
 #ifdef __cplusplus
 }
