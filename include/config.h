@@ -19,14 +19,8 @@ extern "C"
 
 #define SYNC_WORD 0xA5A5
 
-    // SAMPLE RATES (to be defined)
-
-    // THRESHOLDS (such as ones to be used to determine flight state) (to be defined)
-
-#define MISSION_STATE_PERIOD 50 /* ms between two flight state checks */
-
 // IDLE / ASCENT -> DESCENT: light must be seen continuously for this long
-#define EJECTION_LIGHT_HOLD_MS 2000
+#define EJECTION_LIGHT_HOLD_MS 1000
 
 // DESCENT -> LANDED: altitude and acceleration must stay stable for this long
 #define LANDED_HOLD_MS 5000

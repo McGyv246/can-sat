@@ -80,7 +80,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .name = "MISSION_STATE",
         .run = mission_state_task_run,
         .on_enable = mission_state_task_on_enable,
-        .period = MISSION_STATE_PERIOD,
+        .period = 50,
         .priority = 1,
     },
 };
