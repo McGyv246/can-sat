@@ -1,6 +1,12 @@
 #ifndef LORA_DRIVERS_H_
 #define LORA_DRIVERS_H_
 
+// callback function. should NOT be called anywhere EVER
+void onTxDone(void);
+
+// callback function. should NOT be called anywhere EVER
+void onReceive(int packetSize);
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -9,12 +15,6 @@ extern "C"
 #include <stdint.h>
 #include <stddef.h>
 #include "types.h"
-
-    // callback function. should NOT be called anywhere EVER
-    void onTxDone(void);
-
-    // callback function. should NOT be called anywhere EVER
-    void onReceive(int packetSize);
 
     // initializes as receiver if parameter is true
     // if lora is initialized as sender, it will be initialized in sleep mode
