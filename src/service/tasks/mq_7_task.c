@@ -14,7 +14,7 @@ uint32_t mq_7_task_run(task_t *self, uint32_t now_millis)
     if (state == SENS_STATE_READY)
     {
         gas_t data;
-        gas_get(&data);
+        mq_7_get(&data);
 
         ds_write_gas(&data, now_millis);
         buf_write(&data, sizeof(data));
