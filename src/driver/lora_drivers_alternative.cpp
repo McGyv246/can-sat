@@ -79,21 +79,21 @@ static volatile bool packet_received = false;
 SX1276 lora = new Module(CHIPSELECT_LORA, DIO_LORA, RESET_LORA);
 ConfigLoRa_t config;
 
+void onTxDone()
+{
+    tx_end_time = wrapper_millis();
+    busy = false;
+    wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
+}
+
+void onReceive()
+{
+    packet_received = true;
+    return;
+}
+
 extern "C"
 {
-    void onTxDone()
-    {
-        tx_end_time = wrapper_millis();
-        busy = false;
-        wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
-    }
-
-    void onReceive()
-    {
-        packet_received = true;
-        return;
-    }
-
     sens_state_t lora_init(void)
     {
         config.frequency = TX_FREQUENCY;
@@ -125,7 +125,7 @@ extern "C"
             if (lora.startReceive() != RADIOLIB_ERR_NONE)
                 return SENS_STATE_ERR;
         }
-        return;
+        return SENS_STATE_NOT_READY;
     }
 
     sens_state_t lora_send_packet(uint8_t *buffer, size_t len)

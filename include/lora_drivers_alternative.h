@@ -1,6 +1,12 @@
 #ifndef LORA_DRIVERS_ALTERNATIVE_H_
 #define LORA_DRIVERS_ALTERNATIVE_H_
 
+// callback function. should not be called from outside
+void onTxDone();
+
+// callback function. should not be called from outside
+void onReceive();
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -9,12 +15,6 @@ extern "C"
 #include <stdint.h>
 #include <stddef.h>
 #include "types.h"
-
-    // callback function. should not be called from outside
-    void onTxDone();
-
-    // callback function. should not be called from outside
-    void onReceive();
 
     // initializes lora. if "is_receiver = true" lora is initialized as receiver and set to receive right away
     // otherwise, lora is set as sender and initialized in sleep mode
