@@ -7,7 +7,7 @@
 #include "config.h"
 #include "config_arduino.h"
 
-const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
+static const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
 
 static bool is_on = false;
 static sens_state_t state = SENS_STATE_IDLE;
@@ -138,15 +138,16 @@ extern "C"
 
             latest_sample.s.valid = true;
             latest_sample.s.t_ms = now_ms;
+            state = SENS_STATE_IDLE;
             return SENS_STATE_READY;
         }
         return SENS_STATE_ERR;
     }
 
-    sens_state_t gps_get(gps_t *data)
+    void gps_get(gps_t *data)
     {
         *data = latest_sample;
-        return SENS_STATE_NOT_READY;
+        return;
     }
 
     sens_state_t gps_sleep(void)

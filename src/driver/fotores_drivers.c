@@ -4,7 +4,7 @@
 #include "config_arduino.h"
 #include "arduino_wrapper.h"
 
-const uint32_t FOTORES_WAIT_TIME_MS = 2;
+static const uint32_t FOTORES_WAIT_TIME_MS = 2;
 
 static sens_state_t state = SENS_STATE_IDLE;
 static uint32_t last_sample_time = 0;
@@ -43,8 +43,8 @@ sens_state_t fotores_poll(uint32_t now_ms)
     return SENS_STATE_ERR;
 }
 
-sens_state_t fotores_get(fotores_t *data)
+void fotores_get(fotores_t *data)
 {
     *data = current_sample;
-    return SENS_STATE_NOT_READY;
+    return;
 }

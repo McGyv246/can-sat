@@ -13,7 +13,7 @@ extern "C"
 
     sens_state_t imu_poll(uint32_t now_ms);
 
-    sens_state_t imu_get(imu_t *data);
+    void imu_get(imu_t *data);
 
     sens_state_t imu_sleep(void);
 

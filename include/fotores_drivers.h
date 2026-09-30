@@ -14,7 +14,7 @@ extern "C"
 
     sens_state_t fotores_poll(uint32_t now_ms);
 
-    sens_state_t fotores_get(fotores_t *data);
+    void fotores_get(fotores_t *data);
 
 #ifdef __cplusplus
 }

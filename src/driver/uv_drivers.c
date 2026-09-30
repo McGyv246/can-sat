@@ -14,10 +14,10 @@ static sens_state_t state = SENS_STATE_IDLE;
 static uint32_t last_sample_time = 0;
 static uv_t latest_sample;
 
-sens_state_t uv_init()
+void uv_init()
 {
     wrapper_pin_mode(A_IN_UV, WRAPPER_INPUT);
-    return SENS_STATE_NOT_READY;
+    return;
 }
 
 sens_state_t uv_poll(uint32_t now_ms)
@@ -41,17 +41,15 @@ sens_state_t uv_poll(uint32_t now_ms)
         last_sample_time = now_ms;
         state = SENS_STATE_READY;
 
-    case SENS_STATE_NOT_READY:
-        return SENS_STATE_ERR;
-
     case SENS_STATE_READY:
+        state = SENS_STATE_IDLE;
         return SENS_STATE_READY;
     }
     return SENS_STATE_ERR;
 }
 
-sens_state_t uv_get(uv_t *data)
+void uv_get(uv_t *data)
 {
     *data = latest_sample;
-    return SENS_STATE_NOT_READY;
+    return;
 }

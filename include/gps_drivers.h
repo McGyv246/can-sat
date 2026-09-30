@@ -18,7 +18,7 @@ extern "C"
 
     sens_state_t gps_poll(uint32_t now_ms);
 
-    sens_state_t gps_get(gps_t *data);
+    void gps_get(gps_t *data);
 
     sens_state_t gps_sleep(void);
 
