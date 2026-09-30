@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <LoRa.h>
 #include "types.h"
+#include "lora_drivers.h"
 #include "config_arduino.h"
 #include "arduino_wrapper.h"
 

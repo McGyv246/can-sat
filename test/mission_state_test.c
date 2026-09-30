@@ -9,6 +9,8 @@
 #include "tasks.h"
 #include "datastore.h"
 
+const uint16_t MISSION_STATE_PERIOD = 50;
+
 task_t mission_task = {
     .name = "MISSION_STATE",
     .run = mission_state_task_run,

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <Arduino_LSM6DSOX.h>
 #include "types.h"
+#include "imu_drivers.h"
 
 static sens_state_t state = SENS_STATE_IDLE;
 static imu_t current_sample;

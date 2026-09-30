@@ -2,6 +2,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include "types.h"
+#include "sd_drivers.h"
 #include "config_arduino.h"
 
 static bool flushed = true;

@@ -2,6 +2,7 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 #include "types.h"
+#include "gps_drivers.h"
 #include "arduino_wrapper.h"
 #include "config.h"
 #include "config_arduino.h"
