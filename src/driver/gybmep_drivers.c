@@ -1,4 +1,4 @@
-#include <Arduino.h>
+#include <math.h>
 #include "types.h"
 #include "config.h"
 #include "config_arduino.h"
@@ -6,10 +6,10 @@
 #include "arduino_wrapper.h"
 #include "I2C_wrapper_utils.h"
 
-const uint8_t ADDRESS = 0x76;
-const uint8_t ADDRESS_ALTERNATIVE = 0x77;
-const uint8_t CHIP_ID = 0x60;
-const float SEA_LEVEL_PRESSURE_HPA = 1013.25f; // check this value
+static const uint8_t ADDRESS = 0x76;
+static const uint8_t ADDRESS_ALTERNATIVE = 0x77;
+static const uint8_t CHIP_ID = 0x60;
+static const float SEA_LEVEL_PRESSURE_PA = 101325.0f; // change this value when actual pressure of launch site is known
 
 // registers
 static const uint8_t REG_RESET = 0xE0;
@@ -80,9 +80,9 @@ static sens_state_t set_sampling(uint8_t os_t, uint8_t os_p, uint8_t os_h, uint8
     return SENS_STATE_READY;
 }
 
-sens_state_t read_data_raw(int32_t *adc_P, int32_t *adc_T, int32_t *adc_H)
+static sens_state_t read_data_raw(int32_t *adc_P, int32_t *adc_T, int32_t *adc_H)
 {
-    size_t len = 8;
+    const size_t len = 8;
     uint8_t buf[len];
     if (read_reg_buffered(current_address, REG_PRESS_MSB, buf, len) == SENS_STATE_ERR)
         return SENS_STATE_ERR;
@@ -92,7 +92,7 @@ sens_state_t read_data_raw(int32_t *adc_P, int32_t *adc_T, int32_t *adc_H)
     return SENS_STATE_READY;
 }
 
-float compensate_T(int32_t adc_T)
+static float compensate_T(int32_t adc_T)
 {
     int32_t temp_1 = ((((adc_T >> 3) - ((int32_t)calib_data.dig_T1 << 1))) * ((int32_t)calib_data.dig_T2)) >> 11;
     int32_t temp_2 = (((((adc_T >> 4) - ((int32_t)calib_data.dig_T1)) * ((adc_T >> 4) - ((int32_t)calib_data.dig_T1))) >> 12) *
@@ -103,7 +103,7 @@ float compensate_T(int32_t adc_T)
     return (float)temp_C / 100.0f; // C°
 }
 
-float compensate_P(int32_t adc_P)
+static float compensate_P(int32_t adc_P)
 {
     int64_t temp_1 = ((int64_t)current_temp) - 128000;
     int64_t temp_2 = temp_1 * temp_1 * (int64_t)calib_data.dig_P6;
@@ -121,7 +121,7 @@ float compensate_P(int32_t adc_P)
     return (float)p / 256.0f; // Pa
 }
 
-float compensate_H(int32_t adc_H)
+static float compensate_H(int32_t adc_H)
 {
     float temp_H = (float)current_temp - 76800.0f;
     temp_H = ((float)adc_H - ((float)calib_data.dig_H4 * 64.0f + ((float)calib_data.dig_H5 / 16384.0f) * temp_H)) * (((float)calib_data.dig_H2 / 65536.0f) * (1.0f + ((float)calib_data.dig_H6 / 67108864.0f) * temp_H * (1.0f + ((float)calib_data.dig_H3 / 67108864.0f) * temp_H)));
@@ -133,9 +133,9 @@ float compensate_H(int32_t adc_H)
     return temp_H; // %Relative Humidity
 }
 
-float calculate_altitude(float temperature, float pressure)
+static float calculate_altitude(float temperature, float pressure)
 {
-    return 44330.0f * (1.0f - powf(pressure / SEA_LEVEL_PRESSURE_HPA, 0.1903f));
+    return 44330.0f * (1.0f - powf(pressure / SEA_LEVEL_PRESSURE_PA, 0.1903f));
 }
 
 #pragma endregion
@@ -211,15 +211,17 @@ sens_state_t gybmep_init(void)
     if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_STATE_READY)
     {
         if (read_reg_8(ADDRESS_ALTERNATIVE, REG_ID, &id) != SENS_STATE_READY)
-        {
             return SENS_STATE_ERR; // no address is correct (device might be disconnected)
-        }
+
         current_address = ADDRESS_ALTERNATIVE;
     }
-    current_address = ADDRESS;
+    else
+        current_address = ADDRESS;
+
     if (id != CHIP_ID)
         return SENS_STATE_ERR;
-    write_reg_8(current_address, REG_RESET, 0xB6); // resets device
+    if (write_reg_8(current_address, REG_RESET, 0xB6) != SENS_STATE_READY)
+        return SENS_STATE_ERR; // resets device
     wrapper_delay_ms((uint32_t)3);
     while (true)
     {
@@ -234,7 +236,7 @@ sens_state_t gybmep_init(void)
         return SENS_STATE_ERR;
     if (set_sampling(OS_T, OS_P, OS_H, IIR_FILTER, STANDBY, MODE_SLEEP) == SENS_STATE_ERR)
         return SENS_STATE_ERR;
-    return SENS_STATE_NOT_READY;
+    return SENS_STATE_READY;
 }
 
 #pragma endregion
@@ -251,15 +253,15 @@ sens_state_t gybmep_wake(void)
 
 sens_state_t gybmep_poll(uint32_t now_ms)
 {
+    uint8_t status;
+    int32_t adc_P, adc_T, adc_H;
     switch (state)
     {
     case SENS_STATE_IDLE:
-        uint8_t status;
         if (read_reg_8(current_address, REG_STATUS, &status) == SENS_STATE_ERR)
             return SENS_STATE_ERR;
         if (status & 0x08)
             return SENS_STATE_NOT_READY; // checks measuring bit to see if a measure is in progress
-        int32_t adc_P, adc_T, adc_H;
         if (read_data_raw(&adc_P, &adc_T, &adc_H) == SENS_STATE_ERR)
             return SENS_STATE_ERR;
         latest_sample.temp_c = compensate_T(adc_T); // compensate_T MUST be the first compensation called
@@ -270,20 +272,17 @@ sens_state_t gybmep_poll(uint32_t now_ms)
         latest_sample.s.valid = true;
         state = SENS_STATE_READY;
 
-    case SENS_STATE_NOT_READY:
-        // no conversion needed
-        return SENS_STATE_ERR;
-
     case SENS_STATE_READY:
+        state = SENS_STATE_IDLE;
         return SENS_STATE_READY;
     }
     return SENS_STATE_ERR;
 }
 
-sens_state_t gybmep_get(env_t *data)
+void gybmep_get(env_t *data)
 {
     *data = latest_sample;
-    return SENS_STATE_NOT_READY;
+    return;
 }
 
 sens_state_t gybmep_sleep(void)
