@@ -3,6 +3,7 @@
 #include "lora_drivers.h"
 #include "config.h"
 #include "types.h"
+#include "tasks.h"
 #include "ring_buffer.h"
 #include "pack_data_lora.h"
 #include "datastore.h"
