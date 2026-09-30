@@ -70,76 +70,106 @@ static volatile bool busy = false;
 static volatile uint32_t tx_start_time;
 static volatile uint32_t tx_end_time;
 static volatile uint32_t wait_time;
+static bool flushed = false;
 
 // receiver globals
 static bool receiver = false;
 static volatile bool packet_received = false;
-static volatile size_t received_size = 0;
 
 SX1276 lora = new Module(CHIPSELECT_LORA, DIO_LORA, RESET_LORA);
 ConfigLoRa_t config;
 
-void onTxDone()
+extern "C"
 {
-    tx_end_time = wrapper_millis();
-    busy = false;
-    wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
-}
-
-void onReceive()
-{
-}
-
-sens_state_t lora_init(void)
-{
-    config.frequency = TX_FREQUENCY;
-    config.bandwidth = SIGNAL_BANDWIDTH;
-    config.spreadingFactor = SPREADING_FACTOR;
-    config.codingRate = CODING_RATE_DENOMINATOR;
-    config.syncWord = SYNC_WORD_LORA;
-    config.power = TX_POWER;
-    lora.gain = 0; // automatic gain control
-    if (lora.begin(config) == RADIOLIB_ERR_NONE)
-        return SENS_STATE_ERR;
-    if (receiver)
+    void onTxDone()
     {
-        lora.setPacketReceivedAction(onReceive);
+        tx_end_time = wrapper_millis();
+        busy = false;
+        wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
+    }
+
+    void onReceive()
+    {
+        packet_received = true;
+        return;
+    }
+
+    sens_state_t lora_init(void)
+    {
+        config.frequency = TX_FREQUENCY;
+        config.bandwidth = SIGNAL_BANDWIDTH;
+        config.spreadingFactor = SPREADING_FACTOR;
+        config.codingRate = CODING_RATE_DENOMINATOR;
+        config.syncWord = SYNC_WORD_LORA;
+        config.power = TX_POWER;
+        lora.gain = 0; // automatic gain control
+        if (lora.begin(config) != RADIOLIB_ERR_NONE)
+            return SENS_STATE_ERR;
+        if (receiver)
+        {
+            lora.setPacketReceivedAction(onReceive);
+            if (lora.startReceive() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
+            return SENS_STATE_READY;
+        }
+        lora.setPacketSentAction(onTxDone);
         lora.sleep();
         return SENS_STATE_READY;
     }
-    lora.setPacketSentAction(onTxDone);
-    lora.sleep();
-    return SENS_STATE_READY;
-}
 
-void lora_wake(void)
-{
-    LoRa.idle();
-    return;
-}
+    sens_state_t lora_wake(void)
+    {
+        lora.standby();
+        if (receiver)
+        {
+            if (lora.startReceive() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
+        }
+        return;
+    }
 
-sens_state_t lora_send_packet(uint8_t buffer[], size_t len)
-{
-    if ((wrapper_millis() - tx_end_time) < wait_time)
+    sens_state_t lora_send_packet(uint8_t *buffer, size_t len)
+    {
+        if (receiver)
+            return SENS_STATE_ERR;
+        if ((wrapper_millis() - tx_end_time) < wait_time)
+            return SENS_STATE_NOT_READY;
+        if (busy)
+            return SENS_STATE_NOT_READY;
+        if (!flushed)
+        {
+            if (lora.finishTransmit() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
+            flushed = true;
+        }
+        if (lora.startTransmit(buffer, len) != RADIOLIB_ERR_NONE)
+            return SENS_STATE_ERR;
+        tx_start_time = wrapper_millis();
+        busy = true;
+        flushed = false;
+        return SENS_STATE_READY;
+    }
+
+    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, float *rssi, float *snr, float *frequency_error)
+    {
+        if (!receiver)
+            return SENS_STATE_ERR;
+        if (!packet_received)
+            return SENS_STATE_NOT_READY;
+        if (lora.readData(buffer, 0) != RADIOLIB_ERR_NONE)
+            return SENS_STATE_ERR;
+        if (rssi != nullptr)
+            *rssi = lora.getRSSI();
+        if (snr != nullptr)
+            *snr = lora.getSNR();
+        if (frequency_error != nullptr)
+            *frequency_error = lora.getFrequencyError();
         return SENS_STATE_NOT_READY;
-    if (busy)
-        return SENS_STATE_NOT_READY;
-    if (!LoRa.beginPacket())
-        return SENS_STATE_ERR;
-    LoRa.write(buffer, len);
-    if (!LoRa.endPacket(ASYNC_MODE))
-        return SENS_STATE_ERR;
-    tx_start_time = wrapper_millis();
-    busy = true;
-    return SENS_STATE_READY;
-}
+    }
 
-sens_state_t lora_read_packet(uint8_t *buffer, size_t len)
-{
-}
-
-void lora_sleep(void)
-{
-    LoRa.sleep();
-    return;
+    void lora_sleep(void)
+    {
+        lora.sleep();
+        return;
+    }
 }
