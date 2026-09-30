@@ -40,44 +40,47 @@ static bool sd_open_file(const char *filepath)
 
 #pragma region public_interface
 
-sens_state_t sd_init(const char *path, const char *filepath)
+extern "C"
 {
-    if (!SD.begin(CHIPSELECT_SD))
-        return SENS_STATE_ERR;
-    if (!sd_mkdir(path))
-        return SENS_STATE_ERR;
-    if (!sd_chng_path(path))
-        return SENS_STATE_ERR;
-    if (!sd_open_file(filepath))
-        return SENS_STATE_ERR;
-    return SENS_STATE_READY;
-}
+    sens_state_t sd_init(const char *path, const char *filepath)
+    {
+        if (!SD.begin(CHIPSELECT_SD))
+            return SENS_STATE_ERR;
+        if (!sd_mkdir(path))
+            return SENS_STATE_ERR;
+        if (!sd_chng_path(path))
+            return SENS_STATE_ERR;
+        if (!sd_open_file(filepath))
+            return SENS_STATE_ERR;
+        return SENS_STATE_READY;
+    }
 
-sens_state_t sd_write_uint8_buf(uint8_t *buf, size_t len)
-{
-    if (current_file == nullptr)
-        return SENS_STATE_ERR;
-    if (!flushed)
+    sens_state_t sd_write_uint8_buf(uint8_t *buf, size_t len)
+    {
+        if (current_file == nullptr)
+            return SENS_STATE_ERR;
+        if (!flushed)
+            return SENS_STATE_NOT_READY;
+        current_file->write(buf, len);
+        flushed = false;
         return SENS_STATE_NOT_READY;
-    current_file->write(buf, len);
-    flushed = false;
-    return SENS_STATE_NOT_READY;
-}
+    }
 
-sens_state_t sd_flush_buf(void)
-{
-    if (current_file == nullptr)
-        return SENS_STATE_ERR;
-    current_file->flush();
-    flushed = true;
-    return SENS_STATE_READY;
-}
+    sens_state_t sd_flush_buf(void)
+    {
+        if (current_file == nullptr)
+            return SENS_STATE_ERR;
+        current_file->flush();
+        flushed = true;
+        return SENS_STATE_READY;
+    }
 
-void sd_close()
-{
-    current_file->close();
-    SD.end();
-    return;
+    void sd_close()
+    {
+        current_file->close();
+        SD.end();
+        return;
+    }
 }
 
 #pragma endregion
