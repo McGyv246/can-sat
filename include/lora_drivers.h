@@ -1,11 +1,11 @@
-#ifndef LORA_DRIVERS_H_
-#define LORA_DRIVERS_H_
+#ifndef LORA_DRIVERS_H
+#define LORA_DRIVERS_H
 
-// callback function. should NOT be called anywhere EVER
-void onTxDone(void);
+// callback function. should not be called from outside
+void onTxDone();
 
-// callback function. should NOT be called anywhere EVER
-void onReceive(int packetSize);
+// callback function. should not be called from outside
+void onReceive();
 
 #ifdef __cplusplus
 extern "C"
@@ -16,17 +16,16 @@ extern "C"
 #include <stddef.h>
 #include "types.h"
 
-    // initializes as receiver if parameter is true
-    // if lora is initialized as sender, it will be initialized in sleep mode
+    // initializes lora. if "is_receiver = true" lora is initialized as receiver and set to receive right away
+    // otherwise, lora is set as sender and initialized in sleep mode
     sens_state_t lora_init(bool is_receiver);
 
-    void lora_wake(void);
+    sens_state_t lora_wake(void);
 
-    // sends packets in a non-blocking way. returns "SENS_STATE_NOT_READY" if the module is busy sending a packet or duty cycle
-    // standby time hasn't expired yet
     sens_state_t lora_send_packet(uint8_t *buffer, size_t len);
 
-    sens_state_t lora_read_packet(uint8_t *buffer, size_t len);
+    // rssi, snr and frequency_error are optional. set to "nullptr" if unused
+    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, float *rssi, float *snr, float *frequency_error);
 
     void lora_sleep(void);
 

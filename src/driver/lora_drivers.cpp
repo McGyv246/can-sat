@@ -1,63 +1,62 @@
 #include <stdint.h>
 #include <stddef.h>
-#include <LoRa.h>
+#include <RadioLib.h>
 #include "types.h"
-#include "lora_drivers.h"
 #include "config_arduino.h"
 #include "arduino_wrapper.h"
 
 // uncomment the chosen lora setting
 
 // 868 MHz duty cycle and tx power optimization (this would use meshcore and meshtastic frequencies. not sure if that could cause problems)
-const long TX_FREQUENCY = 869525E3; // temp
-const int TX_POWER = 20;            // TX power in dB.
-const int SPREADING_FACTOR = 7;     // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 125E3;
+const float TX_FREQUENCY = 869.525f; // temp
+const int TX_POWER = 20;             // TX power in dB.
+const uint8_t SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 125.0f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 
 // 868 MHz duty cycle and air time optimization (increase spreading factor of 1 or 2 to increase signal strength and maintain decent speed)
 // i'm not sure if increasing tx power would be into legal limits
 /*
-const long TX_FREQUENCY = 8683E5; // temp
+const float TX_FREQUENCY = 868.3; // temp
 const int TX_POWER = 14;         // TX power in dB.
-const int SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 250E3;
+const uint8_t SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 250.0f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 */
 
 // 868 MHz illegal ass signal strength + air time + duty cycle optimization
 /*
-const long TX_FREQUENCY = 8683E5; // temp
+const float TX_FREQUENCY = 868.3; // temp
 const int TX_POWER = 20;         // TX power in dB.
-const int SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 250E3;
+const uint8_t SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 250.0f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 */
 
 // 433 MHz air time optimization
 /*
-const long TX_FREQUENCY = 43342E4; // temp
+const float TX_FREQUENCY = 433.42; // temp
 const int TX_POWER = 10;         // TX power in dB.
-const int SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 250E3;
+const uint8_t SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 250.0f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 */
 
 // 433 MHz signal strength optimization (this could be sloooooooooooooow)
 /*
-const long TX_FREQUENCY = 43342E4; // temp
+const float TX_FREQUENCY = 433.42; // temp
 const int TX_POWER = 10;         // TX power in dB.
-const int SPREADING_FACTOR = 8;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 62.5E3;
+const uint8_t SPREADING_FACTOR = 8;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 62.5f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 */
 
 // 433 MHz illegal ass signal strength + air time optimization
 /*
-const long TX_FREQUENCY = 43342E4; // temp
+const float TX_FREQUENCY = 433.42; // temp
 const int TX_POWER = 20;         // TX power in dB.
-const int SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
-const long SIGNAL_BANDWIDTH = 250E3;
+const uint8_t SPREADING_FACTOR = 7;  // must be between 6 and 12. if 6 is used, implicit header mode must be used to transmit and receive packages (DON'T USE 6)
+const float SIGNAL_BANDWIDTH = 250.0f;
 const volatile float PERMITTED_DUTY_CYCLE = 0.1f;
 */
 
@@ -71,11 +70,14 @@ static volatile bool busy = false;
 static volatile uint32_t tx_start_time;
 static volatile uint32_t tx_end_time;
 static volatile uint32_t wait_time;
+static bool flushed = false;
 
 // receiver globals
 static bool receiver = false;
 static volatile bool packet_received = false;
-static volatile size_t received_size = 0;
+
+SX1276 lora = new Module(CHIPSELECT_LORA, DIO_LORA, RESET_LORA);
+ConfigLoRa_t config;
 
 void onTxDone()
 {
@@ -84,43 +86,46 @@ void onTxDone()
     wait_time = (uint32_t)(((float)(tx_end_time - tx_start_time) / PERMITTED_DUTY_CYCLE) * (1.0f - PERMITTED_DUTY_CYCLE));
 }
 
-void onReceive(int packet_size)
+void onReceive()
 {
     packet_received = true;
-    received_size = (size_t)packet_size;
     return;
 }
 
 extern "C"
 {
-    sens_state_t lora_init(bool is_receiver)
+    sens_state_t lora_init(void)
     {
-        receiver = is_receiver;
-        LoRa.setPins(CHIPSELECT_LORA, RESET_LORA, DIO_LORA);
-        if (!LoRa.begin(TX_FREQUENCY))
+        config.frequency = TX_FREQUENCY;
+        config.bandwidth = SIGNAL_BANDWIDTH;
+        config.spreadingFactor = SPREADING_FACTOR;
+        config.codingRate = CODING_RATE_DENOMINATOR;
+        config.syncWord = SYNC_WORD_LORA;
+        config.power = TX_POWER;
+        lora.gain = 0; // automatic gain control
+        if (lora.begin(config) != RADIOLIB_ERR_NONE)
             return SENS_STATE_ERR;
-        LoRa.setTxPower(TX_POWER);
-        LoRa.setSpreadingFactor(SPREADING_FACTOR);
-        LoRa.setSignalBandwidth(SIGNAL_BANDWIDTH);
-        LoRa.setCodingRate4(CODING_RATE_DENOMINATOR);
-        LoRa.setSyncWord(SYNC_WORD_LORA);
         if (receiver)
         {
-            LoRa.onReceive(onReceive);
-            LoRa.receive();
+            lora.setPacketReceivedAction(onReceive);
+            if (lora.startReceive() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
             return SENS_STATE_READY;
         }
-        LoRa.onTxDone(onTxDone);
-        LoRa.sleep();
+        lora.setPacketSentAction(onTxDone);
+        lora.sleep();
         return SENS_STATE_READY;
     }
 
-    void lora_wake(void)
+    sens_state_t lora_wake(void)
     {
-        LoRa.idle();
+        lora.standby();
         if (receiver)
-            LoRa.receive();
-        return;
+        {
+            if (lora.startReceive() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
+        }
+        return SENS_STATE_NOT_READY;
     }
 
     sens_state_t lora_send_packet(uint8_t *buffer, size_t len)
@@ -131,30 +136,40 @@ extern "C"
             return SENS_STATE_NOT_READY;
         if (busy)
             return SENS_STATE_NOT_READY;
-        if (!LoRa.beginPacket())
-            return SENS_STATE_ERR;
-        LoRa.write(buffer, len);
-        if (!LoRa.endPacket(ASYNC_MODE))
+        if (!flushed)
+        {
+            if (lora.finishTransmit() != RADIOLIB_ERR_NONE)
+                return SENS_STATE_ERR;
+            flushed = true;
+        }
+        if (lora.startTransmit(buffer, len) != RADIOLIB_ERR_NONE)
             return SENS_STATE_ERR;
         tx_start_time = wrapper_millis();
         busy = true;
+        flushed = false;
         return SENS_STATE_READY;
     }
 
-    sens_state_t lora_read_packet(uint8_t *buffer, size_t len)
+    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, float *rssi, float *snr, float *frequency_error)
     {
+        if (!receiver)
+            return SENS_STATE_ERR;
         if (!packet_received)
             return SENS_STATE_NOT_READY;
-        if (len < received_size)
+        if (lora.readData(buffer, 0) != RADIOLIB_ERR_NONE)
             return SENS_STATE_ERR;
-        LoRa.readBytes(buffer, received_size);
-        packet_received = false;
+        if (rssi != nullptr)
+            *rssi = lora.getRSSI();
+        if (snr != nullptr)
+            *snr = lora.getSNR();
+        if (frequency_error != nullptr)
+            *frequency_error = lora.getFrequencyError();
         return SENS_STATE_NOT_READY;
     }
 
     void lora_sleep(void)
     {
-        LoRa.sleep();
+        lora.sleep();
         return;
     }
 }
