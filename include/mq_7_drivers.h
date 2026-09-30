@@ -1,5 +1,5 @@
-#ifndef MQ_7_DRIVERS_H_
-#define MQ_7_DRIVERS_H_
+#ifndef MQ_7_DRIVERS_H
+#define MQ_7_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

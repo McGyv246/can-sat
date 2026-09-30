@@ -29,7 +29,7 @@ uint32_t lora_task_run(task_t *self, uint32_t now_millis)
     }
 
     /*
-    Don't really know how to handle thins state thing here,
+    Don't really know how to handle things state thing here,
     this task will never be OK, but there is no reason for me to
     distinguish between the two cases so yeah.
     */
@@ -39,7 +39,9 @@ uint32_t lora_task_run(task_t *self, uint32_t now_millis)
 
 void lora_task_on_enable(task_t *self)
 {
-    lora_wake();
+    sens_state_t state = lora_wake();
+    if (state == SENS_STATE_ERR)
+        self->fail_count += 1;
 }
 
 void lora_task_on_disable(task_t *self)

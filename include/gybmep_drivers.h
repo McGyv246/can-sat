@@ -1,5 +1,5 @@
-#ifndef GYBMEP_DRIVERS_H_
-#define GYBMEP_DRIVERS_H_
+#ifndef GYBMEP_DRIVERS_H
+#define GYBMEP_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

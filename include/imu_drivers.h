@@ -1,5 +1,5 @@
-#ifndef IMU_DRIVERS_H_
-#define IMU_DRIVERS_H_
+#ifndef IMU_DRIVERS_H
+#define IMU_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

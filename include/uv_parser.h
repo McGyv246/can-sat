@@ -1,5 +1,5 @@
-#ifndef UV_PARSER_H_
-#define UV_PARSER_H_
+#ifndef UV_PARSER_H
+#define UV_PARSER_H
 
 #ifdef __cplusplus
 extern "C"

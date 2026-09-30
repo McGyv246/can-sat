@@ -1,5 +1,5 @@
-#ifndef RGB_DRIVERS_H_
-#define RGB_DRIVERS_H_
+#ifndef RGB_DRIVERS_H
+#define RGB_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

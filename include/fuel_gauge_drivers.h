@@ -1,5 +1,5 @@
-#ifndef FUEL_GAUGE_DRIVERS_H_
-#define FUEL_GAUGE_DRIVERS_H_
+#ifndef FUEL_GAUGE_DRIVERS_H
+#define FUEL_GAUGE_DRIVERS_H
 
 #ifdef __cplusplus
 extern "C"

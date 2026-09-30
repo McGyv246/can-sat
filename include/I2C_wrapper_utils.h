@@ -1,5 +1,5 @@
-#ifndef I2C_WRAPPER_UTILS_H_
-#define I2C_WRAPPER_UTILS_H_
+#ifndef I2C_WRAPPER_UTILS_H
+#define I2C_WRAPPER_UTILS_H
 
 #ifdef __cplusplus
 extern "C"
