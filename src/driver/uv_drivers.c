@@ -5,7 +5,8 @@
 
 static const uint32_t UV_WAIT_TIME_MS = 2;
 static const float VCC = 3.3;
-static const uint16_t MAX_V = 4095;
+static const uint8_t ADC_BITS = 12;
+static const uint16_t MAX_V = 4095; // (1 << ADC_BITS) - 1
 static const float ADC_CONVERSION_FACTOR = VCC / (float)MAX_V;
 static const float VOLTAGE_INDEX_FACTOR = 0.1;
 static const float UV_TRESH = 2;
@@ -17,6 +18,8 @@ static uv_t latest_sample;
 void uv_init()
 {
     wrapper_pin_mode(A_IN_UV, WRAPPER_INPUT);
+    // without this analogRead gives 0-1023 and the index comes out 4 times too low
+    wrapper_analog_read_resolution(ADC_BITS);
     return;
 }
 

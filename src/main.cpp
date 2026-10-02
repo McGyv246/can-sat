@@ -7,6 +7,7 @@
 #include "datastore.h"
 #include "debug_print.h"
 #include "fotores_drivers.h"
+#include "uv_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 1000
 
@@ -33,7 +34,28 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
   }
 }
 
+#ifdef SERIAL_DEBUG_DATA
+
+// Turned on/off by the d1 / d0 commands
+static bool datastore_print_enabled = true;
+
+// Dumps the whole datastore on Serial, returns false if a write was in progress and nothing was printed
+static bool print_datastore_now(void)
+{
+  datastore_t snapshot;
+  if (!ds_read_all(&snapshot))
+    return false;
+
+  DBG_DATA(print_datastore, &snapshot);
+  return true;
+}
+
+#endif
+
 #ifdef SERIAL_DEBUG_COMMANDS
+
+// A write from another task can make ds_read_all fail, so the d command retries a few times
+#define DATASTORE_PRINT_ONCE_TRIES 10
 
 // Same threshold the UV driver uses to set is_there_light
 #define FAKE_UV_LIGHT_THRESH 2.0f
@@ -100,6 +122,8 @@ Commands for bench tests, one per line (read on core 0):
   T<N>   turns task N of core 1 on/off (index in task_core1_id_t), e.g. T1 = LORA
   l1/l0  fakes light / darkness on the photoresistor, l alone stops faking
   u<X>   fakes UV index X, e.g. u3.5 (light if > 2), u alone stops faking
+  d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d1/d0)
+  d1/d0  turns the periodic datastore print on/off (on at boot)
 The tasks profile applied on every state change overrides the t/T toggles.
 */
 static void execute_command(const char *cmd)
@@ -153,9 +177,24 @@ static void execute_command(const char *cmd)
     fake_uv_index = value;
     DBG_INFO("CMD faking UV index %.2f (%s)", (double)value, value > FAKE_UV_LIGHT_THRESH ? "light" : "dark");
   }
+#ifdef SERIAL_DEBUG_DATA
+  else if (cmd[0] == 'd' && cmd[1] == '\0')
+  {
+    int tries = 0;
+    while (!print_datastore_now() && ++tries < DATASTORE_PRINT_ONCE_TRIES)
+      ;
+    if (tries == DATASTORE_PRINT_ONCE_TRIES)
+      DBG_ERR("datastore busy, retry");
+  }
+  else if (cmd[0] == 'd' && (cmd[1] == '0' || cmd[1] == '1') && cmd[2] == '\0')
+  {
+    datastore_print_enabled = cmd[1] == '1';
+    DBG_INFO("CMD periodic datastore print %s", datastore_print_enabled ? "on" : "off");
+  }
+#endif
   else
   {
-    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u)",
+    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d1/d0)",
             cmd, FLIGHT_STATE_COUNT - 1, TASK_CORE0_COUNT - 1, TASK_CORE1_COUNT - 1);
   }
 }
@@ -192,15 +231,13 @@ static void print_datastore_periodically(void)
 #ifdef SERIAL_DEBUG_DATA
   static uint32_t last_print = 0;
   uint32_t now = millis();
-  if (now - last_print < DATASTORE_PRINT_INTERVAL_MS)
+  if (!datastore_print_enabled || now - last_print < DATASTORE_PRINT_INTERVAL_MS)
     return;
 
-  datastore_t snapshot;
-  if (!ds_read_all(&snapshot))
+  if (!print_datastore_now())
     return; // a write was in progress, retry on the next loop
 
   last_print = now;
-  DBG_DATA(print_datastore, &snapshot);
 #endif
 }
 
@@ -208,12 +245,16 @@ static void print_datastore_periodically(void)
 /*
 Bench test of single sensors: init only the sensors under test and enable only their tasks.
 Flight state profiles are never applied, so nothing else gets enabled (the t/T commands still work).
-To test another sensor change the init call and the task index here.
+To add a sensor call its init and enable its task here, comment out the ones you don't want to run.
 */
 static void bench_setup(void)
 {
   fotores_init();
   sched_change_enabled_i(&sched_core0, true, TASK_CORE0_FOTORES_SLOW);
+
+  // GUVA-S12SD on A0 (D14), powered from 3.3 V so its output stays inside the ADC range
+  uv_init();
+  sched_change_enabled_i(&sched_core0, true, TASK_CORE0_UV_SLOW);
 }
 #endif
 
