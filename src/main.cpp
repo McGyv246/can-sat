@@ -12,6 +12,7 @@
 #include "gps_drivers.h"
 #include "fuel_gauge_drivers.h"
 #include "mq_7_drivers.h"
+#include "lora_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -291,6 +292,19 @@ static void bench_setup(void)
   // seen with the GPS: use t3 to turn it on/off at runtime
   mq_7_init();
 }
+
+/*
+Bench test of core 1 (SD / LoRa): runs in setup1 because core 1 owns its scheduler.
+*/
+static void bench_setup1(void)
+{
+  // SX1276 on SPI (CS D9, DIO0 D8, RESET D10) as sender. init leaves it asleep, enabling the task wakes it up.
+  // The task sends the whole datastore packed by ds_to_lora every period
+  if (lora_init(false) == SENS_STATE_READY)
+    sched_change_enabled_i(&sched_core1, true, TASK_CORE1_LORA);
+  else
+    DBG_ERR("LORA init failed, task not enabled");
+}
 #endif
 
 void setup()
@@ -328,6 +342,13 @@ void setup1()
   // TODO: init sd / lora here
 
   sched_init(&sched_core1, tasks_core1, TASK_CORE1_COUNT, tasks_enabled_core1);
+
+#ifdef BENCH_TEST
+  // Same wait as setup(), so the init messages of core 1 aren't lost either
+  while (!Serial && millis() < BENCH_SERIAL_WAIT_MS)
+    ;
+  bench_setup1();
+#endif
 }
 
 void loop1()
