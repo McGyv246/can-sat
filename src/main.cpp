@@ -10,7 +10,7 @@
 #include "uv_drivers.h"
 #include "gybmep_drivers.h"
 
-#define DATASTORE_PRINT_INTERVAL_MS 1000
+#define DATASTORE_PRINT_INTERVAL_MS 2000
 
 /*
 Each core owns its scheduler and is the only one touching it.
@@ -37,7 +37,7 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
 
 #ifdef SERIAL_DEBUG_DATA
 
-// Turned on/off by the d1 / d0 commands
+// Turned on/off by the d2 / d0 commands
 static bool datastore_print_enabled = false;
 
 // Dumps the whole datastore on Serial, returns false if a write was in progress and nothing was printed
@@ -123,8 +123,8 @@ Commands for bench tests, one per line (read on core 0):
   T<N>   turns task N of core 1 on/off (index in task_core1_id_t), e.g. T1 = LORA
   l1/l0  fakes light / darkness on the photoresistor, l alone stops faking
   u<X>   fakes UV index X, e.g. u3.5 (light if > 2), u alone stops faking
-  d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d1/d0)
-  d1/d0  turns the periodic datastore print on/off (on at boot)
+  d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d2/d0)
+  d2/d0  turns the periodic datastore print on/off (on at boot)
 The tasks profile applied on every state change overrides the t/T toggles.
 */
 static void execute_command(const char *cmd)
@@ -195,7 +195,7 @@ static void execute_command(const char *cmd)
 #endif
   else
   {
-    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d1/d0)",
+    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d2/d0)",
             cmd, FLIGHT_STATE_COUNT - 1, TASK_CORE0_COUNT - 1, TASK_CORE1_COUNT - 1);
   }
 }
@@ -264,6 +264,9 @@ static void bench_setup(void)
     sched_change_enabled_i(&sched_core0, true, TASK_CORE0_ENV);
   else
     DBG_ERR("GYBMEP init failed, task not enabled");
+
+  // LSM6DSOX on the Nano board itself (I2C 0x6A), no init: enabling the task starts it
+  sched_change_enabled_i(&sched_core0, true, TASK_CORE0_IMU);
 }
 #endif
 

@@ -68,7 +68,7 @@ Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le p
 | `u<X>` | Simula un indice UV pari a `X` (anche decimale, es. `u3.5`). Sopra 2 conta come luce |
 | `u` | Smette di simulare l'UV |
 | `d` | Stampa subito il datastore, una volta sola |
-| `d1` / `d0` | Accende / spegne la stampa periodica del datastore (ogni secondo, accesa all'avvio) |
+| `d2` / `d0` | Accende / spegne la stampa periodica del datastore (ogni secondo, accesa all'avvio) |
 
 Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
 
@@ -80,7 +80,7 @@ Note:
 
 - I valori simulati con `l` e `u` restano finché non si annullano: i task dei sensori veri non li sovrascrivono.
 - Al cambio di stato di volo viene riapplicato il profilo dei task di quello stato, quindi le accensioni/spegnimenti fatti con `t` e `T` si perdono.
-- `d`, `d1` e `d0` esistono solo se è attivo anche `SERIAL_DEBUG_DATA` (già incluso in `-DSERIAL_DEBUG`).
+- `d`, `d2` e `d0` esistono solo se è attivo anche `SERIAL_DEBUG_DATA` (già incluso in `-DSERIAL_DEBUG`).
 - Ogni riga stampata inizia con tipo, tempo e core, ad esempio `[ERR 12345ms c1] task SD failed` (`ERR` errore, `INF` evento, `DAT` dump dei dati).
 
 
