@@ -13,6 +13,7 @@
 #include "fuel_gauge_drivers.h"
 #include "mq_7_drivers.h"
 #include "lora_drivers.h"
+#include "sd_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -298,6 +299,14 @@ Bench test of core 1 (SD / LoRa): runs in setup1 because core 1 owns its schedul
 */
 static void bench_setup1(void)
 {
+  // SD module on SPI (CS D7), shared with LoRa. The file is opened in append mode, so data from previous
+  // runs is kept. The task writes what the sensor tasks put in the ring buffer (pack_data_sd format).
+  // FAT 8.3 names only (max 8 chars + 3 of extension)
+  if (sd_init("/DATA", "/DATA/LOG.BIN") == SENS_STATE_READY)
+    sched_change_enabled_i(&sched_core1, true, TASK_CORE1_SD);
+  else
+    DBG_ERR("SD init failed, task not enabled");
+
   // SX1276 on SPI (CS D9, DIO0 D8, RESET D10) as sender. init leaves it asleep, enabling the task wakes it up.
   // The task sends the whole datastore packed by ds_to_lora every period
   if (lora_init(false) == SENS_STATE_READY)
