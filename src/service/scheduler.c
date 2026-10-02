@@ -5,6 +5,7 @@
 #include "types.h"
 #include "hal_time.h"
 #include "config.h"
+#include "debug_print.h"
 
 void sched_init(scheduler_t *sched, task_t *tasks, uint16_t tasks_number, bool *enabled_tasks);
 void sched_tick(scheduler_t *sched);
@@ -34,10 +35,16 @@ void sched_tick(scheduler_t *sched)
     uint32_t reschedule_interval = task_to_run->run(task_to_run, start_millis);
     uint32_t after_task_millis = hal_millis();
 
-    if (task_to_run->last_state == TASK_STATE_ERR && task_to_run->fail_count > SCHED_MAX_FAILS)
+    if (task_to_run->last_state == TASK_STATE_ERR)
     {
-        // Disables a task if it has more than SCHED_MAX_FAILS fails
-        sched_change_enabled_i(sched, 0, task_to_run_index);
+        DBG_ERR("task %s failed (fail_count %u)", task_to_run->name, (unsigned)task_to_run->fail_count);
+
+        if (task_to_run->fail_count > SCHED_MAX_FAILS)
+        {
+            // Disables a task if it has more than SCHED_MAX_FAILS fails
+            DBG_ERR("task %s disabled after too many fails", task_to_run->name);
+            sched_change_enabled_i(sched, 0, task_to_run_index);
+        }
     }
 
     sched->run_count += 1;
@@ -92,6 +99,8 @@ void sched_change_enabled_i(scheduler_t *sched, bool new_enabled, size_t index)
     if (enabled_i != new_enabled)
     {
         task_t *task = sched_get_task(sched, index);
+        uint16_t fail_count_before = task->fail_count;
+
         if (enabled_i == true) // hence new_enabled == false: the task is enabled and must be disabled
         {
             /*
@@ -112,6 +121,10 @@ void sched_change_enabled_i(scheduler_t *sched, bool new_enabled, size_t index)
             if (task->on_enable != NULL)
                 task->on_enable(task);
         }
+
+        // on_enable/on_disable report errors only by incrementing fail_count
+        if (task->fail_count != fail_count_before)
+            DBG_ERR("task %s %s failed", task->name, new_enabled ? "on_enable" : "on_disable");
 
         sched->enabled_tasks[index] = new_enabled;
     }

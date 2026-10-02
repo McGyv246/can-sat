@@ -5,6 +5,8 @@
 Debug helpers that print every type defined in types.h to the Arduino Serial port
 in a human readable, indented format. Serial must already be initialized (Serial.begin).
 All functions accept NULL pointers and print "(null)" in that case.
+They are only compiled when debug prints are enabled: don't call them directly,
+use the macros in debug_print.h instead.
 */
 
 #include "types.h"
@@ -13,6 +15,9 @@ All functions accept NULL pointers and print "(null)" in that case.
 extern "C"
 {
 #endif
+
+    /* printf-style, prints "[ERR] <message>" followed by a newline */
+    void debug_log_error(const char *fmt, ...);
 
 #pragma region main_datastore
 

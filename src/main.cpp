@@ -5,6 +5,9 @@
 #include "tasks.h"
 #include "scheduler.h"
 #include "datastore.h"
+#include "debug_print.h"
+
+#define DATASTORE_PRINT_INTERVAL_MS 1000
 
 /*
 Each core owns its scheduler and is the only one touching it.
@@ -27,6 +30,24 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
   }
 }
 
+// Dumps the whole datastore on Serial every DATASTORE_PRINT_INTERVAL_MS (core 0 only, to avoid mixed output)
+static void print_datastore_periodically(void)
+{
+#ifdef SERIAL_DEBUG_DATA
+  static uint32_t last_print = 0;
+  uint32_t now = millis();
+  if (now - last_print < DATASTORE_PRINT_INTERVAL_MS)
+    return;
+
+  datastore_t snapshot;
+  if (!ds_read_all(&snapshot))
+    return; // a write was in progress, retry on the next loop
+
+  last_print = now;
+  DBG_DATA(print_datastore, &snapshot);
+#endif
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -41,6 +62,7 @@ void loop()
   static flight_state_t applied = FLIGHT_STATE_COUNT; // forces the first apply
   apply_profile_if_changed(&sched_core0, tasks_profile_core0, &applied);
   sched_tick(&sched_core0);
+  print_datastore_periodically();
 }
 
 void setup1()

@@ -1,8 +1,16 @@
+#include "debug_print.h"
+
+// Compiled only when debug prints are enabled, so flight builds don't carry this code
+#if defined(SERIAL_DEBUG_ERRORS) || defined(SERIAL_DEBUG_DATA)
+
 #include <Arduino.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include "serial_print_types.h"
 
 #define FLOAT_DIGITS 3
+#define LOG_BUF_SIZE 128
 #define LAT_LON_DIGITS 6
 
 /*
@@ -474,6 +482,18 @@ static void scheduler_(uint8_t ind, const char *name, const scheduler_t *x)
 extern "C"
 {
 
+    void debug_log_error(const char *fmt, ...)
+    {
+        char buf[LOG_BUF_SIZE];
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, args); // longer messages are truncated
+        va_end(args);
+
+        Serial.print("[ERR] ");
+        Serial.println(buf);
+    }
+
 #pragma region main_datastore
 
     void print_stamp(const stamp_t *x) { stamp_(0, "stamp_t", x); }
@@ -552,3 +572,5 @@ extern "C"
 
 #pragma endregion
 }
+
+#endif
