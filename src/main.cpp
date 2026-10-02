@@ -8,6 +8,7 @@
 #include "debug_print.h"
 #include "fotores_drivers.h"
 #include "uv_drivers.h"
+#include "gybmep_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 1000
 
@@ -37,7 +38,7 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
 #ifdef SERIAL_DEBUG_DATA
 
 // Turned on/off by the d1 / d0 commands
-static bool datastore_print_enabled = true;
+static bool datastore_print_enabled = false;
 
 // Dumps the whole datastore on Serial, returns false if a write was in progress and nothing was printed
 static bool print_datastore_now(void)
@@ -242,6 +243,8 @@ static void print_datastore_periodically(void)
 }
 
 #ifdef BENCH_TEST
+#define BENCH_SERIAL_WAIT_MS 5000
+
 /*
 Bench test of single sensors: init only the sensors under test and enable only their tasks.
 Flight state profiles are never applied, so nothing else gets enabled (the t/T commands still work).
@@ -255,6 +258,12 @@ static void bench_setup(void)
   // GUVA-S12SD on A0 (D14), powered from 3.3 V so its output stays inside the ADC range
   uv_init();
   sched_change_enabled_i(&sched_core0, true, TASK_CORE0_UV_SLOW);
+
+  // BME280 on I2C (A4 SDA / A5 SCL). init leaves it asleep, enabling the task wakes it up
+  if (gybmep_init() == SENS_STATE_READY)
+    sched_change_enabled_i(&sched_core0, true, TASK_CORE0_ENV);
+  else
+    DBG_ERR("GYBMEP init failed, task not enabled");
 }
 #endif
 
@@ -267,6 +276,9 @@ void setup()
   sched_init(&sched_core0, tasks_core0, TASK_CORE0_COUNT, tasks_enabled_core0);
 
 #ifdef BENCH_TEST
+  // USB serial drops what's printed before the monitor opens: wait a bit so the init messages are seen
+  while (!Serial && millis() < BENCH_SERIAL_WAIT_MS)
+    ;
   bench_setup();
 #endif
 }
