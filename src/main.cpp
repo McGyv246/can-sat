@@ -9,6 +9,7 @@
 #include "fotores_drivers.h"
 #include "uv_drivers.h"
 #include "gybmep_drivers.h"
+#include "gps_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -267,6 +268,12 @@ static void bench_setup(void)
 
   // LSM6DSOX on the Nano board itself (I2C 0x6A), no init: enabling the task starts it
   sched_change_enabled_i(&sched_core0, true, TASK_CORE0_IMU);
+
+  // NEO-6M on Serial1 (GPS TX -> D0/RX, GPS RX -> D1/TX), 9600 baud. init powers it on and sets the
+  // command pin, it returns NOT_READY until there's a fix, that's expected here
+  // Disabled: turning the GPS on at boot browns out the board. Use t0 to turn it on at runtime
+  // gps_init();
+  // sched_change_enabled_i(&sched_core0, true, TASK_CORE0_GPS);
 }
 #endif
 

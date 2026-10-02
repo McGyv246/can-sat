@@ -48,7 +48,7 @@ extern "C"
         double lat, lon;
         float alt_m, speed_ms, course_deg, hdop; /* HDOP is an accuracy indicator */
         uint8_t sats, fix_type;
-        uint32_t utc_s; /* for aligning logs */
+        uint32_t utc_s; /* seconds since UTC midnight, for aligning logs */
     } gps_t;
 
     typedef struct
