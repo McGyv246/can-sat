@@ -6,6 +6,7 @@
 #include "scheduler.h"
 #include "datastore.h"
 #include "debug_print.h"
+#include "fotores_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 1000
 
@@ -203,6 +204,19 @@ static void print_datastore_periodically(void)
 #endif
 }
 
+#ifdef BENCH_TEST
+/*
+Bench test of single sensors: init only the sensors under test and enable only their tasks.
+Flight state profiles are never applied, so nothing else gets enabled (the t/T commands still work).
+To test another sensor change the init call and the task index here.
+*/
+static void bench_setup(void)
+{
+  fotores_init();
+  sched_change_enabled_i(&sched_core0, true, TASK_CORE0_FOTORES_SLOW);
+}
+#endif
+
 void setup()
 {
   Serial.begin(115200);
@@ -210,12 +224,18 @@ void setup()
   // TODO: init sensors / drivers here
 
   sched_init(&sched_core0, tasks_core0, TASK_CORE0_COUNT, tasks_enabled_core0);
+
+#ifdef BENCH_TEST
+  bench_setup();
+#endif
 }
 
 void loop()
 {
+#ifndef BENCH_TEST
   static flight_state_t applied = FLIGHT_STATE_COUNT; // forces the first apply
   apply_profile_if_changed(&sched_core0, tasks_profile_core0, &applied);
+#endif
   sched_tick(&sched_core0);
 #ifdef SERIAL_DEBUG_COMMANDS
   apply_fake_values();
@@ -233,8 +253,10 @@ void setup1()
 
 void loop1()
 {
+#ifndef BENCH_TEST
   static flight_state_t applied = FLIGHT_STATE_COUNT; // forces the first apply
   apply_profile_if_changed(&sched_core1, tasks_profile_core1, &applied);
+#endif
 #ifdef SERIAL_DEBUG_COMMANDS
   int16_t req = core1_toggle_request;
   if (req >= 0)
