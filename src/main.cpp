@@ -11,6 +11,7 @@
 #include "gybmep_drivers.h"
 #include "gps_drivers.h"
 #include "fuel_gauge_drivers.h"
+#include "mq_7_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -178,7 +179,9 @@ static void execute_command(const char *cmd)
     }
     fake_uv_on = true;
     fake_uv_index = value;
-    DBG_INFO("CMD faking UV index %.2f (%s)", (double)value, value > FAKE_UV_LIGHT_THRESH ? "light" : "dark");
+    // the log printf can't format floats (%f prints nothing): integers only
+    unsigned value_x100 = (unsigned)(value * 100.0f + 0.5f);
+    DBG_INFO("CMD faking UV index %u.%02u (%s)", value_x100 / 100, value_x100 % 100, value > FAKE_UV_LIGHT_THRESH ? "light" : "dark");
   }
 #ifdef SERIAL_DEBUG_DATA
   else if (cmd[0] == 'd' && cmd[1] == '\0')
@@ -282,6 +285,11 @@ static void bench_setup(void)
     sched_change_enabled_i(&sched_core0, true, TASK_CORE0_BATTERY);
   else
     DBG_ERR("FUEL_GAUGE init failed, task not enabled");
+
+  // MQ-7 on A1 (D15) through the voltage divider, heater switched by D3. init leaves the heater off.
+  // The task (which turns the heater on, ~150 mA at 5 V) is not enabled at boot because of the brownouts
+  // seen with the GPS: use t3 to turn it on/off at runtime
+  mq_7_init();
 }
 #endif
 

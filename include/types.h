@@ -69,7 +69,7 @@ extern "C"
     {
         stamp_t s;
         uint16_t raw;
-        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        uint16_t heater_on_s; /* seconds the heater has been on, needed to consider it in error correction */
         bool heater_enabled;
     } gas_t;
 
@@ -249,7 +249,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     {
         stamp_packed_t s;
         uint16_t raw;
-        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        uint16_t heater_on_s; /* seconds the heater has been on, needed to consider it in error correction */
         uint8_t heater_enabled;
     } gas_packed_t;
 

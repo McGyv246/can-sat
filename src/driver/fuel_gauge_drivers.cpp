@@ -15,6 +15,11 @@ The chip is powered by the battery cell: without the battery it doesn't answer o
 static const uint8_t ADDRESS = 0x36;                   // fixed for the whole MAX1704X family
 static const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 10; // default is 4%. can be between 1 and 32
 static const uint32_t FUEL_GAUGE_WAIT_TIME_MS = 1000;  // don't think reading more than once a second could be beneficial...
+// the gauge has no current sensing: at power up it guesses the SOC from the cell voltage, and if that
+// happens under load (boot, brownouts) the guess is too low and the percentage keeps rising for a long time.
+// init redoes the guess with a quickstart, after letting the voltage settle with the big loads (GPS, heater) off
+static const uint32_t SETTLE_TIME_MS = 500;
+static const uint32_t QUICKSTART_TIME_MS = 250; // time for the new estimate to be ready
 
 static sens_state_t state = SENS_STATE_IDLE;
 static uint32_t last_sample_time = 0;
@@ -51,6 +56,16 @@ extern "C"
         DBG_INFO("FUEL_GAUGE found on 0x%02X, version 0x%04X", ADDRESS, FuelGauge.version());
 
         FuelGauge.threshold(BATTERY_TRESHOLD_PERCENTAGE);
+
+        // must run while nothing heavy is on: call fuel_gauge_init before turning on the GPS or the MQ-7 heater
+        wrapper_delay_ms(SETTLE_TIME_MS);
+        fuel_gauge_rebase_measures();
+        wrapper_delay_ms(QUICKSTART_TIME_MS);
+        // the log printf can't format floats (%f prints nothing): integers only
+        unsigned mv = (unsigned)FuelGauge.voltage();
+        unsigned pct_x10 = (unsigned)(FuelGauge.percent(true) * 10.0f);
+        DBG_INFO("FUEL_GAUGE quickstart done: %u mV, %u.%u %%", mv, pct_x10 / 10, pct_x10 % 10);
+
         fuel_gauge_sleep();
         return SENS_STATE_NOT_READY;
     }
