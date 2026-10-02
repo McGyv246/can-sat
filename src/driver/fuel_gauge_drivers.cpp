@@ -1,9 +1,18 @@
 #include <stdint.h>
+#include <Wire.h>
 #include <MAX17043.h>
 #include "types.h"
 #include "fuel_gauge_drivers.h"
 #include "arduino_wrapper.h"
+#include "wire_wrapper.h"
+#include "debug_print.h"
 
+/*
+Works with the MAX17043 and the MAX17048: VCELL and SOC have the same format on both.
+On the MAX17048 sleep() does nothing unless MODE.EnSleep is set, so it just keeps measuring (harmless).
+The chip is powered by the battery cell: without the battery it doesn't answer on I2C.
+*/
+static const uint8_t ADDRESS = 0x36;                   // fixed for the whole MAX1704X family
 static const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 10; // default is 4%. can be between 1 and 32
 static const uint32_t FUEL_GAUGE_WAIT_TIME_MS = 1000;  // don't think reading more than once a second could be beneficial...
 
@@ -30,22 +39,17 @@ extern "C"
 
     sens_state_t fuel_gauge_init(void)
     {
-        FuelGauge.begin();
-        wrapper_delay_ms(125);
+        // the library's own begin() calls Wire.begin() and prints on Serial: start the bus here instead
+        wire_begin_service();
+        FuelGauge.begin(&Wire, ADDRESS);
         if (!FuelGauge.deviceFound())
         {
-            uint8_t address = FuelGauge.findFirstDevice();
-            if (address != 0)
-            {
-                FuelGauge.address(address);
-                FuelGauge.reset();
-                wrapper_delay_ms(250);
-                fuel_gauge_rebase_measures();
-                wrapper_delay_ms(125);
-            }
-            else
-                return SENS_STATE_ERR;
+            DBG_ERR("FUEL_GAUGE no answer on 0x%02X (is the battery connected?)", ADDRESS);
+            return SENS_STATE_ERR;
         }
+        // 0x0003 = MAX17043/44, 0x001X = MAX17048/49
+        DBG_INFO("FUEL_GAUGE found on 0x%02X, version 0x%04X", ADDRESS, FuelGauge.version());
+
         FuelGauge.threshold(BATTERY_TRESHOLD_PERCENTAGE);
         fuel_gauge_sleep();
         return SENS_STATE_NOT_READY;
@@ -53,6 +57,7 @@ extern "C"
 
     sens_state_t fuel_gauge_wake()
     {
+        state = SENS_STATE_IDLE;
         if (FuelGauge.isSleeping())
             if (!FuelGauge.wake())
                 return SENS_STATE_ERR;
@@ -66,8 +71,15 @@ extern "C"
         case SENS_STATE_IDLE:
             if ((now_ms - last_sample_time) < FUEL_GAUGE_WAIT_TIME_MS)
                 return SENS_STATE_NOT_READY;
+            last_sample_time = now_ms;
+            // the library doesn't check its reads: without this a missing chip gives garbage marked as valid
+            if (!FuelGauge.deviceFound())
+            {
+                current_sample.s.valid = false;
+                return SENS_STATE_ERR;
+            }
             current_sample.voltage_raw = FuelGauge.adc();
-            current_sample.voltage = FuelGauge.voltage();
+            current_sample.voltage = FuelGauge.voltage() / 1000.0f; // the library gives mV
             current_sample.percentage = FuelGauge.percent();
             current_sample.is_alert_active = FuelGauge.alertIsActive();
             if (current_sample.is_alert_active)

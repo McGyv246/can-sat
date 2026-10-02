@@ -10,6 +10,7 @@
 #include "uv_drivers.h"
 #include "gybmep_drivers.h"
 #include "gps_drivers.h"
+#include "fuel_gauge_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -274,6 +275,13 @@ static void bench_setup(void)
   // Disabled: turning the GPS on at boot browns out the board. Use t0 to turn it on at runtime
   // gps_init();
   // sched_change_enabled_i(&sched_core0, true, TASK_CORE0_GPS);
+
+  // MAX1704X on I2C (0x36), powered by the battery cell: it only answers with the battery connected.
+  // init leaves it asleep, enabling the task wakes it up
+  if (fuel_gauge_init() != SENS_STATE_ERR)
+    sched_change_enabled_i(&sched_core0, true, TASK_CORE0_BATTERY);
+  else
+    DBG_ERR("FUEL_GAUGE init failed, task not enabled");
 }
 #endif
 
