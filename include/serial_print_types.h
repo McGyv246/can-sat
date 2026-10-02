@@ -16,8 +16,13 @@ extern "C"
 {
 #endif
 
-    /* printf-style, prints "[ERR] <message>" followed by a newline */
+    /* printf-style, prints "[ERR <millis>ms c<core>] <message>" followed by a newline */
     void debug_log_error(const char *fmt, ...);
+    /* printf-style, prints "[INF <millis>ms c<core>] <message>" followed by a newline */
+    void debug_log_info(const char *fmt, ...);
+
+    /* Name of the state without the prefix, e.g. "DESCENT", or "UNKNOWN" if out of range */
+    const char *debug_flight_state_name(flight_state_t x);
 
 #pragma region main_datastore
 

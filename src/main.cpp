@@ -27,8 +27,163 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
   {
     sched_change_enabled_tasks(sched, profiles[state]);
     *applied = state;
+    // Compare its time with the "STATE" line of core 0 to see how long each core takes to follow
+    DBG_INFO("tasks profile of %s applied", debug_flight_state_name(state));
   }
 }
+
+#ifdef SERIAL_DEBUG_COMMANDS
+
+// Same threshold the UV driver uses to set is_there_light
+#define FAKE_UV_LIGHT_THRESH 2.0f
+
+/*
+Fake sensor values set by the l / u commands. They are written again in the datastore after
+every sched_tick of core 0, so the real sensor tasks can't overwrite them before the
+mission state task reads them (they all run on core 0).
+*/
+static bool fake_light_on = false;
+static bool fake_light_value;
+static bool fake_uv_on = false;
+static float fake_uv_index;
+
+// Task of core 1 to toggle: set by core 0, consumed by loop1 since core 1 owns its scheduler
+static volatile int16_t core1_toggle_request = -1;
+
+static void toggle_task(scheduler_t *sched, size_t index)
+{
+  bool enabled = !sched->enabled_tasks[index];
+  sched_change_enabled_i(sched, enabled, index);
+  DBG_INFO("CMD task %s %s", sched->tasks[index].name, enabled ? "enabled" : "disabled");
+}
+
+static void apply_fake_values(void)
+{
+  uint32_t now = millis();
+
+  if (fake_light_on)
+  {
+    fotores_t f = {};
+    f.s.t_ms = now;
+    f.s.valid = true;
+    f.is_there_light = fake_light_value;
+    ds_write_fotores(&f, now);
+  }
+
+  if (fake_uv_on)
+  {
+    uv_t u = {};
+    u.s.t_ms = now;
+    u.s.valid = true;
+    u.is_there_light = fake_uv_index > FAKE_UV_LIGHT_THRESH;
+    u.uv_index = fake_uv_index;
+    ds_write_uv(&u, now);
+  }
+}
+
+// Returns the number in s if it's a valid index below count, -1 otherwise
+static int parse_index(const char *s, size_t count)
+{
+  char *end;
+  unsigned long n = strtoul(s, &end, 10);
+  if (end == s || *end != '\0' || n >= count)
+    return -1;
+  return (int)n;
+}
+
+/*
+Commands for bench tests, one per line (read on core 0):
+  s<N>   forces the flight state N, e.g. s4 = DESCENT (the mission state task keeps running from there)
+  p      prints both schedulers
+  t<N>   turns task N of core 0 on/off (index in task_core0_id_t), e.g. t3 = GAS
+  T<N>   turns task N of core 1 on/off (index in task_core1_id_t), e.g. T1 = LORA
+  l1/l0  fakes light / darkness on the photoresistor, l alone stops faking
+  u<X>   fakes UV index X, e.g. u3.5 (light if > 2), u alone stops faking
+The tasks profile applied on every state change overrides the t/T toggles.
+*/
+static void execute_command(const char *cmd)
+{
+  int index;
+
+  if (cmd[0] == 's' && cmd[1] >= '0' && cmd[1] < '0' + FLIGHT_STATE_COUNT && cmd[2] == '\0')
+  {
+    flight_state_t state = (flight_state_t)(cmd[1] - '0');
+    DBG_INFO("CMD forcing state %s", debug_flight_state_name(state));
+    ds_write_flight_state(state, millis());
+  }
+  else if (cmd[0] == 'p' && cmd[1] == '\0')
+  {
+    // Core 1 may be changing its scheduler meanwhile: its values can be slightly inconsistent
+    print_scheduler(&sched_core0);
+    print_scheduler(&sched_core1);
+  }
+  else if (cmd[0] == 't' && (index = parse_index(cmd + 1, TASK_CORE0_COUNT)) >= 0)
+  {
+    toggle_task(&sched_core0, (size_t)index);
+  }
+  else if (cmd[0] == 'T' && (index = parse_index(cmd + 1, TASK_CORE1_COUNT)) >= 0)
+  {
+    core1_toggle_request = (int16_t)index;
+  }
+  else if (cmd[0] == 'l' && (cmd[1] == '\0' || ((cmd[1] == '0' || cmd[1] == '1') && cmd[2] == '\0')))
+  {
+    fake_light_on = cmd[1] != '\0';
+    fake_light_value = cmd[1] == '1';
+    if (fake_light_on)
+      DBG_INFO("CMD faking %s on the photoresistor", fake_light_value ? "light" : "darkness");
+    else
+      DBG_INFO("CMD photoresistor fake stopped");
+  }
+  else if (cmd[0] == 'u' && cmd[1] == '\0')
+  {
+    fake_uv_on = false;
+    DBG_INFO("CMD UV fake stopped");
+  }
+  else if (cmd[0] == 'u')
+  {
+    char *end;
+    float value = strtof(cmd + 1, &end);
+    if (end == cmd + 1 || *end != '\0' || value < 0)
+    {
+      DBG_ERR("bad UV index '%s'", cmd + 1);
+      return;
+    }
+    fake_uv_on = true;
+    fake_uv_index = value;
+    DBG_INFO("CMD faking UV index %.2f (%s)", (double)value, value > FAKE_UV_LIGHT_THRESH ? "light" : "dark");
+  }
+  else
+  {
+    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u)",
+            cmd, FLIGHT_STATE_COUNT - 1, TASK_CORE0_COUNT - 1, TASK_CORE1_COUNT - 1);
+  }
+}
+
+// Collects the characters from Serial (they can arrive one at a time) and runs each line as a command
+static void handle_serial_commands(void)
+{
+  static char cmd[16];
+  static size_t len = 0;
+
+  while (Serial.available())
+  {
+    char c = (char)Serial.read();
+    if (c != '\n' && c != '\r')
+    {
+      if (len < sizeof(cmd) - 1)
+        cmd[len++] = c;
+      continue;
+    }
+    if (len == 0)
+      continue; // empty line, or the '\n' after a '\r'
+
+    cmd[len] = '\0';
+    len = 0;
+    execute_command(cmd);
+  }
+}
+
+#endif
 
 // Dumps the whole datastore on Serial every DATASTORE_PRINT_INTERVAL_MS (core 0 only, to avoid mixed output)
 static void print_datastore_periodically(void)
@@ -62,6 +217,10 @@ void loop()
   static flight_state_t applied = FLIGHT_STATE_COUNT; // forces the first apply
   apply_profile_if_changed(&sched_core0, tasks_profile_core0, &applied);
   sched_tick(&sched_core0);
+#ifdef SERIAL_DEBUG_COMMANDS
+  apply_fake_values();
+  handle_serial_commands();
+#endif
   print_datastore_periodically();
 }
 
@@ -76,5 +235,13 @@ void loop1()
 {
   static flight_state_t applied = FLIGHT_STATE_COUNT; // forces the first apply
   apply_profile_if_changed(&sched_core1, tasks_profile_core1, &applied);
+#ifdef SERIAL_DEBUG_COMMANDS
+  int16_t req = core1_toggle_request;
+  if (req >= 0)
+  {
+    core1_toggle_request = -1;
+    toggle_task(&sched_core1, (size_t)req);
+  }
+#endif
   sched_tick(&sched_core1);
 }

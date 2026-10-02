@@ -51,6 +51,35 @@ Sarà possibile eseguire il codice solamente su Arduino IDE. Per farlo funzionar
 
 L'unico modo per eseguire il programma senza l'arduino sarà tramite i test.
 
+## Comandi di debug via Serial
+
+Servono per i test al banco (es. forzare l'espulsione senza un lancio vero). Sono attivi solo se compilati con `-DSERIAL_DEBUG` o `-DSERIAL_DEBUG_COMMANDS` in `platformio.ini`: **vanno tolti per il volo**. Si scrive un comando per riga nel monitor seriale (115200 baud) e si preme invio.
+
+Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le parentesi e senza spazi: ad esempio `s<N>` si scrive `s4`.
+
+| Comando | Effetto |
+| --- | --- |
+| `s<N>` | Forza lo stato di volo `N` (vedi tabella sotto). Ad esempio `s4` passa a DESCENT |
+| `p` | Stampa subito i due scheduler (core 0 e core 1) |
+| `t<N>` | Accende/spegne il task `N` del core 0. Ad esempio `t3` per GAS |
+| `T<N>` | Accende/spegne il task `N` del core 1. Ad esempio `T1` per LORA |
+| `l1` / `l0` | Simula luce / buio sulla fotoresistenza |
+| `l` | Smette di simulare la fotoresistenza |
+| `u<X>` | Simula un indice UV pari a `X` (anche decimale, es. `u3.5`). Sopra 2 conta come luce |
+| `u` | Smette di simulare l'UV |
+
+Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
+
+Valori di `N` per `t<N>` (`task_core0_id_t` in `tasks.h`): 0 GPS, 1 IMU, 2 ENV, 3 GAS, 4 UV_FAST, 5 UV_SLOW, 6 FOTORES_FAST, 7 FOTORES_SLOW, 8 BATTERY, 9 MISSION_STATE.
+
+Valori di `N` per `T<N>` (`task_core1_id_t` in `tasks.h`): 0 SD, 1 LORA.
+
+Note:
+
+- I valori simulati con `l` e `u` restano finché non si annullano: i task dei sensori veri non li sovrascrivono.
+- Al cambio di stato di volo viene riapplicato il profilo dei task di quello stato, quindi le accensioni/spegnimenti fatti con `t` e `T` si perdono.
+- Ogni riga stampata inizia con tipo, tempo e core, ad esempio `[ERR 12345ms c1] task SD failed` (`ERR` errore, `INF` evento, `DAT` dump dei dati).
+
 
 ## Test
 

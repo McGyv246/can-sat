@@ -1,7 +1,7 @@
 #include "debug_print.h"
 
 // Compiled only when debug prints are enabled, so flight builds don't carry this code
-#if defined(SERIAL_DEBUG_ERRORS) || defined(SERIAL_DEBUG_DATA)
+#ifdef SERIAL_DEBUG_ANY
 
 #include <Arduino.h>
 #include <stdarg.h>
@@ -10,7 +10,8 @@
 #include "serial_print_types.h"
 
 #define FLOAT_DIGITS 3
-#define LOG_BUF_SIZE 128
+#define LOG_BUF_SIZE 160
+#define LINE_BUF_SIZE 128
 #define LAT_LON_DIGITS 6
 
 /*
@@ -18,104 +19,168 @@ NOTE: fields of packed structs are always read by value (never through a pointer
 field itself) because the RP2040 (Cortex-M0+) faults on unaligned multi-byte accesses.
 */
 
+#pragma region line_buffer
+
+// Writes "[<tag> <millis>ms c<core>] " in buf and returns its length
+static size_t line_prefix(char *buf, size_t size, const char *tag)
+{
+    int n = snprintf(buf, size, "[%s %lums c%u] ", tag, (unsigned long)millis(), (unsigned)rp2040.cpuid());
+    return (n < 0) ? 0 : ((size_t)n < size ? (size_t)n : size - 1);
+}
+
+/*
+Both cores print on the same Serial. A single Serial.write call is never mixed with the
+other core's output (the USB serial is locked internally), but a line made of many print
+calls can be. The struct dumps are then collected here one line at a time and sent with a
+single Serial.write: lines of the two cores can alternate, but each line stays whole.
+*/
+class LinePrint : public Print
+{
+public:
+    size_t write(uint8_t c) override
+    {
+        if (len == 0)
+            len = line_prefix(buf, sizeof(buf), "DAT");
+
+        buf[len++] = (char)c;
+
+        // Lines longer than the buffer are split, not lost
+        if (c == '\n' || len == sizeof(buf))
+        {
+            Serial.write((const uint8_t *)buf, len);
+            len = 0;
+        }
+        return 1;
+    }
+
+private:
+    char buf[LINE_BUF_SIZE];
+    size_t len = 0;
+};
+
+// One buffer per core, so the cores never write in the same one
+static LinePrint lines[2];
+
+static LinePrint &out()
+{
+    return lines[rp2040.cpuid()];
+}
+
+// Builds "[<tag> <millis>ms c<core>] <message>\r\n" and sends it with a single write
+static void log_line(const char *tag, const char *fmt, va_list args)
+{
+    char buf[LOG_BUF_SIZE];
+    size_t len = line_prefix(buf, sizeof(buf) - 2, tag);
+
+    int n = vsnprintf(buf + len, sizeof(buf) - 2 - len, fmt, args); // longer messages are truncated
+    if (n > 0)
+        len += ((size_t)n < sizeof(buf) - 2 - len) ? (size_t)n : sizeof(buf) - 3 - len;
+
+    buf[len++] = '\r';
+    buf[len++] = '\n';
+    Serial.write((const uint8_t *)buf, len);
+}
+
+#pragma endregion
+
 #pragma region helpers
 
 static void indent(uint8_t ind)
 {
     for (uint8_t i = 0; i < ind; i++)
-        Serial.print("  ");
+        out().print("  ");
 }
 
 static void key(uint8_t ind, const char *k)
 {
     indent(ind);
-    Serial.print(k);
-    Serial.print(": ");
+    out().print(k);
+    out().print(": ");
 }
 
 /* Prints the title of a (sub)struct. Returns false if the pointer is NULL. */
 static bool section(uint8_t ind, const char *name, const void *p)
 {
     indent(ind);
-    Serial.print(name);
+    out().print(name);
     if (p == NULL)
     {
-        Serial.println(": (null)");
+        out().println(": (null)");
         return false;
     }
-    Serial.println(":");
+    out().println(":");
     return true;
 }
 
 static void p_u(uint8_t ind, const char *k, uint32_t v)
 {
     key(ind, k);
-    Serial.println((unsigned long)v);
+    out().println((unsigned long)v);
 }
 
 static void p_i(uint8_t ind, const char *k, int32_t v)
 {
     key(ind, k);
-    Serial.println((long)v);
+    out().println((long)v);
 }
 
 static void p_f(uint8_t ind, const char *k, double v, int digits = FLOAT_DIGITS)
 {
     key(ind, k);
-    Serial.println(v, digits);
+    out().println(v, digits);
 }
 
 static void p_b(uint8_t ind, const char *k, bool v)
 {
     key(ind, k);
-    Serial.println(v ? "true" : "false");
+    out().println(v ? "true" : "false");
 }
 
 static void p_hex(uint8_t ind, const char *k, uint32_t v)
 {
     key(ind, k);
-    Serial.print("0x");
-    Serial.println((unsigned long)v, HEX);
+    out().print("0x");
+    out().println((unsigned long)v, HEX);
 }
 
 static void p_str(uint8_t ind, const char *k, const char *s)
 {
     key(ind, k);
-    Serial.println(s != NULL ? s : "(null)");
+    out().println(s != NULL ? s : "(null)");
 }
 
 static void p_f3(uint8_t ind, const char *k, float x, float y, float z)
 {
     key(ind, k);
-    Serial.print("[");
-    Serial.print(x, FLOAT_DIGITS);
-    Serial.print(", ");
-    Serial.print(y, FLOAT_DIGITS);
-    Serial.print(", ");
-    Serial.print(z, FLOAT_DIGITS);
-    Serial.println("]");
+    out().print("[");
+    out().print(x, FLOAT_DIGITS);
+    out().print(", ");
+    out().print(y, FLOAT_DIGITS);
+    out().print(", ");
+    out().print(z, FLOAT_DIGITS);
+    out().println("]");
 }
 
 static void p_i3(uint8_t ind, const char *k, int16_t x, int16_t y, int16_t z)
 {
     key(ind, k);
-    Serial.print("[");
-    Serial.print((int)x);
-    Serial.print(", ");
-    Serial.print((int)y);
-    Serial.print(", ");
-    Serial.print((int)z);
-    Serial.println("]");
+    out().print("[");
+    out().print((int)x);
+    out().print(", ");
+    out().print((int)y);
+    out().print(", ");
+    out().print((int)z);
+    out().println("]");
 }
 
 /* Prints "NAME (value)", or "UNKNOWN (value)" if the value is out of range */
 static void p_enum(uint8_t ind, const char *k, const char *const *names, size_t count, int32_t v)
 {
     key(ind, k);
-    Serial.print((v >= 0 && (size_t)v < count) ? names[v] : "UNKNOWN");
-    Serial.print(" (");
-    Serial.print((long)v);
-    Serial.println(")");
+    out().print((v >= 0 && (size_t)v < count) ? names[v] : "UNKNOWN");
+    out().print(" (");
+    out().print((long)v);
+    out().println(")");
 }
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -466,9 +531,9 @@ static void scheduler_(uint8_t ind, const char *name, const scheduler_t *x)
     for (size_t i = 0; i < x->tasks_number; i++)
     {
         indent(ind + 1);
-        Serial.print("tasks[");
-        Serial.print((unsigned long)i);
-        Serial.println("]:");
+        out().print("tasks[");
+        out().print((unsigned long)i);
+        out().println("]:");
         if (x->enabled_tasks != NULL)
             p_b(ind + 2, "enabled", x->enabled_tasks[i]);
         task_(ind + 2, "task", &x->tasks[i]);
@@ -484,14 +549,25 @@ extern "C"
 
     void debug_log_error(const char *fmt, ...)
     {
-        char buf[LOG_BUF_SIZE];
         va_list args;
         va_start(args, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, args); // longer messages are truncated
+        log_line("ERR", fmt, args);
         va_end(args);
+    }
 
-        Serial.print("[ERR] ");
-        Serial.println(buf);
+    void debug_log_info(const char *fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        log_line("INF", fmt, args);
+        va_end(args);
+    }
+
+    const char *debug_flight_state_name(flight_state_t x)
+    {
+        // Skips the "FLIGHT_STATE_" prefix
+        static const size_t prefix_len = sizeof("FLIGHT_STATE_") - 1;
+        return ((size_t)x < FLIGHT_STATE_COUNT) ? flight_state_names[x] + prefix_len : "UNKNOWN";
     }
 
 #pragma region main_datastore
