@@ -82,6 +82,12 @@ extern "C"
         bool is_alert_active;
     } battery_t;
 
+    typedef struct
+    {
+        stamp_t s;
+        float pixels[24 * 32]; // un frame della cam è 24 righe x 32 colonne
+    } thermal_t;
+
     // typedef struct
     // {
     //     stamp_t s;
