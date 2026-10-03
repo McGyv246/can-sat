@@ -9,12 +9,6 @@ static sens_state_t state = SENS_STATE_NOT_READY;
 static Adafruit_MLX90640 thermal;
 static thermal_t current_sample;
 
-// low range of the sensor (this will be blue on the screen)
-static const uint8_t MINTEMP = 20;
-
-// high range of the sensor (this will be red on the screen)
-static const uint8_t MAXTEMP = 35;
-
 extern "C"
 {
     sens_state_t mlx_init(void)
@@ -33,20 +27,22 @@ extern "C"
         if (state = SENS_STATE_NOT_READY)
             return state;
         uint16_t subpage_status;
-        if ((read_reg_16_big_endian(MLX90640_I2CADDR_DEFAULT, 0x8000, &subpage_status) != SENS_STATE_ERR) && ((subpage_status & 0x0008) != 0))
+        if ((read_reg_16_big_endian(MLX90640_I2CADDR_DEFAULT, 0x8000, &subpage_status) != SENS_STATE_ERR) && ((subpage_status & 0x0008) == 0))
             return SENS_STATE_NOT_READY;
         if (thermal.getFrame(current_sample.pixels) != 0)
             return SENS_STATE_ERR;
+        current_sample.s.t_ms = now_ms;
+        current_sample.s.valid = true;
         state = SENS_STATE_READY;
         return SENS_STATE_READY;
     }
 
-    void mlx_get(thermal_t *data)
+    sens_state_t mlx_get(thermal_t *data)
     {
         if (state != SENS_STATE_READY)
             return SENS_STATE_ERR;
         *data = current_sample;
         state = SENS_STATE_IDLE;
-        return;
+        return SENS_STATE_IDLE;
     }
 }

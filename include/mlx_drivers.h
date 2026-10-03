@@ -13,7 +13,7 @@ extern "C"
 
     sens_state_t mlx_poll(uint32_t now_ms);
 
-    void mlx_get(thermal_t *data);
+    sens_state_t mlx_get(thermal_t *data);
 
 #ifdef __cplusplus
 }
