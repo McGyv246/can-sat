@@ -42,7 +42,7 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
 
 #ifdef SERIAL_DEBUG_DATA
 
-// Turned on/off by the d2 / d0 commands
+// Turned on/off by the d1 / d0 commands
 static bool datastore_print_enabled = false;
 
 // Dumps the whole datastore on Serial, returns false if a write was in progress and nothing was printed
@@ -128,8 +128,8 @@ Commands for bench tests, one per line (read on core 0):
   T<N>   turns task N of core 1 on/off (index in task_core1_id_t), e.g. T1 = LORA
   l1/l0  fakes light / darkness on the photoresistor, l alone stops faking
   u<X>   fakes UV index X, e.g. u3.5 (light if > 2), u alone stops faking
-  d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d2/d0)
-  d2/d0  turns the periodic datastore print on/off (on at boot)
+  d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d1/d0)
+  d1/d0  turns the periodic datastore print on/off (on at boot)
 The tasks profile applied on every state change overrides the t/T toggles.
 */
 static void execute_command(const char *cmd)
@@ -202,7 +202,7 @@ static void execute_command(const char *cmd)
 #endif
   else
   {
-    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d2/d0)",
+    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d1/d0)",
             cmd, FLIGHT_STATE_COUNT - 1, TASK_CORE0_COUNT - 1, TASK_CORE1_COUNT - 1);
   }
 }
@@ -310,7 +310,7 @@ static void bench_setup1(void)
   // SX1276 on SPI (CS D9, DIO0 D8, RESET D10) as sender. init leaves it asleep, enabling the task wakes it up.
   // The task sends the whole datastore packed by ds_to_lora every period
   if (lora_init(false) == SENS_STATE_READY)
-    sched_change_enabled_i(&sched_core1, true, TASK_CORE1_LORA);
+    sched_change_enabled_i(&sched_core1, false, TASK_CORE1_LORA);
   else
     DBG_ERR("LORA init failed, task not enabled");
 }
