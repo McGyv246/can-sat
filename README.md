@@ -80,7 +80,7 @@ Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le p
 
 Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
 
-Valori di `N` per `t<N>` (`task_core0_id_t` in `tasks.h`): 0 GPS, 1 IMU, 2 ENV, 3 GAS, 4 UV_FAST, 5 UV_SLOW, 6 FOTORES_FAST, 7 FOTORES_SLOW, 8 BATTERY, 9 MISSION_STATE, 10 THERMAL.
+Valori di `N` per `t<N>` (`task_core0_id_t` in `tasks.h`): 0 GPS, 1 IMU, 2 ENV, 3 GAS, 4 UV_FAST, 5 UV_SLOW, 6 FOTORES_FAST, 7 FOTORES_SLOW, 8 BATTERY, 9 MISSION_STATE, 10 THERMAL, 11 LED.
 
 Valori di `N` per `T<N>` (`task_core1_id_t` in `tasks.h`): 0 SD, 1 LORA.
 
@@ -91,6 +91,30 @@ Note:
 - Se è attivo anche `-DBENCH_TEST` (test dei singoli sensori, vedi `bench_setup()` e `bench_setup1()` in `src/bench/bench_setup.cpp`) i profili dei task non vengono mai applicati: `s<N>` cambia lo stato ma i task restano quelli accesi in `bench_setup()`/`bench_setup1()` o con `t` e `T`. L'env `sat_bench` ha già `-DBENCH_TEST`, l'env `sat` no.
 - `d`, `d1` e `d0` esistono solo se è attivo anche `SERIAL_DEBUG_DATA` (già incluso in `-DSERIAL_DEBUG`).
 - Ogni riga stampata inizia con tipo, tempo e core, ad esempio `[ERR 12345ms c1] task SD failed` (`ERR` errore, `INF` evento, `DAT` dump dei dati).
+
+## LED di stato
+
+Il LED RGB (rosso D6, verde D5, blu D4) mostra lo stato del satellite. Lo gestisce il task `LED` del core 0 (`src/service/tasks/led_task.c`), acceso in tutti gli stati di volo. Gli schemi sono definiti in `led_patterns` in `src/service/led_status.c`.
+
+Errori e avvisi si vedono solo a terra prima del lancio (BOOT, SELF_TEST, IDLE). Se ci sono più condizioni vere insieme si vede quella più in alto nella tabella.
+
+| Stato di volo | Condizione | LED | Significato |
+| --- | --- | --- | --- |
+| BOOT, SELF_TEST, IDLE | Un task ha più di `SCHED_MAX_FAILS` fallimenti, oppure l'ultima scrittura sulla SD è fallita | Rosso, lampeggio veloce (5 volte al secondo) | **Non lanciare.** L'errore di un task resta fino al riavvio |
+| BOOT, SELF_TEST, IDLE | Batteria sotto il 10% (`LED_BATTERY_LOW_PCT`) o allarme del sensore della batteria | Giallo, lampeggio (0.3 s acceso, 0.3 s spento) | Batteria scarica |
+| BOOT, SELF_TEST, IDLE | L'ultima esecuzione di un task acceso del core 0 è fallita | Viola, lampeggio (0.3 s acceso, 0.3 s spento) | Un sensore non risponde (con il comando `p` si vede quale) |
+| BOOT, SELF_TEST | Tutto ok | Blu fisso | Avvio in corso |
+| IDLE | GPS acceso, agganciato (fix con almeno `MIN_SATS` satelliti, ultimo dato di meno di 3 s) | Verde, due lampi brevi ogni 2 s | Pronto, GPS agganciato |
+| IDLE | GPS acceso, non ancora agganciato | Azzurro, un lampo breve ogni secondo | Pronto, il GPS sta cercando i satelliti |
+| IDLE | Tutto ok, GPS spento | Verde, un lampo breve ogni 2 s | Pronto |
+| ASCENT, DESCENT | Sempre | Spento | In volo nessuno lo vede, e in ASCENT la sua luce potrebbe far credere ai sensori di luce che c'è stata l'espulsione |
+| LANDED | Sempre | Bianco, un lampo breve ogni 2 s | Atterrato, serve per ritrovare il satellite |
+
+Note:
+
+- Gli schemi azzurro e verde doppio compaiono solo se il GPS è acceso in IDLE (`tasks_enabled_core0_idle` in `src/service/tasks/tasks.c`). Finché è spento si vede il lampo verde singolo.
+- In IDLE i sensori di luce sono accesi e l'espulsione viene rilevata con `EJECTION_LIGHT_HOLD_MS` di luce continua. Per questo in IDLE il LED non resta mai acceso più di 0.3 s di fila (lo controlla `test/led_status_test.c`). La fotoresistenza però può essere lenta a tornare al buio: prima del volo va provato a satellite chiuso, con il LED che lampeggia rosso, che non passi a DESCENT da solo.
+- Al banco (env `sat_bench`) lo stato resta BOOT, quindi se è tutto ok il LED è blu fisso. Per vedere gli schemi degli altri stati si usa `s<N>`, ad esempio `s2` per IDLE.
 
 ## Stazione di terra: formato dei dati su Serial
 
