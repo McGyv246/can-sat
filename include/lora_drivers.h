@@ -24,8 +24,10 @@ extern "C"
 
     sens_state_t lora_send_packet(uint8_t *buffer, size_t len);
 
+    // reads the last received packet into buffer (at most len bytes, the rest is discarded) and sets received_len.
+    // returns SENS_STATE_READY if a packet was read, SENS_STATE_NOT_READY if none arrived, SENS_STATE_ERR if it was corrupted.
     // rssi, snr and frequency_error are optional. set to "nullptr" if unused
-    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, float *rssi, float *snr, float *frequency_error);
+    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, size_t *received_len, float *rssi, float *snr, float *frequency_error);
 
     void lora_sleep(void);
 

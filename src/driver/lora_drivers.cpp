@@ -159,21 +159,29 @@ extern "C"
         return SENS_STATE_READY;
     }
 
-    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, float *rssi, float *snr, float *frequency_error)
+    sens_state_t lora_read_packet(uint8_t *buffer, size_t len, size_t *received_len, float *rssi, float *snr, float *frequency_error)
     {
+        *received_len = 0;
         if (!receiver)
             return SENS_STATE_ERR;
         if (!packet_received)
             return SENS_STATE_NOT_READY;
-        if (lora.readData(buffer, 0) != RADIOLIB_ERR_NONE)
+        // cleared before reading: if a new packet arrives meanwhile the ISR sets it again and it's not lost
+        packet_received = false;
+
+        // the length must be read before readData, which clears it. Bytes past len are discarded by readData
+        size_t packet_len = lora.getPacketLength();
+        if (lora.readData(buffer, len) != RADIOLIB_ERR_NONE) // e.g. the radio's own CRC failed
             return SENS_STATE_ERR;
+        *received_len = packet_len < len ? packet_len : len;
+
         if (rssi != nullptr)
             *rssi = lora.getRSSI();
         if (snr != nullptr)
             *snr = lora.getSNR();
         if (frequency_error != nullptr)
             *frequency_error = lora.getFrequencyError();
-        return SENS_STATE_NOT_READY;
+        return SENS_STATE_READY;
     }
 
     void lora_sleep(void)
