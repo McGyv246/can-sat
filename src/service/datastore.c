@@ -20,6 +20,7 @@ void ds_write_uv(uv_t *data, uint32_t now_millis);
 void ds_write_fotores(fotores_t *data, uint32_t now_millis);
 void ds_write_gas(gas_t *data, uint32_t now_millis);
 void ds_write_battery(battery_t *data, uint32_t now_millis);
+void ds_write_thermal(thermal_summary_t *data, uint32_t now_millis);
 void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
 
 bool ds_read_all(datastore_t *data);
@@ -152,6 +153,17 @@ void ds_write_battery(battery_t *data, uint32_t now_millis)
     ds_write_begin();
 
     ds.battery = *data;
+
+    temp_write_ring_buffer();
+
+    ds_write_end(now_millis);
+}
+
+void ds_write_thermal(thermal_summary_t *data, uint32_t now_millis)
+{
+    ds_write_begin();
+
+    ds.thermal = *data;
 
     temp_write_ring_buffer();
 

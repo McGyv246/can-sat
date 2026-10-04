@@ -173,6 +173,27 @@ static void p_i3(uint8_t ind, const char *k, int16_t x, int16_t y, int16_t z)
     out().println("]");
 }
 
+/* Prints the frame one row per line, e.g. "r0: [2215, 2230, ...]" */
+static void p_thermal_rows(uint8_t ind, const char *k, const int16_t *pixels)
+{
+    if (!section(ind, k, pixels))
+        return;
+    for (uint8_t r = 0; r < THERMAL_ROWS; r++)
+    {
+        indent(ind + 1);
+        out().print("r");
+        out().print((int)r);
+        out().print(": [");
+        for (uint8_t c = 0; c < THERMAL_COLS; c++)
+        {
+            if (c > 0)
+                out().print(", ");
+            out().print((int)pixels[r * THERMAL_COLS + c]);
+        }
+        out().println("]");
+    }
+}
+
 /* Prints "NAME (value)", or "UNKNOWN (value)" if the value is out of range */
 static void p_enum(uint8_t ind, const char *k, const char *const *names, size_t count, int32_t v)
 {
@@ -204,6 +225,7 @@ static const char *const data_type_names[] = {
     "DATA_TYPE_GAS",
     "DATA_TYPE_BATTERY",
     "DATA_TYPE_STATS",
+    "DATA_TYPE_THERMAL",
 };
 
 static const char *const sens_state_names[] = {
@@ -322,6 +344,17 @@ static void battery_(uint8_t ind, const char *name, const battery_t *x)
     p_b(ind + 1, "is_alert_active", x->is_alert_active);
 }
 
+static void thermal_summary_(uint8_t ind, const char *name, const thermal_summary_t *x)
+{
+    if (!section(ind, name, x))
+        return;
+    stamp_(ind + 1, "s", &x->s);
+    p_f(ind + 1, "min_c", x->min_c);
+    p_f(ind + 1, "max_c", x->max_c);
+    p_f(ind + 1, "mean_c", x->mean_c);
+    p_u(ind + 1, "hottest_px", x->hottest_px);
+}
+
 static void datastore_(uint8_t ind, const char *name, const datastore_t *x)
 {
     if (!section(ind, name, x))
@@ -338,6 +371,7 @@ static void datastore_(uint8_t ind, const char *name, const datastore_t *x)
     fotores_(ind + 1, "fotores", &x->fotores);
     gas_(ind + 1, "gas", &x->gas);
     battery_(ind + 1, "battery", &x->battery);
+    thermal_summary_(ind + 1, "thermal", &x->thermal);
 }
 
 #pragma endregion
@@ -484,6 +518,14 @@ static void stats_packed_(uint8_t ind, const char *name, const stats_packed_t *x
     p_u(ind + 1, "records_dropped", x->records_dropped);
 }
 
+static void thermal_packed_(uint8_t ind, const char *name, const thermal_packed_t *x)
+{
+    if (!section(ind, name, x))
+        return;
+    stamp_packed_(ind + 1, "s", &x->s);
+    p_thermal_rows(ind + 1, "pixels (0.01 C)", x->pixels);
+}
+
 /* All the *_sd_t structs share the same layout: header, data, crc */
 #define DEFINE_SD_PRINTER(fn, type_name, sd_t, data_printer) \
     void fn(const sd_t *x)                                   \
@@ -580,6 +622,7 @@ extern "C"
     void print_fotores(const fotores_t *x) { fotores_(0, "fotores_t", x); }
     void print_gas(const gas_t *x) { gas_(0, "gas_t", x); }
     void print_battery(const battery_t *x) { battery_(0, "battery_t", x); }
+    void print_thermal_summary(const thermal_summary_t *x) { thermal_summary_(0, "thermal_summary_t", x); }
     void print_flight_state(flight_state_t x) { p_flight_state(0, "flight_state_t", x); }
     void print_datastore(const datastore_t *x) { datastore_(0, "datastore_t", x); }
 
@@ -605,6 +648,7 @@ extern "C"
     void print_gas_packed(const gas_packed_t *x) { gas_packed_(0, "gas_packed_t", x); }
     void print_battery_packed(const battery_packed_t *x) { battery_packed_(0, "battery_packed_t", x); }
     void print_stats_packed(const stats_packed_t *x) { stats_packed_(0, "stats_packed_t", x); }
+    void print_thermal_packed(const thermal_packed_t *x) { thermal_packed_(0, "thermal_packed_t", x); }
 
     DEFINE_SD_PRINTER(print_env_sd, "env_sd_t", env_sd_t, env_packed_)
     DEFINE_SD_PRINTER(print_imu_sd, "imu_sd_t", imu_sd_t, imu_packed_)
@@ -614,6 +658,7 @@ extern "C"
     DEFINE_SD_PRINTER(print_gas_sd, "gas_sd_t", gas_sd_t, gas_packed_)
     DEFINE_SD_PRINTER(print_battery_sd, "battery_sd_t", battery_sd_t, battery_packed_)
     DEFINE_SD_PRINTER(print_stats_sd, "stats_sd_t", stats_sd_t, stats_packed_)
+    DEFINE_SD_PRINTER(print_thermal_sd, "thermal_sd_t", thermal_sd_t, thermal_packed_)
 
 #pragma endregion
 

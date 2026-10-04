@@ -16,6 +16,7 @@ extern "C"
     void ds_write_fotores(fotores_t *data, uint32_t now_millis);
     void ds_write_gas(gas_t *data, uint32_t now_millis);
     void ds_write_battery(battery_t *data, uint32_t now_millis);
+    void ds_write_thermal(thermal_summary_t *data, uint32_t now_millis);
     void ds_write_flight_state(flight_state_t data, uint32_t now_millis);
     void ds_write_increment_records_dropped(uint32_t now_millis);
 

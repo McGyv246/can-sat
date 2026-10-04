@@ -53,6 +53,10 @@ void bench_setup(scheduler_t *sched_core0)
   // The task (which turns the heater on, ~150 mA at 5 V) is not enabled at boot because of the brownouts
   // seen with the GPS: use t3 to turn it on/off at runtime
   mq_7_init();
+
+  // MLX90640 on I2C (0x33), no init: enabling the task boots the camera (it has no sleep mode).
+  // Reading a frame blocks core 0 for up to ~500 ms: use t10 to turn it off if it gets in the way
+  sched_change_enabled_i(sched_core0, true, TASK_CORE0_THERMAL);
 }
 
 void bench_setup1(scheduler_t *sched_core1)

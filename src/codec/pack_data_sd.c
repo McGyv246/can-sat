@@ -182,3 +182,36 @@ void stats_to_sd(stats_sd_t *out, datastore_t *data)
     // exclude the crc itself from the crc computation
     out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
 }
+
+// °C -> 0.01 °C, clamped to the int16 range. NaN becomes THERMAL_PIXEL_INVALID
+static int16_t pack_thermal_pixel(float c)
+{
+    if (c != c) // NaN is the only number that is not equal to itself
+        return THERMAL_PIXEL_INVALID;
+
+    float v = roundf(c * 100.0f);
+    if (v < -INT16_MAX)
+        return -INT16_MAX; // not INT16_MIN, that's THERMAL_PIXEL_INVALID
+    if (v > INT16_MAX)
+        return INT16_MAX;
+    return (int16_t)v;
+}
+
+void thermal_to_sd(thermal_sd_t *out, thermal_t *data)
+{
+    stamp_packed_t stamp;
+    pack_stamp(&stamp, &(data->s));
+
+    out->data.s = stamp;
+
+    for (size_t i = 0; i < THERMAL_PIXELS; i++)
+        out->data.pixels[i] = pack_thermal_pixel(data->pixels[i]);
+
+    sd_header_t header;
+    build_header(&header, DATA_TYPE_THERMAL, (uint16_t)sizeof(out->data), hal_millis());
+
+    out->header = header;
+
+    // exclude the crc itself from the crc computation
+    out->crc = crc16((const uint8_t *)out, sizeof(*out) - sizeof(out->crc));
+}

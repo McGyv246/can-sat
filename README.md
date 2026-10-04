@@ -80,7 +80,7 @@ Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le p
 
 Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
 
-Valori di `N` per `t<N>` (`task_core0_id_t` in `tasks.h`): 0 GPS, 1 IMU, 2 ENV, 3 GAS, 4 UV_FAST, 5 UV_SLOW, 6 FOTORES_FAST, 7 FOTORES_SLOW, 8 BATTERY, 9 MISSION_STATE.
+Valori di `N` per `t<N>` (`task_core0_id_t` in `tasks.h`): 0 GPS, 1 IMU, 2 ENV, 3 GAS, 4 UV_FAST, 5 UV_SLOW, 6 FOTORES_FAST, 7 FOTORES_SLOW, 8 BATTERY, 9 MISSION_STATE, 10 THERMAL.
 
 Valori di `N` per `T<N>` (`task_core1_id_t` in `tasks.h`): 0 SD, 1 LORA.
 

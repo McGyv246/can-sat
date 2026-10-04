@@ -86,6 +86,14 @@ void print_ds(datastore_t *ds)
     printf("battery.is_alert_active: %u\n", ds->battery.is_alert_active);
     print_ts(&(ds->battery.s), "battery");
 
+    printf("\n");
+
+    printf("thermal.min_c: %f\n", ds->thermal.min_c);
+    printf("thermal.max_c: %f\n", ds->thermal.max_c);
+    printf("thermal.mean_c: %f\n", ds->thermal.mean_c);
+    printf("thermal.hottest_px: %u\n", ds->thermal.hottest_px);
+    print_ts(&(ds->thermal.s), "thermal");
+
     printf("\n\n");
 }
 
@@ -151,6 +159,14 @@ void assert_equal_ds_battery_no_ts(datastore_t *expected, datastore_t *actual)
     TEST_ASSERT_EQUAL_UINT8(expected->battery.is_alert_active, actual->battery.is_alert_active);
 }
 
+void assert_equal_ds_thermal_no_ts(datastore_t *expected, datastore_t *actual)
+{
+    TEST_ASSERT_EQUAL_FLOAT(expected->thermal.min_c, actual->thermal.min_c);
+    TEST_ASSERT_EQUAL_FLOAT(expected->thermal.max_c, actual->thermal.max_c);
+    TEST_ASSERT_EQUAL_FLOAT(expected->thermal.mean_c, actual->thermal.mean_c);
+    TEST_ASSERT_EQUAL_UINT16(expected->thermal.hottest_px, actual->thermal.hottest_px);
+}
+
 void assert_equal_ds_stats(datastore_t *expected, datastore_t *actual)
 {
     TEST_ASSERT_EQUAL_UINT32(expected->t_ms, actual->t_ms);
@@ -191,6 +207,10 @@ void assert_equal_ds(datastore_t *expected, datastore_t *actual)
     /* battery */
     assert_equal_ds_battery_no_ts(expected, actual);
     assert_equal_stamp(&expected->battery.s, &actual->battery.s);
+
+    /* thermal */
+    assert_equal_ds_thermal_no_ts(expected, actual);
+    assert_equal_stamp(&expected->thermal.s, &actual->thermal.s);
 }
 
 #pragma endregion
@@ -322,6 +342,28 @@ void when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly()
     assert_equal_ds(&expected, &ds_copy);
 }
 
+void when_editingThermalAndGettingValues_expect_copiedValuesUpdatedCorrectly()
+{
+    thermal_summary_t thermal = {
+        .s = {mock_now_millis, true},
+        .min_c = 12.5f,
+        .max_c = 85.25f,
+        .mean_c = 21.75f,
+        .hottest_px = 400,
+    };
+
+    ds_write_thermal(&thermal, mock_now_millis);
+
+    datastore_t ds_copy;
+    ds_read_all(&ds_copy);
+
+    datastore_t expected = ds_empty;
+    expected.thermal = thermal;
+    expected.t_ms = mock_now_millis;
+
+    assert_equal_ds(&expected, &ds_copy);
+}
+
 int main()
 {
     UNITY_BEGIN();
@@ -329,5 +371,6 @@ int main()
     RUN_TEST(when_gettingValuesAndEditingEnv_expect_copiedValuesNotToChange);
     RUN_TEST(when_gettingValuesAndEditingImu_expect_copiedValuesNotToChange);
     RUN_TEST(when_editingImuAndGettingValues_expect_copiedValuesUpdatedCorrectly);
+    RUN_TEST(when_editingThermalAndGettingValues_expect_copiedValuesUpdatedCorrectly);
     return UNITY_END();
 }
