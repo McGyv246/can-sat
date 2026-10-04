@@ -18,6 +18,8 @@ extern "C"
 
     sens_state_t read_reg_buffered(uint8_t addr, uint8_t reg, uint8_t *buff, size_t len);
 
+    sens_state_t read_reg_16_big_endian(uint8_t addr, uint16_t reg, uint16_t *value);
+
 #ifdef __cplusplus
 }
 #endif

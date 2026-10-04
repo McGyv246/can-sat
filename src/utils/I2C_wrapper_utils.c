@@ -75,3 +75,24 @@ sens_state_t read_reg_buffered(uint8_t addr, uint8_t reg, uint8_t *buff, size_t 
         buff[i] = wire_read();
     return SENS_STATE_READY;
 }
+
+sens_state_t read_reg_16_big_endian(uint8_t addr, uint16_t reg, uint16_t *value)
+{
+    wire_begin_transmission(addr);
+    wire_write((uint8_t)(reg >> 8));
+    wire_write((uint8_t)(reg & 0xFF));
+    if (wire_end_transmission(false) != 0)
+    {
+        return SENS_STATE_ERR; // no ack was received (device might be disconnected)
+    }
+    if (wire_request_from(addr, (uint8_t)2, true) != 2)
+        return SENS_STATE_ERR; // no bytes (or not all of them) were returned from the device
+    if (!wire_available())
+        return SENS_STATE_ERR; // no bytes are available for reading
+    uint8_t hi = wire_read();
+    if (!wire_available())
+        return SENS_STATE_ERR; // no bytes are available for reading
+    uint8_t lo = wire_read();
+    *value = ((uint16_t)hi << 8) | lo;
+    return SENS_STATE_READY;
+}
