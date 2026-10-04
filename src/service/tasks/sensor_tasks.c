@@ -7,6 +7,7 @@
 #include "ring_buffer.h"
 #include "hal_time.h"
 #include "pack_data_sd.h"
+#include "thermal_summary.h"
 
 #include "fotores_drivers.h"
 #include "fuel_gauge_drivers.h"
@@ -14,6 +15,7 @@
 #include "gybmep_drivers.h"
 #include "imu_drivers.h"
 #include "mq_7_drivers.h"
+#include "mlx_drivers.h"
 #include "uv_drivers.h"
 
 #pragma region helpers
@@ -221,5 +223,35 @@ uint32_t uv_task_run(task_t *self, uint32_t now_millis)
 
     return task_report(self, state);
 }
+
+#pragma endregion
+
+#pragma region thermal
+
+uint32_t thermal_task_run(task_t *self, uint32_t now_millis)
+{
+    sens_state_t state = mlx_poll(now_millis);
+
+    if (state == SENS_STATE_READY)
+    {
+        // static: the frame is 3 KB and its SD record 1.5 KB, too much for the stack
+        static thermal_t frame;
+        static thermal_sd_t packed_data;
+
+        mlx_get(&frame);
+
+        thermal_summary_t summary;
+        thermal_summarize(&summary, &frame);
+        ds_write_thermal(&summary, now_millis);
+
+        thermal_to_sd(&packed_data, &frame);
+        buf_write(&packed_data, sizeof(packed_data));
+    }
+
+    return task_report(self, state);
+}
+
+// The camera has no sleep mode: enabling the task boots it, disabling it just stops the reads
+void thermal_task_on_enable(task_t *self) { task_check(self, mlx_init()); }
 
 #pragma endregion

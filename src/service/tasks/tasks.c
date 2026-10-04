@@ -83,6 +83,14 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .period = 50,
         .priority = 1,
     },
+    [TASK_CORE0_THERMAL] = {
+        // the camera measures 2 subpages per second (a full frame every second): polling faster just finds no new data
+        .name = "THERMAL",
+        .run = thermal_task_run,
+        .on_enable = thermal_task_on_enable,
+        .period = 1000,
+        .priority = 3,
+    },
 };
 
 task_t tasks_core1[TASK_CORE1_COUNT] = {
@@ -128,6 +136,21 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_SLOW] = false,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_THERMAL] = false,
+};
+/* Like IDLE, plus the thermal camera: it boots in ASCENT so it's already running at the ejection */
+const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_GPS] = false,
+    [TASK_CORE0_IMU] = false,
+    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_GAS] = false,
+    [TASK_CORE0_UV_FAST] = true,
+    [TASK_CORE0_UV_SLOW] = false,
+    [TASK_CORE0_FOTORES_FAST] = true,
+    [TASK_CORE0_FOTORES_SLOW] = false,
+    [TASK_CORE0_BATTERY] = true,
+    [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_THERMAL] = true,
 };
 const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
@@ -140,6 +163,7 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_THERMAL] = true,
 };
 const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
@@ -152,6 +176,7 @@ const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_THERMAL] = false,
 };
 
 const bool tasks_enabled_core1_boot[TASK_CORE1_COUNT] = {
@@ -171,12 +196,12 @@ const bool tasks_enabled_core1_landed[TASK_CORE1_COUNT] = {
     [TASK_CORE1_LORA] = true,
 };
 
-/* Which profile to apply in each flight state. ASCENT is short and behaves like IDLE */
+/* Which profile to apply in each flight state. On core 1 ASCENT is short and behaves like IDLE */
 const bool *const tasks_profile_core0[FLIGHT_STATE_COUNT] = {
     [FLIGHT_STATE_BOOT] = tasks_enabled_core0_boot,
     [FLIGHT_STATE_SELF_TEST] = tasks_enabled_core0_boot,
     [FLIGHT_STATE_IDLE] = tasks_enabled_core0_idle,
-    [FLIGHT_STATE_ASCENT] = tasks_enabled_core0_idle,
+    [FLIGHT_STATE_ASCENT] = tasks_enabled_core0_ascent,
     [FLIGHT_STATE_DESCENT] = tasks_enabled_core0_descent,
     [FLIGHT_STATE_LANDED] = tasks_enabled_core0_landed,
 };

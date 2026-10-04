@@ -34,6 +34,7 @@ extern "C"
     void print_fotores(const fotores_t *x);
     void print_gas(const gas_t *x);
     void print_battery(const battery_t *x);
+    void print_thermal_summary(const thermal_summary_t *x);
     void print_flight_state(flight_state_t x);
     void print_datastore(const datastore_t *x);
 
@@ -59,6 +60,7 @@ extern "C"
     void print_gas_packed(const gas_packed_t *x);
     void print_battery_packed(const battery_packed_t *x);
     void print_stats_packed(const stats_packed_t *x);
+    void print_thermal_packed(const thermal_packed_t *x);
 
     void print_env_sd(const env_sd_t *x);
     void print_imu_sd(const imu_sd_t *x);
@@ -68,6 +70,7 @@ extern "C"
     void print_gas_sd(const gas_sd_t *x);
     void print_battery_sd(const battery_sd_t *x);
     void print_stats_sd(const stats_sd_t *x);
+    void print_thermal_sd(const thermal_sd_t *x);
 
 #pragma endregion
 

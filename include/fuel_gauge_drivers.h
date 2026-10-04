@@ -15,7 +15,9 @@ extern "C"
     // could be useful after big power transitions
 
     void fuel_gauge_rebase_measures(void);
-    // sets the sensor up and puts it in sleep mode. wait a little before calling wake
+    // sets the sensor up, redoes the SOC estimate (rebase) and puts it in sleep mode. wait a little before calling wake.
+    // call it before turning on big loads (GPS, MQ-7 heater): the estimate is only good with the battery at rest.
+    // it blocks for ~750 ms
     sens_state_t fuel_gauge_init(void);
 
     sens_state_t fuel_gauge_wake();

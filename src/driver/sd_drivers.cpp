@@ -7,7 +7,8 @@
 
 static bool flushed = true;
 static const char *current_path = nullptr;
-static File *current_file = nullptr;
+static File current_file;
+static bool file_open = false;
 
 #pragma region internal_utils
 
@@ -30,9 +31,10 @@ static bool sd_chng_path(const char *path)
 
 static bool sd_open_file(const char *filepath)
 {
-    *current_file = SD.open(filepath, FILE_WRITE);
-    if (!*current_file)
+    current_file = SD.open(filepath, FILE_WRITE);
+    if (!current_file)
         return false; // for some reason this object can be evaluated in a boolean way
+    file_open = true;
     return true;
 }
 
@@ -57,27 +59,29 @@ extern "C"
 
     sens_state_t sd_write_uint8_buf(uint8_t *buf, size_t len)
     {
-        if (current_file == nullptr)
+        if (!file_open)
             return SENS_STATE_ERR;
         if (!flushed)
             return SENS_STATE_NOT_READY;
-        current_file->write(buf, len);
+        current_file.write(buf, len);
         flushed = false;
         return SENS_STATE_NOT_READY;
     }
 
     sens_state_t sd_flush_buf(void)
     {
-        if (current_file == nullptr)
+        if (!file_open)
             return SENS_STATE_ERR;
-        current_file->flush();
+        current_file.flush();
         flushed = true;
         return SENS_STATE_READY;
     }
 
     void sd_close()
     {
-        current_file->close();
+        if (file_open)
+            current_file.close();
+        file_open = false;
         SD.end();
         return;
     }

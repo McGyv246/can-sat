@@ -45,6 +45,8 @@ extern "C"
     int wrapper_digital_read(uint8_t pin);
     void wrapper_analog_write(uint8_t pin, int val);
     int wrapper_analog_read(uint8_t pin);
+    // the RP2040 ADC is 12 bit, but analogRead returns 10 bit values unless told otherwise
+    void wrapper_analog_read_resolution(uint8_t bits);
     void wrapper_delay_ms(uint32_t ms);
     uint32_t wrapper_millis(void);
 

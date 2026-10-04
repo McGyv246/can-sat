@@ -1,4 +1,4 @@
-// compile: gcc -fsanitize=address -I include -I mocks -Wall src/codec/pack_data_sd.c src/codec/crc.c src/service/datastore.c src/service/ring_buffer.c mocks/hal_time.c mocks/gen_bin_data_file.c -o build/gen_bin_data
+// compile: gcc -fsanitize=address -I include -I mocks -Wall src/codec/pack_data_sd.c src/codec/crc.c src/service/datastore.c src/service/ring_buffer.c mocks/hal_time.c mocks/gen_bin_data_file.c -lm -o build/gen_bin_data
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -74,6 +74,11 @@ datastore_t store = {
     },
 };
 
+// Not in the datastore (it only has the summary): filled in main with a gradient
+static thermal_t thermal_frame = {
+    .s = {.t_ms = 45200, .valid = true},
+};
+
 static int dump_to_file(const char *path, const uint8_t *data, size_t len)
 {
     FILE *f = fopen(path, "wb"); /* "wb" matters on Windows: no newline translation */
@@ -145,6 +150,9 @@ int main()
     gas_sd_t gas;
     battery_sd_t battery;
     stats_sd_t stats;
+    static thermal_sd_t thermal; // static: 1.5 KB
+    for (size_t i = 0; i < THERMAL_PIXELS; i++)
+        thermal_frame.pixels[i] = 15.0f + (float)i * 0.05f;
     env_to_sd(&env, &store.env);
     imu_to_sd(&imu, &store.imu);
     gps_to_sd(&gps, &store.gps);
@@ -153,6 +161,7 @@ int main()
     gas_to_sd(&gas, &store.gas);
     battery_to_sd(&battery, &store.battery);
     stats_to_sd(&stats, &store);
+    thermal_to_sd(&thermal, &thermal_frame);
 
     buf_write(&env, sizeof(env_sd_t));
     buf_write(&imu, sizeof(imu_sd_t));
@@ -162,6 +171,7 @@ int main()
     buf_write(&gas, sizeof(gas_sd_t));
     buf_write(&battery, sizeof(battery_sd_t));
     buf_write(&stats, sizeof(stats_sd_t));
+    buf_write(&thermal, sizeof(thermal_sd_t));
 
     static uint8_t out[BUF_SIZE];
     size_t len = buf_read(out);
@@ -187,6 +197,7 @@ int main()
     gas_sd_t r_gas;
     battery_sd_t r_battery;
     stats_sd_t r_stats;
+    static thermal_sd_t r_thermal;
 
     size_t off = 0;
     if (take(rbuf, rlen, &off, &r_env, sizeof r_env, DATA_TYPE_ENV) ||
@@ -196,7 +207,8 @@ int main()
         take(rbuf, rlen, &off, &r_fotores, sizeof r_fotores, DATA_TYPE_FOTORES) ||
         take(rbuf, rlen, &off, &r_gas, sizeof r_gas, DATA_TYPE_GAS) ||
         take(rbuf, rlen, &off, &r_battery, sizeof r_battery, DATA_TYPE_BATTERY) ||
-        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS))
+        take(rbuf, rlen, &off, &r_stats, sizeof r_stats, DATA_TYPE_STATS) ||
+        take(rbuf, rlen, &off, &r_thermal, sizeof r_thermal, DATA_TYPE_THERMAL))
     {
         free(rbuf);
         return 1;
@@ -227,6 +239,7 @@ int main()
     CHECK(memcmp(&r_gas, &gas, sizeof gas) == 0);
     CHECK(memcmp(&r_battery, &battery, sizeof battery) == 0);
     CHECK(memcmp(&r_stats, &stats, sizeof stats) == 0);
+    CHECK(memcmp(&r_thermal, &thermal, sizeof thermal) == 0);
 
     /* spot checks against the original datastore */
     CHECK(r_env.data.s.t_ms == store.env.s.t_ms);
@@ -263,10 +276,14 @@ int main()
     CHECK(r_stats.data.alt_peak_env == store.alt_peak_env);
     CHECK(r_stats.data.alt_peak_gps == store.alt_peak_gps);
     CHECK(r_stats.data.records_dropped == store.records_dropped);
+
+    CHECK(r_thermal.data.s.t_ms == thermal_frame.s.t_ms);
+    CHECK(r_thermal.data.pixels[0] == 1500);                      /* 15.00 C */
+    CHECK(r_thermal.data.pixels[THERMAL_PIXELS - 1] == 5335);     /* 15 + 767 * 0.05 = 53.35 C */
 #undef CHECK
 
     if (errors == 0)
-        printf("parse OK: all %d records match\n", 8);
+        printf("parse OK: all %d records match\n", 9);
     else
         printf("parse finished with %d failed checks\n", errors);
 

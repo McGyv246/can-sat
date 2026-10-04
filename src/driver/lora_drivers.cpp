@@ -102,8 +102,9 @@ void onReceive()
 
 extern "C"
 {
-    sens_state_t lora_init(void)
+    sens_state_t lora_init(bool is_receiver)
     {
+        receiver = is_receiver;
         config.frequency = TX_FREQUENCY;
         config.bandwidth = SIGNAL_BANDWIDTH;
         config.spreadingFactor = SPREADING_FACTOR;

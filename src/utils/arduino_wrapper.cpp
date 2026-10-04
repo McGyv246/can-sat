@@ -28,6 +28,11 @@ extern "C"
     return analogRead(pin);
   }
 
+  void wrapper_analog_read_resolution(uint8_t bits)
+  {
+    analogReadResolution(bits);
+  }
+
   void wrapper_delay_ms(uint32_t ms)
   {
     delay(ms);

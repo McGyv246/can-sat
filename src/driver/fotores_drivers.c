@@ -24,6 +24,7 @@ sens_state_t fotores_poll(uint32_t now_ms)
     case SENS_STATE_IDLE:
         if ((now_ms - last_sample_time) < FOTORES_WAIT_TIME_MS)
             return SENS_STATE_NOT_READY;
+        last_sample_time = now_ms;
         if (wrapper_digital_read(D_IN_PHOTORESISTOR) == WRAPPER_LOW)
         {
             current_sample.is_there_light = true;

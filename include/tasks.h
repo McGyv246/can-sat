@@ -26,6 +26,7 @@ extern "C"
         TASK_CORE0_FOTORES_SLOW,
         TASK_CORE0_BATTERY,
         TASK_CORE0_MISSION_STATE,
+        TASK_CORE0_THERMAL,
         TASK_CORE0_COUNT, /* MUST BE LAST! */
     } task_core0_id_t;
 
@@ -47,6 +48,7 @@ extern "C"
     extern bool tasks_enabled_core0[TASK_CORE0_COUNT];
     extern const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT];
     extern const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT];
+    extern const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT];
     extern const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT];
     extern const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT];
     extern const bool *const tasks_profile_core0[FLIGHT_STATE_COUNT];
@@ -85,6 +87,9 @@ extern "C"
     void mq_7_task_on_disable(task_t *self);
 
     uint32_t uv_task_run(task_t *self, uint32_t now_millis);
+
+    uint32_t thermal_task_run(task_t *self, uint32_t now_millis);
+    void thermal_task_on_enable(task_t *self);
 
     uint32_t lora_task_run(task_t *self, uint32_t now_millis);
     void lora_task_on_enable(task_t *self);

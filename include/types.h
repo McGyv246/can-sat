@@ -48,7 +48,7 @@ extern "C"
         double lat, lon;
         float alt_m, speed_ms, course_deg, hdop; /* HDOP is an accuracy indicator */
         uint8_t sats, fix_type;
-        uint32_t utc_s; /* for aligning logs */
+        uint32_t utc_s; /* seconds since UTC midnight, for aligning logs */
     } gps_t;
 
     typedef struct
@@ -69,7 +69,7 @@ extern "C"
     {
         stamp_t s;
         uint16_t raw;
-        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        uint16_t heater_on_s; /* seconds the heater has been on, needed to consider it in error correction */
         bool heater_enabled;
     } gas_t;
 
@@ -77,16 +77,34 @@ extern "C"
     {
         stamp_t s;
         uint16_t voltage_raw; // raw ADC counts
-        float voltage;
+        float voltage;        // V
         float percentage;
         bool is_alert_active;
     } battery_t;
 
+#define THERMAL_ROWS 24
+#define THERMAL_COLS 32
+#define THERMAL_PIXELS (THERMAL_ROWS * THERMAL_COLS)
+
+    /*
+    Whole frame of the MLX90640, as given by the driver. It's 3 KB: it goes only to the SD (thermal_sd_t),
+    the datastore keeps just thermal_summary_t, since it's copied on the stack by every ds_read_all
+    */
     typedef struct
     {
         stamp_t s;
-        float pixels[24 * 32]; // un frame della cam è 24 righe x 32 colonne
+        float pixels[THERMAL_PIXELS]; // °C, row by row: pixel (r, c) is pixels[r * THERMAL_COLS + c]
     } thermal_t;
+
+    /* Summary of the last thermal frame, computed by thermal_summarize. NaN pixels are skipped */
+    typedef struct
+    {
+        stamp_t s; /* valid is false if the frame had no valid pixel */
+        float min_c;
+        float max_c;
+        float mean_c;
+        uint16_t hottest_px; /* index in thermal_t.pixels of max_c */
+    } thermal_summary_t;
 
     // typedef struct
     // {
@@ -123,6 +141,7 @@ extern "C"
         fotores_t fotores;
         gas_t gas;
         battery_t battery;
+        thermal_summary_t thermal;
         // health_t health;
     } datastore_t;
 
@@ -191,7 +210,8 @@ For now the choice of the length of such integer has been made by Claude, we wil
         DATA_TYPE_GAS = 5,
         DATA_TYPE_BATTERY = 6,
         DATA_TYPE_STATS = 7,
-        // HEALTH = 8,
+        DATA_TYPE_THERMAL = 8,
+        // HEALTH = 9,
     } data_type_t;
 
 #pragma pack(push, 1)
@@ -255,7 +275,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     {
         stamp_packed_t s;
         uint16_t raw;
-        uint16_t heater_on_s; /* heater on timestamp needed to consider it in error correction */
+        uint16_t heater_on_s; /* seconds the heater has been on, needed to consider it in error correction */
         uint8_t heater_enabled;
     } gas_packed_t;
 
@@ -267,6 +287,15 @@ For now the choice of the length of such integer has been made by Claude, we wil
         float percentage;
         uint8_t is_alert_active;
     } battery_packed_t;
+
+    // Pixels in 0.01 °C (-327.67 .. 327.67 °C, the sensor goes from -40 to 300 °C), half the size of the floats.
+    // THERMAL_PIXEL_INVALID marks a NaN pixel
+#define THERMAL_PIXEL_INVALID INT16_MIN
+    typedef struct
+    {
+        stamp_packed_t s;
+        int16_t pixels[THERMAL_PIXELS];
+    } thermal_packed_t;
 
     typedef struct
     {
@@ -334,6 +363,13 @@ For now the choice of the length of such integer has been made by Claude, we wil
         uint16_t crc;
     } stats_sd_t;
 
+    typedef struct
+    {
+        sd_header_t header;
+        thermal_packed_t data;
+        uint16_t crc;
+    } thermal_sd_t;
+
 #pragma pack(pop)
 
     static_assert(sizeof(sd_header_t) == 9, "Header layout changed");
@@ -346,6 +382,7 @@ For now the choice of the length of such integer has been made by Claude, we wil
     static_assert(sizeof(gas_packed_t) == 10, "Gas packed layout changed");
     static_assert(sizeof(battery_packed_t) == 16, "Battery packed layout changed");
     static_assert(sizeof(stats_packed_t) == 15, "Stats packed layout changed");
+    static_assert(sizeof(thermal_packed_t) == 1541, "Thermal packed layout changed");
 
 #pragma endregion
 

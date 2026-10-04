@@ -83,14 +83,12 @@ void ds_to_lora(data_to_lora_t *out, datastore_t *data)
     out->gas_raw = data->gas.raw; /* as is */
 
     /* seconds since the heater was switched on (0 if off), max 255.
-     * Assumes gas.heater_on_s is "seconds since boot when the heater was switched on". */
+     * gas.heater_on_s is already the time the heater has been on, set by the driver. */
     {
-        uint32_t now_s = data->t_ms / 1000u;
-        uint32_t on_s = data->gas.heater_on_s;
         uint32_t elapsed = 0;
 
-        if (data->gas.heater_enabled && now_s >= on_s)
-            elapsed = now_s - on_s;
+        if (data->gas.heater_enabled)
+            elapsed = data->gas.heater_on_s;
         if (elapsed > 255u)
             elapsed = 255u;
         out->heater_on_since = (uint8_t)elapsed;

@@ -5,6 +5,7 @@
 #include "wire_wrapper.h"
 #include "arduino_wrapper.h"
 #include "I2C_wrapper_utils.h"
+#include "debug_print.h"
 
 static const uint8_t ADDRESS = 0x76;
 static const uint8_t ADDRESS_ALTERNATIVE = 0x77;
@@ -211,15 +212,24 @@ sens_state_t gybmep_init(void)
     if (read_reg_8(ADDRESS, REG_ID, &id) != SENS_STATE_READY)
     {
         if (read_reg_8(ADDRESS_ALTERNATIVE, REG_ID, &id) != SENS_STATE_READY)
+        {
+            DBG_ERR("GYBMEP no answer on 0x%02X or 0x%02X", ADDRESS, ADDRESS_ALTERNATIVE);
             return SENS_STATE_ERR; // no address is correct (device might be disconnected)
+        }
 
         current_address = ADDRESS_ALTERNATIVE;
     }
     else
         current_address = ADDRESS;
 
+    // 0x60 is the BME280. A BMP280 answers 0x58 (no humidity), and isn't supported by this driver
     if (id != CHIP_ID)
+    {
+        DBG_ERR("GYBMEP chip id 0x%02X on 0x%02X, expected 0x%02X (BME280)%s",
+                id, current_address, CHIP_ID, id == 0x58 ? ": it's a BMP280" : "");
         return SENS_STATE_ERR;
+    }
+    DBG_INFO("GYBMEP found BME280 on 0x%02X", current_address);
     if (write_reg_8(current_address, REG_RESET, 0xB6) != SENS_STATE_READY)
         return SENS_STATE_ERR; // resets device
     wrapper_delay_ms((uint32_t)3);
