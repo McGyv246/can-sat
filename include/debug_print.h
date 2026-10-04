@@ -7,7 +7,7 @@ Debug prints on the Arduino Serial port, enabled at compile time with build flag
 - SERIAL_DEBUG_ERRORS:   error messages (DBG_ERR)
 - SERIAL_DEBUG_INFO:     events like flight state changes (DBG_INFO)
 - SERIAL_DEBUG_DATA:     data dumps (DBG_DATA)
-- SERIAL_DEBUG_COMMANDS: commands read from Serial for bench tests (see main.cpp)
+- SERIAL_DEBUG_COMMANDS: commands read from Serial for bench tests (see debug_console.cpp)
 - SERIAL_DEBUG:          shortcut that enables all of them
 When disabled the macros expand to nothing, so they can be used in any file, even the tested ones.
 
