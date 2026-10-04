@@ -92,6 +92,286 @@ Note:
 - `d`, `d1` e `d0` esistono solo se è attivo anche `SERIAL_DEBUG_DATA` (già incluso in `-DSERIAL_DEBUG`).
 - Ogni riga stampata inizia con tipo, tempo e core, ad esempio `[ERR 12345ms c1] task SD failed` (`ERR` errore, `INF` evento, `DAT` dump dei dati).
 
+## Stazione di terra: formato dei dati su Serial
+
+Questa sezione è per chi scrive il programma sul PC che legge i dati della stazione di terra (env `ground`, `src/ground/main_ground.cpp`).
+
+### Come funziona
+
+```
+Satellite --LoRa--> Arduino di terra --USB Serial--> programma sul PC
+```
+
+L'Arduino di terra riceve i pacchetti LoRa (il formato binario `data_to_lora_t` in `include/types.h`), controlla che siano integri, li converte in unità fisiche (°C, Pa, g, ...) e li scrive sulla Serial come **testo**, una riga per ogni evento. Il PC non deve fare nessuna conversione: deve solo leggere le righe, dividerle sulle virgole e usare i numeri.
+
+### Connessione
+
+- Porta seriale USB dell'Arduino (su Windows `COMx`, su Linux `/dev/ttyACMx`), 115200 baud, 8N1. Con la USB dell'RP2040 il baud rate in realtà non conta, ma è meglio impostarlo comunque.
+- Testo ASCII, ogni riga finisce con `\r\n`. Conviene togliere sempre `\r\n` (in Python `line.strip()`).
+- Separatore dei campi: `,` (senza spazi). Decimali con il punto (`21.37`).
+- Quando ci si collega a metà trasmissione la prima riga letta può essere tagliata: va scartata se non si riesce a interpretarla.
+
+### Tipi di righe
+
+Il primo campo di ogni riga dice che riga è. **Il programma deve ignorare tutte le righe che non iniziano con uno di questi prefissi**: sulla stessa Serial ci sono anche le stampe di debug, che iniziano con `[` (ad esempio `[INF 1234ms c0] LORA receiver ready`) e in futuro potrebbero aggiungersi altri tipi di riga.
+
+| Prefisso | Quando | Contenuto |
+| --- | --- | --- |
+| `HDR` | Una volta all'accensione | Nomi delle colonne degli altri tipi di riga |
+| `RAW` | Ogni pacchetto ricevuto, anche quelli scartati | I byte del pacchetto così come sono arrivati, in esadecimale |
+| `PKT` | Ogni pacchetto integro | I dati del satellite in unità fisiche, più RSSI, SNR e pacchetti persi |
+| `BAD` | Ogni pacchetto scartato | Il motivo per cui è stato scartato |
+| `STAT` | Ogni 10 secondi | Contatori totali dall'accensione della stazione di terra |
+
+Per ogni pacchetto arrivato viene stampata prima la riga `RAW`, poi `PKT` oppure `BAD`. Se l'errore è della radio (`BAD,...,radio`) non c'è la riga `RAW`, perché i dati non sono leggibili.
+
+Esempio di output:
+
+```
+[INF 812ms c0] LORA receiver ready
+HDR,PKT,rx_ms,rssi_dbm,snr_db,seq,lost,version,ms_since_boot,flight_state,records_dropped,temp_c,pressure_pa,humidity_pct,altitude_baro_m,accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,accel_mag_g,light_uv,light_fotores,uv_index,gas_raw,heater_on_s,lat,lon,altitude_gps_m,sats,fix_type,vbatt_v,status
+HDR,BAD,rx_ms,rssi_dbm,snr_db,reason
+HDR,STAT,rx_ms,ok,radio_err,bad_length,bad_crc,bad_sync,bad_version,lost
+RAW,15230,A5A501010040E201000400005908CC7F5B000000002BFC0000B3040000000000000000000000001749191BE6C585FA000049BB010003F9
+PKT,15230,-87.5,9.25,1,0,1,123456,4,0,21.37,95432,45.5,0,0.000,-0.981,0.000,120.3,0.0,0.0,0.000,0,0,0.0,0,0,45.4641943,-9.1896346,0,9,1,3.87,1
+BAD,16410,-118.0,-6.75,crc
+STAT,20000,1,0,0,1,0,0,0
+```
+
+Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programma sul PC si collega dopo, non le vede. **L'ordine delle colonne va quindi scritto anche nel programma** (è quello delle tabelle qui sotto); se arriva una riga `HDR` si può usare per controllare che corrisponda.
+
+### Riga `PKT`
+
+`PKT` seguito da 32 campi, in questo ordine. Le cifre decimali stampate corrispondono alla risoluzione con cui il dato viaggia via LoRa: non ha senso aspettarsi più precisione.
+
+| # | Colonna | Tipo | Unità | Risoluzione | Note |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `rx_ms` | intero | ms | 1 | Tempo dall'accensione della **stazione di terra** a cui è arrivato il pacchetto |
+| 2 | `rssi_dbm` | decimale | dBm | 0.1 | Potenza del segnale ricevuto (più vicino a 0 = più forte, ad esempio -60 forte, -120 al limite) |
+| 3 | `snr_db` | decimale | dB | 0.01 | Rapporto segnale/rumore (con LoRa può essere negativo e funzionare comunque) |
+| 4 | `seq` | intero | - | 1 | Numero del pacchetto, +1 a ogni invio, dopo 65535 riparte da 0 |
+| 5 | `lost` | intero | - | 1 | Pacchetti persi tra il pacchetto integro precedente e questo (vedi sotto) |
+| 6 | `version` | intero | - | 1 | Versione del formato del pacchetto, ora sempre 1 |
+| 7 | `ms_since_boot` | intero | ms | 1 | Tempo dall'accensione del **satellite** all'ultimo aggiornamento dei dati |
+| 8 | `flight_state` | intero | - | 1 | Stato di volo: 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED |
+| 9 | `records_dropped` | intero | - | 1 | Record non scritti sulla SD del satellite perché il buffer era pieno |
+| 10 | `temp_c` | decimale | °C | 0.01 | Da -327.68 a 327.67 |
+| 11 | `pressure_pa` | intero | Pa | 2 | Da 30000 a 161070 |
+| 12 | `humidity_pct` | decimale | % | 0.5 | Da 0 a 127.5 |
+| 13 | `altitude_baro_m` | intero | m | 1 | Altitudine dal barometro, relativa alla rampa di lancio |
+| 14-16 | `accel_x_g`, `accel_y_g`, `accel_z_g` | decimale | g | 0.001 | Da -32.768 a 32.767 |
+| 17-19 | `gyro_x_dps`, `gyro_y_dps`, `gyro_z_dps` | decimale | °/s | 0.1 | Da -3276.8 a 3276.7 |
+| 20 | `accel_mag_g` | decimale | g | 0.001 | Modulo dell'accelerazione |
+| 21 | `light_uv` | 0/1 | - | - | 1 = il sensore UV vede luce |
+| 22 | `light_fotores` | 0/1 | - | - | 1 = la fotoresistenza vede luce |
+| 23 | `uv_index` | decimale | - | 0.1 | Indice UV, da 0 a 25.5 |
+| 24 | `gas_raw` | intero | conteggi ADC | 1 | Valore grezzo del sensore di gas |
+| 25 | `heater_on_s` | intero | s | 1 | Secondi da cui è acceso il riscaldatore del sensore di gas (0 se spento, si ferma a 255) |
+| 26 | `lat` | decimale | gradi | 0.0000001 | Latitudine (positiva = nord) |
+| 27 | `lon` | decimale | gradi | 0.0000001 | Longitudine (positiva = est) |
+| 28 | `altitude_gps_m` | intero | m | 1 | Altitudine dal GPS, sul livello del mare |
+| 29 | `sats` | intero | - | 1 | Satelliti usati dal GPS, da 0 a 31 |
+| 30 | `fix_type` | intero | - | 1 | Qualità del fix GPS (dalla frase GGA): 0 nessun fix, 1 GPS, 2 DGPS, ... (massimo 7) |
+| 31 | `vbatt_v` | decimale | V | 0.01 | Tensione della batteria, da 2.00 a 4.55 |
+| 32 | `status` | intero | - | - | Bit di stato dei sensori (vedi sotto), stampato in decimale |
+
+#### Valori validi e valori al limite
+
+- Un valore è affidabile solo se il bit `_OK` del suo sensore in `status` è a 1. Se un sensore non funziona i suoi campi contengono l'ultimo valore letto oppure 0: **vanno ignorati** (ad esempio non disegnati nel grafico).
+- I valori fuori dall'intervallo della tabella vengono "schiacciati" al limite: una temperatura di 400 °C arriva come 327.67. Se un valore è esattamente uguale al minimo o al massimo, probabilmente è fuori scala.
+- Se sul satellite un valore non è un numero (NaN, ad esempio un sensore che restituisce un errore) arriva come il **minimo** del suo intervallo (ad esempio `temp_c` = -327.68, `pressure_pa` = 30000).
+- Finché il GPS non ha un fix (`fix_type` = 0 o bit `GPS_OK` a 0) `lat`, `lon` e `altitude_gps_m` non hanno senso (di solito sono 0).
+
+#### Bit di `status`
+
+Per leggere un bit: `(status >> bit) & 1` (in Python), oppure `status & valore != 0`.
+
+| Bit | Valore | Nome | Significato se 1 |
+| --- | --- | --- | --- |
+| 0 | 1 | `ENV_OK` | Ultima lettura di temperatura/pressione/umidità riuscita |
+| 1 | 2 | `IMU_OK` | Ultima lettura di accelerometro/giroscopio riuscita |
+| 2 | 4 | `GPS_OK` | Ultima lettura del GPS riuscita |
+| 3 | 8 | `UV_OK` | Ultima lettura del sensore UV riuscita |
+| 4 | 16 | `FOTORES_OK` | Ultima lettura della fotoresistenza riuscita |
+| 5 | 32 | `GAS_OK` | Ultima lettura del sensore di gas riuscita |
+| 6 | 64 | `BATTERY_OK` | Ultima lettura della batteria riuscita |
+| 7 | 128 | `BATTERY_ALERT` | Batteria scarica (allarme del sensore della batteria) |
+| 8 | 256 | `HEATER_ON` | Riscaldatore del sensore di gas acceso |
+| 9-15 | - | - | Non usati, sempre 0 |
+
+Sono definiti come `STATUS_*` in `include/pack_data_lora.h`.
+
+#### Pacchetti persi (`lost`)
+
+`lost` è calcolato dalla stazione di terra dalla differenza tra il `seq` di questo pacchetto e quello del pacchetto integro precedente. Ad esempio se arrivano i `seq` 10, 11, 14, la riga del 14 ha `lost` = 2 (il 12 e il 13 sono andati persi o sono arrivati rovinati).
+
+- Il primo pacchetto ricevuto ha sempre `lost` = 0.
+- Se il satellite si riavvia `seq` riparte da 0: la stazione se ne accorge perché `ms_since_boot` torna indietro, mette `lost` = 0 e stampa una riga di debug `[INF ...] satellite rebooted`.
+- Se anche la stazione di terra si riavvia, i conteggi ripartono da zero.
+
+### Riga `BAD`
+
+```
+BAD,<rx_ms>,<rssi_dbm>,<snr_db>,<reason>
+```
+
+Le prime tre colonne sono come in `PKT`. `reason` è una di queste parole:
+
+| `reason` | Significato |
+| --- | --- |
+| `radio` | Il modulo LoRa ha scartato il pacchetto (il suo controllo di integrità è fallito). RSSI e SNR possono essere 0 |
+| `length` | Il pacchetto non è lungo 55 byte: probabilmente non è del nostro satellite |
+| `crc` | Il CRC non corrisponde: il pacchetto si è rovinato durante la trasmissione |
+| `sync` | CRC giusto ma non inizia con `A5A5`: non è un nostro pacchetto |
+| `version` | Pacchetto nostro, ma con una versione del formato diversa: satellite e stazione di terra hanno firmware diversi, vanno aggiornati |
+
+Le righe `BAD` servono solo per statistiche e debug: i dati di quei pacchetti non vanno usati.
+
+### Riga `STAT`
+
+```
+STAT,<rx_ms>,<ok>,<radio_err>,<bad_length>,<bad_crc>,<bad_sync>,<bad_version>,<lost>
+```
+
+Totali dall'accensione della stazione di terra: `ok` pacchetti integri (= righe `PKT`), i successivi sono i conteggi dei vari `reason` delle righe `BAD`, `lost` è la somma di tutti i `lost` delle righe `PKT`. Ad esempio la percentuale di pacchetti ricevuti è `ok / (ok + lost)`.
+
+### Riga `RAW`
+
+```
+RAW,<rx_ms>,<byte in esadecimale>
+```
+
+Sono i byte del pacchetto esattamente come sono arrivati via radio, 2 cifre esadecimali maiuscole per byte, senza separatori (un pacchetto valido è lungo 55 byte = 110 caratteri). **Conviene salvare tutte le righe `RAW` in un file di log**: se si scopre un errore nella conversione si possono decodificare di nuovo tutti i dati del volo.
+
+Il pacchetto è la struct `data_to_lora_t` di `include/types.h`: little-endian (byte meno significativo per primo), senza spazi tra i campi. `fisico` è il valore nelle unità della tabella di `PKT`, `grezzo` è il numero intero nel pacchetto.
+
+| Offset | Byte | Tipo | Campo | Conversione |
+| --- | --- | --- | --- | --- |
+| 0 | 2 | uint16 | `sync` | Sempre `0xA5A5` |
+| 2 | 1 | uint8 | `version` | - |
+| 3 | 2 | uint16 | `seq` | - |
+| 5 | 4 | uint32 | `ms_since_boot` | - |
+| 9 | 1 | uint8 | `flight_state` | - |
+| 10 | 2 | uint16 | `records_dropped` | - |
+| 12 | 2 | int16 | `temp_c` | fisico = grezzo / 100 |
+| 14 | 2 | uint16 | `pressure` | fisico = grezzo * 2 + 30000 |
+| 16 | 1 | uint8 | `humidity_pct` | fisico = grezzo / 2 |
+| 17 | 2 | int16 | `altitude_baro_m` | - |
+| 19 | 6 | int16 x3 | `accel` (x, y, z) | fisico = grezzo / 1000 |
+| 25 | 6 | int16 x3 | `gyro` (x, y, z) | fisico = grezzo / 10 |
+| 31 | 2 | int16 | `accel_mag` | fisico = grezzo / 1000 |
+| 33 | 1 | uint8 | `is_there_light_uv` | - |
+| 34 | 1 | uint8 | `is_there_light_fotores` | - |
+| 35 | 1 | uint8 | `uv` | fisico = grezzo / 10 |
+| 36 | 2 | uint16 | `gas_raw` | - |
+| 38 | 1 | uint8 | `heater_on_since` | - |
+| 39 | 4 | int32 | `lat` | fisico = grezzo / 10000000 |
+| 43 | 4 | int32 | `lon` | fisico = grezzo / 10000000 |
+| 47 | 2 | int16 | `altitude_gps_m` | - |
+| 49 | 1 | uint8 | `satfix` | `sats` = grezzo >> 3, `fix_type` = grezzo & 7 |
+| 50 | 1 | uint8 | `vbatt` | fisico = grezzo / 100 + 2 |
+| 51 | 2 | uint16 | `status` | - |
+| 53 | 2 | uint16 | `crc16` | CRC-16/MODBUS dei byte da 0 a 52 |
+
+Il CRC è CRC-16/MODBUS (polinomio 0xA001 riflesso, valore iniziale 0xFFFF). Un trucco per controllarlo: calcolando il CRC su **tutti** i 55 byte, CRC compreso, il risultato è 0 se il pacchetto è integro.
+
+Decoder in Python di una riga `RAW` (dà gli stessi valori della riga `PKT`):
+
+```python
+import struct
+
+LORA_FORMAT = "<HBHIBHhHBh3h3hhBBBHBiihBBHH"  # 55 byte, little-endian, senza padding
+LORA_FIELDS = [
+    "sync", "version", "seq", "ms_since_boot", "flight_state", "records_dropped",
+    "temp_c", "pressure", "humidity_pct", "altitude_baro_m",
+    "accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z", "accel_mag",
+    "light_uv", "light_fotores", "uv", "gas_raw", "heater_on_s",
+    "lat", "lon", "altitude_gps_m", "satfix", "vbatt", "status", "crc16",
+]
+
+def crc16_modbus(data: bytes) -> int:
+    crc = 0xFFFF
+    for b in data:
+        crc ^= b
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0xA001 if crc & 1 else crc >> 1
+    return crc
+
+def decode_raw(hex_str: str) -> dict | None:
+    data = bytes.fromhex(hex_str)
+    if len(data) != 55 or crc16_modbus(data) != 0:  # CRC su tutto il pacchetto (crc incluso) = 0 se integro
+        return None
+    r = dict(zip(LORA_FIELDS, struct.unpack(LORA_FORMAT, data)))
+    if r["sync"] != 0xA5A5 or r["version"] != 1:
+        return None
+    return {
+        "seq": r["seq"],
+        "ms_since_boot": r["ms_since_boot"],
+        "flight_state": r["flight_state"],
+        "records_dropped": r["records_dropped"],
+        "temp_c": r["temp_c"] / 100,
+        "pressure_pa": r["pressure"] * 2 + 30000,
+        "humidity_pct": r["humidity_pct"] / 2,
+        "altitude_baro_m": r["altitude_baro_m"],
+        "accel_g": [r[k] / 1000 for k in ("accel_x", "accel_y", "accel_z")],
+        "gyro_dps": [r[k] / 10 for k in ("gyro_x", "gyro_y", "gyro_z")],
+        "accel_mag_g": r["accel_mag"] / 1000,
+        "light_uv": r["light_uv"],
+        "light_fotores": r["light_fotores"],
+        "uv_index": r["uv"] / 10,
+        "gas_raw": r["gas_raw"],
+        "heater_on_s": r["heater_on_s"],
+        "lat": r["lat"] / 1e7,
+        "lon": r["lon"] / 1e7,
+        "altitude_gps_m": r["altitude_gps_m"],
+        "sats": r["satfix"] >> 3,
+        "fix_type": r["satfix"] & 0x07,
+        "vbatt_v": r["vbatt"] / 100 + 2.0,
+        "status": r["status"],
+    }
+```
+
+### Esempio di lettura in Python
+
+Con la libreria `pyserial` (`pip install pyserial`). Legge le righe, salva tutto in un file e trasforma le righe `PKT` in dizionari pronti per il grafico:
+
+```python
+import serial
+
+PKT_COLUMNS = (
+    "rx_ms,rssi_dbm,snr_db,seq,lost,version,ms_since_boot,flight_state,records_dropped,"
+    "temp_c,pressure_pa,humidity_pct,altitude_baro_m,"
+    "accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,accel_mag_g,"
+    "light_uv,light_fotores,uv_index,gas_raw,heater_on_s,"
+    "lat,lon,altitude_gps_m,sats,fix_type,vbatt_v,status"
+).split(",")
+
+STATUS_ENV_OK = 1 << 0
+
+with serial.Serial("COM5", 115200, timeout=1) as port, open("ground_log.txt", "a") as log:
+    while True:
+        line = port.readline().decode("ascii", errors="replace").strip()
+        if not line:
+            continue
+        log.write(line + "\n")  # tutto, anche RAW e debug, per poterlo rileggere dopo
+
+        fields = line.split(",")
+        if fields[0] == "HDR" and fields[1] == "PKT" and fields[2:] != PKT_COLUMNS:
+            print("ATTENZIONE: il formato delle righe PKT è cambiato, aggiornare PKT_COLUMNS")
+        elif fields[0] == "PKT" and len(fields) == len(PKT_COLUMNS) + 1:
+            pkt = {name: float(value) for name, value in zip(PKT_COLUMNS, fields[1:])}
+            status = int(pkt["status"])
+            if status & STATUS_ENV_OK:
+                print(f"seq {int(pkt['seq'])}: {pkt['temp_c']} °C, {pkt['pressure_pa']} Pa")
+        elif fields[0] == "BAD":
+            print("pacchetto scartato:", fields[-1])
+        # tutte le altre righe (RAW, STAT, debug "[...") qui vengono ignorate
+```
+
+### Se il formato cambia
+
+Se si modifica `data_to_lora_t` vanno aggiornati insieme: `ds_to_lora` e `lora_decode` in `src/codec/pack_data_lora.c` (aumentando `LORA_VERSION` in `include/pack_data_lora.h`), la stampa in `src/ground/main_ground.cpp`, questa sezione del README e il programma sul PC. Le colonne nuove vanno aggiunte **in fondo** alla riga `PKT`, così un programma che usa i nomi delle colonne continua a funzionare.
+
 
 ## Test
 
