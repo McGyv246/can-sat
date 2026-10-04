@@ -27,6 +27,7 @@ extern "C"
         TASK_CORE0_BATTERY,
         TASK_CORE0_MISSION_STATE,
         TASK_CORE0_THERMAL,
+        TASK_CORE0_LED,
         TASK_CORE0_COUNT, /* MUST BE LAST! */
     } task_core0_id_t;
 
@@ -99,6 +100,10 @@ extern "C"
 
     uint32_t mission_state_task_run(task_t *self, uint32_t now_millis);
     void mission_state_task_on_enable(task_t *self);
+
+    uint32_t led_task_run(task_t *self, uint32_t now_millis);
+    void led_task_on_enable(task_t *self);
+    void led_task_on_disable(task_t *self);
 
 #pragma endregion
 

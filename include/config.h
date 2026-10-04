@@ -27,6 +27,10 @@ extern "C"
 #define LANDED_ALT_TOL_M 1.0f    /* max altitude drift from the start of the window */
 #define LANDED_ACCEL_TOL_G 0.15f /* max distance of accel_mag from 1 g */
 
+// Status led (see led_status.h)
+#define LED_BATTERY_LOW_PCT 10.0f /* same as the fuel gauge alert threshold */
+#define LED_GPS_STALE_MS 3000     /* a valid GPS sample older than this doesn't count as locked */
+
 #ifdef __cplusplus
 }
 #endif
