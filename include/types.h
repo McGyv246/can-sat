@@ -192,6 +192,49 @@ For now the choice of the length of such integer has been made by Claude, we wil
 
     static_assert(sizeof(data_to_lora_t) == 55, "LoRa layout changed");
 
+    /* data_to_lora_t converted back to physical units by the ground station (lora_decode) */
+    typedef struct
+    {
+        uint8_t version;
+        uint16_t seq;
+
+        uint32_t ms_since_boot;
+        uint8_t flight_state;
+        uint16_t records_dropped;
+
+        float temp_c;
+        float pressure_pa;
+        float humidity_pct;
+        float altitude_baro_m;
+
+        float accel[3]; // g
+        float gyro[3];  // deg/s
+        float accel_mag;
+
+        bool is_there_light_uv;
+        bool is_there_light_fotores;
+        float uv_index;
+
+        uint16_t gas_raw;
+        uint8_t heater_on_s; /* saturates at 255 */
+
+        double lat, lon; /* double: a float has only ~7 significant digits, not enough for 1e-7 degrees */
+        float altitude_gps_m;
+        uint8_t sats, fix_type;
+
+        float vbatt; // V
+        uint16_t status; /* STATUS_* bits, see pack_data_lora.h */
+    } lora_decoded_t;
+
+    typedef enum
+    {
+        LORA_DECODE_OK = 0,
+        LORA_DECODE_BAD_LENGTH,
+        LORA_DECODE_BAD_CRC,
+        LORA_DECODE_BAD_SYNC,
+        LORA_DECODE_BAD_VERSION,
+    } lora_decode_result_t;
+
 #pragma endregion
 
 #pragma region sd_structs
