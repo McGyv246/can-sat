@@ -1,10 +1,8 @@
 #include <stdint.h>
-#include <Wire.h>
 #include <MAX17043.h>
 #include "types.h"
 #include "fuel_gauge_drivers.h"
 #include "arduino_wrapper.h"
-#include "wire_wrapper.h"
 #include "debug_print.h"
 
 /*
@@ -12,7 +10,6 @@ Works with the MAX17043 and the MAX17048: VCELL and SOC have the same format on 
 On the MAX17048 sleep() does nothing unless MODE.EnSleep is set, so it just keeps measuring (harmless).
 The chip is powered by the battery cell: without the battery it doesn't answer on I2C.
 */
-static const uint8_t ADDRESS = 0x36;                   // fixed for the whole MAX1704X family
 static const uint8_t BATTERY_TRESHOLD_PERCENTAGE = 10; // default is 4%. can be between 1 and 32
 static const uint32_t FUEL_GAUGE_WAIT_TIME_MS = 1000;  // don't think reading more than once a second could be beneficial...
 // the gauge has no current sensing: at power up it guesses the SOC from the cell voltage, and if that
@@ -44,16 +41,12 @@ extern "C"
 
     sens_state_t fuel_gauge_init(void)
     {
-        // the library's own begin() calls Wire.begin() and prints on Serial: start the bus here instead
-        wire_begin_service();
-        FuelGauge.begin(&Wire, ADDRESS);
-        if (!FuelGauge.deviceFound())
+        // begin() starts Wire and returns false if the chip doesn't answer
+        if (!FuelGauge.begin())
         {
-            DBG_ERR("FUEL_GAUGE no answer on 0x%02X (is the battery connected?)", ADDRESS);
+            DBG_ERR("FUEL_GAUGE no answer (is the battery connected?)");
             return SENS_STATE_ERR;
         }
-        // 0x0003 = MAX17043/44, 0x001X = MAX17048/49
-        DBG_INFO("FUEL_GAUGE found on 0x%02X, version 0x%04X", ADDRESS, FuelGauge.version());
 
         FuelGauge.threshold(BATTERY_TRESHOLD_PERCENTAGE);
 
