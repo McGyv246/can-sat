@@ -35,7 +35,15 @@ Per l'installazione di PlatformIO conviene seguire le istruzioni [questo link](h
 
 La struttura potrà essere cambiata in caso di necessità. Parte della struttura è fissa per via di come funziona PlatformIO senza configurarlo in modo specifico (cosa che fa perdere tempo e rischia di rompere cose).
 
-In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Alla radice della cartella `src/` DEVE esserci il file `main.cpp` che è il file che PlatformIO utilizza per l'Arduino.
+In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Nello stesso progetto ci sono più firmware, ognuno è un env di `platformio.ini` che compila solo i suoi file (con `build_src_filter`), quindi c'è un solo `setup()`/`loop()` per firmware:
+
+| Env | Firmware | File principale |
+| --- | --- | --- |
+| `sat` | Satellite in volo | `src/main.cpp` |
+| `sat_bench` (default) | Satellite al banco: solo i sensori accesi in `src/bench/bench_setup.cpp`, con stampe e comandi di debug | `src/main.cpp` |
+| `ground` | Stazione di terra, riceve i pacchetti LoRa | `src/ground/main_ground.cpp` |
+
+Si sceglie l'env con `pio run -e <nome>` oppure dal selettore degli env nella barra in basso di VS Code. Un file nuovo in `src/` finisce in automatico in `sat` e `sat_bench`; per usarlo anche in `ground` va aggiunto al suo `build_src_filter`.
 
 Nella cartella `include/` devono esserci i file `.h` necessari a compilare il programma principale SENZA essere messi in sottocartelle (devono stare alla radice di tale cartella). I file `.h` che servono solo per i test o comunque che non devono essere compilati in automatico da PlatformIO li ho lasciati nella cartella dove c'è il file sorgente. Questo farà sì che l'intellisense di VSCode con PlatformIO attivo pensi che ci siano degli errori in caso si includano tali cartelle, ma compilando con la linea di comando non ci sarà questo problema. In caso dia fastidio si potranno spostare tutte in questa specifica cartella.
 
@@ -53,7 +61,7 @@ L'unico modo per eseguire il programma senza l'arduino sarà tramite i test.
 
 ## Comandi di debug via Serial
 
-Servono per i test al banco (es. forzare l'espulsione senza un lancio vero). Sono implementati in `src/debug/debug_console.cpp` e sono attivi solo se compilati con `-DSERIAL_DEBUG` o `-DSERIAL_DEBUG_COMMANDS` in `platformio.ini`: **vanno tolti per il volo**. Si scrive un comando per riga nel monitor seriale (115200 baud) e si preme invio.
+Servono per i test al banco (es. forzare l'espulsione senza un lancio vero). Sono implementati in `src/debug/debug_console.cpp` e sono attivi solo se compilati con `-DSERIAL_DEBUG` o `-DSERIAL_DEBUG_COMMANDS` in `platformio.ini` (l'env `sat_bench` li ha già): **per il volo si usa l'env `sat`, che non li ha**. Si scrive un comando per riga nel monitor seriale (115200 baud) e si preme invio.
 
 Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le parentesi e senza spazi: ad esempio `s<N>` si scrive `s4`.
 
@@ -80,7 +88,7 @@ Note:
 
 - I valori simulati con `l` e `u` restano finché non si annullano: i task dei sensori veri non li sovrascrivono.
 - Al cambio di stato di volo viene riapplicato il profilo dei task di quello stato, quindi le accensioni/spegnimenti fatti con `t` e `T` si perdono.
-- Se è attivo anche `-DBENCH_TEST` (test dei singoli sensori, vedi `bench_setup()` e `bench_setup1()` in `src/bench/bench_setup.cpp`) i profili dei task non vengono mai applicati: `s<N>` cambia lo stato ma i task restano quelli accesi in `bench_setup()`/`bench_setup1()` o con `t` e `T`. Anche `-DBENCH_TEST` va tolto per il volo.
+- Se è attivo anche `-DBENCH_TEST` (test dei singoli sensori, vedi `bench_setup()` e `bench_setup1()` in `src/bench/bench_setup.cpp`) i profili dei task non vengono mai applicati: `s<N>` cambia lo stato ma i task restano quelli accesi in `bench_setup()`/`bench_setup1()` o con `t` e `T`. L'env `sat_bench` ha già `-DBENCH_TEST`, l'env `sat` no.
 - `d`, `d1` e `d0` esistono solo se è attivo anche `SERIAL_DEBUG_DATA` (già incluso in `-DSERIAL_DEBUG`).
 - Ogni riga stampata inizia con tipo, tempo e core, ad esempio `[ERR 12345ms c1] task SD failed` (`ERR` errore, `INF` evento, `DAT` dump dei dati).
 
