@@ -28,7 +28,7 @@ void tearDown(void) {}
 
 #pragma region choose
 
-void test_flight_states_without_problems(void)
+void when_noProblems_expect_statusOfEachFlightState(void)
 {
     led_inputs_t in = ok_inputs(FLIGHT_STATE_BOOT);
     TEST_ASSERT_EQUAL(LED_STATUS_BOOT, led_status_choose(&in));
@@ -49,7 +49,7 @@ void test_flight_states_without_problems(void)
     TEST_ASSERT_EQUAL(LED_STATUS_LANDED, led_status_choose(&in));
 }
 
-void test_problems_by_priority_on_the_ground(void)
+void when_manyProblemsOnTheGround_expect_highestPriorityShown(void)
 {
     led_inputs_t in = ok_inputs(FLIGHT_STATE_IDLE);
     in.gps = LED_GPS_LOCKED;
@@ -66,7 +66,7 @@ void test_problems_by_priority_on_the_ground(void)
     TEST_ASSERT_EQUAL(LED_STATUS_ERROR, led_status_choose(&in));
 }
 
-void test_problems_hidden_in_flight_and_landed(void)
+void when_problemsInFlightOrLanded_expect_problemsHidden(void)
 {
     led_inputs_t in = {.error = true, .battery_low = true, .sensor_warning = true, .gps = LED_GPS_SEARCHING};
 
@@ -80,7 +80,7 @@ void test_problems_hidden_in_flight_and_landed(void)
     TEST_ASSERT_EQUAL(LED_STATUS_LANDED, led_status_choose(&in));
 }
 
-void test_gps_shown_only_in_idle(void)
+void when_gpsOn_expect_gpsShownOnlyInIdle(void)
 {
     led_inputs_t in = ok_inputs(FLIGHT_STATE_IDLE);
     in.gps = LED_GPS_SEARCHING;
@@ -93,7 +93,7 @@ void test_gps_shown_only_in_idle(void)
     TEST_ASSERT_EQUAL(LED_STATUS_BOOT, led_status_choose(&in));
 }
 
-void test_invalid_state_is_error(void)
+void when_invalidFlightState_expect_error(void)
 {
     led_inputs_t in = ok_inputs(FLIGHT_STATE_COUNT);
     TEST_ASSERT_EQUAL(LED_STATUS_ERROR, led_status_choose(&in));
@@ -103,19 +103,19 @@ void test_invalid_state_is_error(void)
 
 #pragma region patterns
 
-void test_off_is_never_on(void)
+void when_patternOff_expect_neverOn(void)
 {
     for (uint32_t t = 0; t < 5000; t += 10)
         TEST_ASSERT_FALSE(is_on(LED_STATUS_OFF, t));
 }
 
-void test_boot_is_steady(void)
+void when_patternBoot_expect_alwaysOn(void)
 {
     for (uint32_t t = 0; t < 5000; t += 10)
         TEST_ASSERT_TRUE(is_on(LED_STATUS_BOOT, t));
 }
 
-void test_single_flash_every_2s(void)
+void when_patternReady_expect_singleFlashEvery2s(void)
 {
     TEST_ASSERT_TRUE(is_on(LED_STATUS_READY, 0));
     TEST_ASSERT_TRUE(is_on(LED_STATUS_READY, 99));
@@ -124,7 +124,7 @@ void test_single_flash_every_2s(void)
     TEST_ASSERT_TRUE(is_on(LED_STATUS_READY, 2000));
 }
 
-void test_double_flash(void)
+void when_patternGpsLocked_expect_doubleFlashEvery2s(void)
 {
     TEST_ASSERT_TRUE(is_on(LED_STATUS_GPS_LOCKED, 0));
     TEST_ASSERT_FALSE(is_on(LED_STATUS_GPS_LOCKED, 100));
@@ -135,7 +135,7 @@ void test_double_flash(void)
     TEST_ASSERT_TRUE(is_on(LED_STATUS_GPS_LOCKED, 2000));
 }
 
-void test_fast_blink(void)
+void when_patternError_expect_fastBlink(void)
 {
     TEST_ASSERT_TRUE(is_on(LED_STATUS_ERROR, 0));
     TEST_ASSERT_FALSE(is_on(LED_STATUS_ERROR, 100));
@@ -144,7 +144,7 @@ void test_fast_blink(void)
 }
 
 // The light sensors run in IDLE: the led must never stay on long enough to look like the ejection
-void test_idle_patterns_never_fake_the_ejection(void)
+void when_patternShownInIdle_expect_neverOnLongEnoughToFakeEjection(void)
 {
     const led_status_t idle_statuses[] = {
         LED_STATUS_ERROR,
@@ -170,7 +170,7 @@ void test_idle_patterns_never_fake_the_ejection(void)
 
 #pragma region inputs
 
-void test_task_dead_after_max_fails(void)
+void when_taskFailsMoreThanMax_expect_taskDead(void)
 {
     task_t tasks[2] = {0};
     tasks[1].fail_count = SCHED_MAX_FAILS;
@@ -180,7 +180,7 @@ void test_task_dead_after_max_fails(void)
     TEST_ASSERT_TRUE(led_any_task_dead(tasks, 2));
 }
 
-void test_sensor_warning_only_for_enabled_tasks(void)
+void when_taskFailed_expect_sensorWarningOnlyIfEnabled(void)
 {
     task_t tasks[2] = {{.last_state = TASK_STATE_ERR}, {.last_state = TASK_STATE_BUSY}};
     bool enabled[2] = {false, true};
@@ -190,7 +190,7 @@ void test_sensor_warning_only_for_enabled_tasks(void)
     TEST_ASSERT_TRUE(led_sensor_warning(tasks, enabled, 2));
 }
 
-void test_battery_low(void)
+void when_batteryAlertOrBelowThreshold_expect_batteryLow(void)
 {
     battery_t battery = {.s.valid = false, .percentage = 1.0f};
     TEST_ASSERT_FALSE(led_battery_low(&battery));
@@ -205,7 +205,7 @@ void test_battery_low(void)
     TEST_ASSERT_TRUE(led_battery_low(&battery));
 }
 
-void test_gps_status(void)
+void when_gpsSamples_expect_offSearchingOrLocked(void)
 {
     gps_t gps = {.s = {.valid = true, .t_ms = 10000}};
     TEST_ASSERT_EQUAL(LED_GPS_OFF, led_gps_status(&gps, false, 10000));
@@ -222,23 +222,23 @@ int main(void)
 {
     UNITY_BEGIN();
 
-    RUN_TEST(test_flight_states_without_problems);
-    RUN_TEST(test_problems_by_priority_on_the_ground);
-    RUN_TEST(test_problems_hidden_in_flight_and_landed);
-    RUN_TEST(test_gps_shown_only_in_idle);
-    RUN_TEST(test_invalid_state_is_error);
+    RUN_TEST(when_noProblems_expect_statusOfEachFlightState);
+    RUN_TEST(when_manyProblemsOnTheGround_expect_highestPriorityShown);
+    RUN_TEST(when_problemsInFlightOrLanded_expect_problemsHidden);
+    RUN_TEST(when_gpsOn_expect_gpsShownOnlyInIdle);
+    RUN_TEST(when_invalidFlightState_expect_error);
 
-    RUN_TEST(test_off_is_never_on);
-    RUN_TEST(test_boot_is_steady);
-    RUN_TEST(test_single_flash_every_2s);
-    RUN_TEST(test_double_flash);
-    RUN_TEST(test_fast_blink);
-    RUN_TEST(test_idle_patterns_never_fake_the_ejection);
+    RUN_TEST(when_patternOff_expect_neverOn);
+    RUN_TEST(when_patternBoot_expect_alwaysOn);
+    RUN_TEST(when_patternReady_expect_singleFlashEvery2s);
+    RUN_TEST(when_patternGpsLocked_expect_doubleFlashEvery2s);
+    RUN_TEST(when_patternError_expect_fastBlink);
+    RUN_TEST(when_patternShownInIdle_expect_neverOnLongEnoughToFakeEjection);
 
-    RUN_TEST(test_task_dead_after_max_fails);
-    RUN_TEST(test_sensor_warning_only_for_enabled_tasks);
-    RUN_TEST(test_battery_low);
-    RUN_TEST(test_gps_status);
+    RUN_TEST(when_taskFailsMoreThanMax_expect_taskDead);
+    RUN_TEST(when_taskFailed_expect_sensorWarningOnlyIfEnabled);
+    RUN_TEST(when_batteryAlertOrBelowThreshold_expect_batteryLow);
+    RUN_TEST(when_gpsSamples_expect_offSearchingOrLocked);
 
     return UNITY_END();
 }

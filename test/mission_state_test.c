@@ -67,7 +67,7 @@ void tearDown(void) {}
 
 #pragma region tests
 
-void test_boot_goes_to_idle(void)
+void when_boot_expect_selfTestThenIdle(void)
 {
     mission_state_task_run(&mission_task, 0);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_SELF_TEST, ds_read_state());
@@ -76,7 +76,7 @@ void test_boot_goes_to_idle(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
-void test_idle_without_light_stays_idle(void)
+void when_idleWithoutLight_expect_staysIdle(void)
 {
     set_state(FLIGHT_STATE_IDLE);
     set_light(false, false);
@@ -85,7 +85,7 @@ void test_idle_without_light_stays_idle(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
-void test_idle_short_light_stays_idle(void)
+void when_idleShortLight_expect_staysIdle(void)
 {
     set_state(FLIGHT_STATE_IDLE);
     set_light(true, false);
@@ -94,7 +94,7 @@ void test_idle_short_light_stays_idle(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
-void test_idle_held_light_goes_to_descent(void)
+void when_idleHeldLight_expect_descent(void)
 {
     set_state(FLIGHT_STATE_IDLE);
     set_light(true, false);
@@ -103,7 +103,7 @@ void test_idle_held_light_goes_to_descent(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_uv_light_alone_is_enough(void)
+void when_onlyUvLight_expect_descent(void)
 {
     set_state(FLIGHT_STATE_IDLE);
     set_light(false, true);
@@ -112,7 +112,7 @@ void test_uv_light_alone_is_enough(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_ascent_held_light_goes_to_descent(void)
+void when_ascentHeldLight_expect_descent(void)
 {
     set_state(FLIGHT_STATE_ASCENT);
     set_light(true, true);
@@ -121,7 +121,7 @@ void test_ascent_held_light_goes_to_descent(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_interrupted_light_restarts_window(void)
+void when_lightInterrupted_expect_windowRestarted(void)
 {
     set_state(FLIGHT_STATE_IDLE);
 
@@ -139,7 +139,7 @@ void test_interrupted_light_restarts_window(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_invalid_light_is_ignored(void)
+void when_lightInvalid_expect_staysIdle(void)
 {
     set_state(FLIGHT_STATE_IDLE);
     set_light(true, true);
@@ -151,7 +151,7 @@ void test_invalid_light_is_ignored(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
-void test_descent_still_goes_to_landed(void)
+void when_descentStill_expect_landed(void)
 {
     set_state(FLIGHT_STATE_DESCENT);
     set_landing_data(12.0f, 1.02f);
@@ -163,7 +163,7 @@ void test_descent_still_goes_to_landed(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_LANDED, ds_read_state());
 }
 
-void test_descent_falling_stays_descent(void)
+void when_descentFalling_expect_staysDescent(void)
 {
     set_state(FLIGHT_STATE_DESCENT);
 
@@ -177,7 +177,7 @@ void test_descent_falling_stays_descent(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_descent_shaking_stays_descent(void)
+void when_descentShaking_expect_staysDescent(void)
 {
     set_state(FLIGHT_STATE_DESCENT);
 
@@ -191,7 +191,7 @@ void test_descent_shaking_stays_descent(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_descent_invalid_env_stays_descent(void)
+void when_descentEnvInvalid_expect_staysDescent(void)
 {
     set_state(FLIGHT_STATE_DESCENT);
     set_landing_data(12.0f, 1.0f);
@@ -202,7 +202,7 @@ void test_descent_invalid_env_stays_descent(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
-void test_landed_stays_landed(void)
+void when_landed_expect_staysLanded(void)
 {
     set_state(FLIGHT_STATE_LANDED);
     set_light(true, true);
@@ -211,7 +211,7 @@ void test_landed_stays_landed(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_LANDED, ds_read_state());
 }
 
-void test_run_returns_period(void)
+void when_run_expect_periodReturned(void)
 {
     TEST_ASSERT_EQUAL_UINT32(MISSION_STATE_PERIOD, mission_state_task_run(&mission_task, 0));
     TEST_ASSERT_EQUAL(TASK_STATE_OK, mission_task.last_state);
@@ -223,20 +223,20 @@ int main(void)
 {
     UNITY_BEGIN();
 
-    RUN_TEST(test_boot_goes_to_idle);
-    RUN_TEST(test_idle_without_light_stays_idle);
-    RUN_TEST(test_idle_short_light_stays_idle);
-    RUN_TEST(test_idle_held_light_goes_to_descent);
-    RUN_TEST(test_uv_light_alone_is_enough);
-    RUN_TEST(test_ascent_held_light_goes_to_descent);
-    RUN_TEST(test_interrupted_light_restarts_window);
-    RUN_TEST(test_invalid_light_is_ignored);
-    RUN_TEST(test_descent_still_goes_to_landed);
-    RUN_TEST(test_descent_falling_stays_descent);
-    RUN_TEST(test_descent_shaking_stays_descent);
-    RUN_TEST(test_descent_invalid_env_stays_descent);
-    RUN_TEST(test_landed_stays_landed);
-    RUN_TEST(test_run_returns_period);
+    RUN_TEST(when_boot_expect_selfTestThenIdle);
+    RUN_TEST(when_idleWithoutLight_expect_staysIdle);
+    RUN_TEST(when_idleShortLight_expect_staysIdle);
+    RUN_TEST(when_idleHeldLight_expect_descent);
+    RUN_TEST(when_onlyUvLight_expect_descent);
+    RUN_TEST(when_ascentHeldLight_expect_descent);
+    RUN_TEST(when_lightInterrupted_expect_windowRestarted);
+    RUN_TEST(when_lightInvalid_expect_staysIdle);
+    RUN_TEST(when_descentStill_expect_landed);
+    RUN_TEST(when_descentFalling_expect_staysDescent);
+    RUN_TEST(when_descentShaking_expect_staysDescent);
+    RUN_TEST(when_descentEnvInvalid_expect_staysDescent);
+    RUN_TEST(when_landed_expect_staysLanded);
+    RUN_TEST(when_run_expect_periodReturned);
 
     return UNITY_END();
 }
