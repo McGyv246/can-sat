@@ -9,7 +9,7 @@
 All the tasks the scheduler runs, with their initial settings.
 Fields not listed start at 0 / NULL (due = 0, fail_count = 0, last_state = TASK_STATE_OK, no on_enable/on_disable).
 Tasks with a fast and a slow variant (UV, FOTORES) start with the slow period:
-change self->period at runtime when switching flight phase (fast: 20 ms, priority 0 for UV).
+change self->period at runtime when switching flight phase (fast: 150 ms, priority 0 for UV).
 */
 task_t tasks_core0[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = {
@@ -47,7 +47,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
     [TASK_CORE0_UV_FAST] = {
         .name = "UV_FAST",
         .run = uv_task_run,
-        .period = 20,
+        .period = 150,
         .priority = 0,
     },
     [TASK_CORE0_UV_SLOW] = {
@@ -59,7 +59,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_FAST] = {
         .name = "FOTORES_FAST",
         .run = fotores_task_run,
-        .period = 20,
+        .period = 150,
         .priority = 0,
     },
     [TASK_CORE0_FOTORES_SLOW] = {
@@ -73,7 +73,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .run = fuel_gauge_task_run,
         .on_enable = fuel_gauge_task_on_enable,
         .on_disable = fuel_gauge_task_on_disable,
-        .period = 20,
+        .period = 2000,
         .priority = 6,
     },
     [TASK_CORE0_MISSION_STATE] = {
@@ -139,8 +139,9 @@ const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = false,
-    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_ENV] = true, /* altitude for the ascent detection */
     [TASK_CORE0_GAS] = false,
+    /* Fast light tasks also here: with the slow ones a single noisy read could last the whole EJECTION_LIGHT_HOLD_MS */
     [TASK_CORE0_UV_FAST] = true,
     [TASK_CORE0_UV_SLOW] = false,
     [TASK_CORE0_FOTORES_FAST] = true,
@@ -150,11 +151,11 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_THERMAL] = false,
     [TASK_CORE0_LED] = true,
 };
-/* Like IDLE, plus the thermal camera: it boots in ASCENT so it's already running at the ejection */
+/* Like IDLE, plus the thermal camera and the GPS: they boot in ASCENT so they're already running at the ejection */
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = false,
+    [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = false,
-    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = false,
     [TASK_CORE0_UV_FAST] = true,
     [TASK_CORE0_UV_SLOW] = false,
@@ -199,7 +200,7 @@ const bool tasks_enabled_core1_boot[TASK_CORE1_COUNT] = {
     [TASK_CORE1_LORA] = false,
 };
 const bool tasks_enabled_core1_idle[TASK_CORE1_COUNT] = {
-    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_SD] = true, /* ~270 B/s from the fast light tasks at 150 ms */
     [TASK_CORE1_LORA] = false,
 };
 const bool tasks_enabled_core1_descent[TASK_CORE1_COUNT] = {

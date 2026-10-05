@@ -48,11 +48,27 @@ static void set_landing_data(float altitude_m, float accel_mag)
     _ds_set_full(&ds);
 }
 
+static void set_altitude(float altitude_m)
+{
+    ds.state = ds_read_state();
+    ds.env.s.valid = true;
+    ds.env.altitude_m = altitude_m;
+    _ds_set_full(&ds);
+}
+
 // Runs the task every MISSION_STATE_PERIOD ms from start_ms to end_ms included
 static void run_between(uint32_t start_ms, uint32_t end_ms)
 {
     for (uint32_t t = start_ms; t <= end_ms; t += MISSION_STATE_PERIOD)
         mission_state_task_run(&mission_task, t);
+}
+
+// IDLE: keeps it dark until the light check is armed, light tests start at T_ARMED
+#define T_ARMED (LIGHT_ARM_DARK_HOLD_MS + MISSION_STATE_PERIOD)
+static void arm_light(void)
+{
+    set_light(false, false);
+    run_between(0, LIGHT_ARM_DARK_HOLD_MS);
 }
 
 #pragma endregion
@@ -88,27 +104,84 @@ void when_idleWithoutLight_expect_staysIdle(void)
 void when_idleShortLight_expect_staysIdle(void)
 {
     set_state(FLIGHT_STATE_IDLE);
+    arm_light();
     set_light(true, false);
 
-    run_between(0, EJECTION_LIGHT_HOLD_MS - MISSION_STATE_PERIOD);
+    run_between(T_ARMED, T_ARMED + EJECTION_LIGHT_HOLD_MS - MISSION_STATE_PERIOD);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
 void when_idleHeldLight_expect_descent(void)
 {
     set_state(FLIGHT_STATE_IDLE);
+    arm_light();
     set_light(true, false);
 
-    run_between(0, EJECTION_LIGHT_HOLD_MS);
+    run_between(T_ARMED, T_ARMED + EJECTION_LIGHT_HOLD_MS);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
 void when_onlyUvLight_expect_descent(void)
 {
     set_state(FLIGHT_STATE_IDLE);
+    arm_light();
     set_light(false, true);
 
-    run_between(0, EJECTION_LIGHT_HOLD_MS);
+    run_between(T_ARMED, T_ARMED + EJECTION_LIGHT_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
+}
+
+void test_idle_light_before_arming_stays_idle(void)
+{
+    // Turned on with the rocket open: light from the start
+    set_state(FLIGHT_STATE_IDLE);
+    set_light(true, true);
+
+    run_between(0, 30000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_idle_short_dark_does_not_arm(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    // A shadow shorter than the arming window, then light again
+    set_light(false, false);
+    run_between(0, LIGHT_ARM_DARK_HOLD_MS - MISSION_STATE_PERIOD);
+
+    set_light(true, false);
+    run_between(LIGHT_ARM_DARK_HOLD_MS, LIGHT_ARM_DARK_HOLD_MS + 10000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_idle_invalid_light_does_not_arm(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+    set_light(false, false);
+    ds.fotores.s.valid = false;
+    ds.uv.s.valid = false;
+    _ds_set_full(&ds);
+    run_between(0, 2 * LIGHT_ARM_DARK_HOLD_MS);
+
+    // Sensors come up in daylight: must not be armed
+    set_light(true, true);
+    run_between(2 * LIGHT_ARM_DARK_HOLD_MS + MISSION_STATE_PERIOD, 3 * LIGHT_ARM_DARK_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_full_flight_with_open_rocket_at_power_on(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    // Rocket open, then closed, then the ascent is missed: the light still triggers the descent
+    set_light(true, true);
+    run_between(0, 5000);
+    set_light(false, false);
+    run_between(5050, 5050 + LIGHT_ARM_DARK_HOLD_MS + 20000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+
+    set_light(true, false);
+    run_between(40000, 40000 + EJECTION_LIGHT_HOLD_MS);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
@@ -124,18 +197,19 @@ void when_ascentHeldLight_expect_descent(void)
 void when_lightInterrupted_expect_windowRestarted(void)
 {
     set_state(FLIGHT_STATE_IDLE);
+    arm_light();
 
     set_light(true, false);
-    run_between(0, EJECTION_LIGHT_HOLD_MS - 500);
+    run_between(T_ARMED, T_ARMED + EJECTION_LIGHT_HOLD_MS - 500);
 
     set_light(false, false);
-    mission_state_task_run(&mission_task, EJECTION_LIGHT_HOLD_MS - 450);
+    mission_state_task_run(&mission_task, T_ARMED + EJECTION_LIGHT_HOLD_MS - 450);
 
     set_light(true, false);
-    run_between(EJECTION_LIGHT_HOLD_MS - 400, EJECTION_LIGHT_HOLD_MS + 500);
+    run_between(T_ARMED + EJECTION_LIGHT_HOLD_MS - 400, T_ARMED + EJECTION_LIGHT_HOLD_MS + 500);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 
-    run_between(EJECTION_LIGHT_HOLD_MS + 550, 2 * EJECTION_LIGHT_HOLD_MS);
+    run_between(T_ARMED + EJECTION_LIGHT_HOLD_MS + 550, T_ARMED + 2 * EJECTION_LIGHT_HOLD_MS);
     TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
 }
 
@@ -151,7 +225,112 @@ void when_lightInvalid_expect_staysIdle(void)
     TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
 }
 
+<<<<<<< HEAD
 void when_descentStill_expect_landed(void)
+=======
+void test_idle_ground_altitude_stays_idle(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    // Baro noise around the ground altitude
+    for (uint32_t t = 0; t <= 20000; t += MISSION_STATE_PERIOD)
+    {
+        set_altitude(100.0f + ((t / MISSION_STATE_PERIOD) % 2 ? 1.0f : -1.0f));
+        mission_state_task_run(&mission_task, t);
+    }
+
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_idle_held_climb_goes_to_ascent(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    set_altitude(100.0f);
+    run_between(0, 1000);
+
+    set_altitude(100.0f + ASCENT_ALT_DELTA_M + 1.0f);
+    run_between(1050, 1050 + ASCENT_HOLD_MS - MISSION_STATE_PERIOD);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+
+    mission_state_task_run(&mission_task, 1050 + ASCENT_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_ASCENT, ds_read_state());
+}
+
+void test_idle_altitude_spike_stays_idle(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    set_altitude(100.0f);
+    run_between(0, 1000);
+
+    set_altitude(100.0f + ASCENT_ALT_DELTA_M + 1.0f);
+    run_between(1050, 1050 + ASCENT_HOLD_MS - MISSION_STATE_PERIOD);
+
+    set_altitude(100.0f);
+    run_between(1050 + ASCENT_HOLD_MS, 10000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_idle_ground_reference_is_lowest_altitude(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+
+    // First sample is high, the reference must follow the ground once it's seen
+    set_altitude(100.0f + ASCENT_ALT_DELTA_M + 1.0f);
+    run_between(0, 500);
+    set_altitude(100.0f);
+    run_between(550, 1000);
+
+    set_altitude(100.0f + ASCENT_ALT_DELTA_M + 1.0f);
+    run_between(1050, 1050 + ASCENT_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_ASCENT, ds_read_state());
+}
+
+void test_idle_invalid_env_stays_idle(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+    set_altitude(100.0f);
+    run_between(0, 1000);
+
+    set_altitude(500.0f);
+    ds.env.s.valid = false;
+    _ds_set_full(&ds);
+
+    run_between(1050, 10000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_IDLE, ds_read_state());
+}
+
+void test_ascent_without_light_stays_ascent(void)
+{
+    set_state(FLIGHT_STATE_ASCENT);
+    set_light(false, false);
+    set_altitude(100.0f);
+
+    run_between(0, 10000);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_ASCENT, ds_read_state());
+}
+
+void test_full_flight_goes_through_ascent(void)
+{
+    set_state(FLIGHT_STATE_IDLE);
+    set_light(false, false);
+
+    set_altitude(100.0f);
+    run_between(0, 1000);
+
+    set_altitude(100.0f + ASCENT_ALT_DELTA_M + 1.0f);
+    run_between(1050, 1050 + ASCENT_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_ASCENT, ds_read_state());
+
+    set_altitude(800.0f);
+    set_light(true, false);
+    run_between(3000, 3000 + EJECTION_LIGHT_HOLD_MS);
+    TEST_ASSERT_EQUAL(FLIGHT_STATE_DESCENT, ds_read_state());
+}
+
+void test_descent_still_goes_to_landed(void)
+>>>>>>> origin/main
 {
     set_state(FLIGHT_STATE_DESCENT);
     set_landing_data(12.0f, 1.02f);
@@ -223,6 +402,7 @@ int main(void)
 {
     UNITY_BEGIN();
 
+<<<<<<< HEAD
     RUN_TEST(when_boot_expect_selfTestThenIdle);
     RUN_TEST(when_idleWithoutLight_expect_staysIdle);
     RUN_TEST(when_idleShortLight_expect_staysIdle);
@@ -237,6 +417,33 @@ int main(void)
     RUN_TEST(when_descentEnvInvalid_expect_staysDescent);
     RUN_TEST(when_landed_expect_staysLanded);
     RUN_TEST(when_run_expect_periodReturned);
+=======
+    RUN_TEST(test_boot_goes_to_idle);
+    RUN_TEST(test_idle_without_light_stays_idle);
+    RUN_TEST(test_idle_short_light_stays_idle);
+    RUN_TEST(test_idle_held_light_goes_to_descent);
+    RUN_TEST(test_uv_light_alone_is_enough);
+    RUN_TEST(test_idle_light_before_arming_stays_idle);
+    RUN_TEST(test_idle_short_dark_does_not_arm);
+    RUN_TEST(test_idle_invalid_light_does_not_arm);
+    RUN_TEST(test_full_flight_with_open_rocket_at_power_on);
+    RUN_TEST(test_ascent_held_light_goes_to_descent);
+    RUN_TEST(test_interrupted_light_restarts_window);
+    RUN_TEST(test_invalid_light_is_ignored);
+    RUN_TEST(test_idle_ground_altitude_stays_idle);
+    RUN_TEST(test_idle_held_climb_goes_to_ascent);
+    RUN_TEST(test_idle_altitude_spike_stays_idle);
+    RUN_TEST(test_idle_ground_reference_is_lowest_altitude);
+    RUN_TEST(test_idle_invalid_env_stays_idle);
+    RUN_TEST(test_ascent_without_light_stays_ascent);
+    RUN_TEST(test_full_flight_goes_through_ascent);
+    RUN_TEST(test_descent_still_goes_to_landed);
+    RUN_TEST(test_descent_falling_stays_descent);
+    RUN_TEST(test_descent_shaking_stays_descent);
+    RUN_TEST(test_descent_invalid_env_stays_descent);
+    RUN_TEST(test_landed_stays_landed);
+    RUN_TEST(test_run_returns_period);
+>>>>>>> origin/main
 
     return UNITY_END();
 }
