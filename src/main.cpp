@@ -8,6 +8,13 @@
 #include "debug_print.h"
 #include "debug_console.h"
 #include "bench_setup.h"
+#include "fotores_drivers.h"
+#include "uv_drivers.h"
+#include "gybmep_drivers.h"
+#include "fuel_gauge_drivers.h"
+#include "mq_7_drivers.h"
+#include "sd_drivers.h"
+#include "lora_drivers.h"
 
 /*
 Each core owns its scheduler and is the only one touching it.
@@ -42,6 +49,46 @@ static void apply_profile_if_changed(scheduler_t *sched, const bool *const *prof
     DBG_INFO("tasks profile of %s applied", debug_flight_state_name(state));
   }
 }
+
+/*
+Inits only prepare the hardware (most sensors are left asleep): tasks are enabled by the flight state profiles.
+A failed init doesn't stop the boot, the task will count the failures once its profile enables it.
+*/
+
+// Core 0 sensors
+static void sensors_init(void)
+{
+  // First: the SOC estimate needs the battery at rest, before any big load is on (blocks ~750 ms)
+  if (fuel_gauge_init() == SENS_STATE_ERR)
+    DBG_ERR("FUEL_GAUGE init failed");
+
+  fotores_init();
+  uv_init();
+
+  // Left asleep, the ENV task wakes it up
+  if (gybmep_init() != SENS_STATE_READY)
+    DBG_ERR("GYBMEP init failed");
+
+  // Heater off, the GAS task turns it on
+  mq_7_init();
+
+  // No init for:
+  // - GPS: gps_wake (on_enable) powers it on. Powering it on at boot browns out the board
+  // - IMU: imu_wake (on_enable) starts it
+  // - MLX90640: mlx_init is its on_enable
+}
+
+// Core 1 (SD / LoRa), both on the shared SPI bus owned by core 1
+static void sensors_init1(void)
+{
+  // FAT 8.3 names only (max 8 chars + 3 of extension)
+  if (sd_init("/DATA", "/DATA/LOG.BIN") != SENS_STATE_READY)
+    DBG_ERR("SD init failed");
+
+  // Sender, left asleep: the LORA task wakes it up
+  if (lora_init(false) != SENS_STATE_READY)
+    DBG_ERR("LORA init failed");
+}
 #endif
 
 void setup()
@@ -55,7 +102,7 @@ void setup()
   wait_serial_monitor();
   bench_setup(&sched_core0);
 #else
-  // TODO: init sensors / drivers here
+  sensors_init();
 #endif
 }
 
@@ -77,7 +124,7 @@ void setup1()
   wait_serial_monitor();
   bench_setup1(&sched_core1);
 #else
-  // TODO: init sd / lora here
+  sensors_init1();
 #endif
 }
 
