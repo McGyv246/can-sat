@@ -73,7 +73,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .run = fuel_gauge_task_run,
         .on_enable = fuel_gauge_task_on_enable,
         .on_disable = fuel_gauge_task_on_disable,
-        .period = 20,
+        .period = 2000,
         .priority = 6,
     },
     [TASK_CORE0_MISSION_STATE] = {
@@ -128,21 +128,22 @@ const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = false,
-    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_ENV] = true, /* altitude for the ascent detection */
     [TASK_CORE0_GAS] = false,
-    [TASK_CORE0_UV_FAST] = true,
-    [TASK_CORE0_UV_SLOW] = false,
-    [TASK_CORE0_FOTORES_FAST] = true,
-    [TASK_CORE0_FOTORES_SLOW] = false,
+    /* Slow light tasks: in IDLE the light is only a fallback if the ascent is missed, the fast ones start in ASCENT */
+    [TASK_CORE0_UV_FAST] = false,
+    [TASK_CORE0_UV_SLOW] = true,
+    [TASK_CORE0_FOTORES_FAST] = false,
+    [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = false,
 };
-/* Like IDLE, plus the thermal camera: it boots in ASCENT so it's already running at the ejection */
+/* Like IDLE with the fast light tasks, plus the thermal camera and the GPS: they boot in ASCENT so they're already running at the ejection */
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = false,
+    [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = false,
-    [TASK_CORE0_ENV] = false,
+    [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = false,
     [TASK_CORE0_UV_FAST] = true,
     [TASK_CORE0_UV_SLOW] = false,
@@ -184,7 +185,7 @@ const bool tasks_enabled_core1_boot[TASK_CORE1_COUNT] = {
     [TASK_CORE1_LORA] = false,
 };
 const bool tasks_enabled_core1_idle[TASK_CORE1_COUNT] = {
-    [TASK_CORE1_SD] = true,
+    [TASK_CORE1_SD] = true, /* light tasks are slow in IDLE, ~2 KB/s in ASCENT with the fast ones */
     [TASK_CORE1_LORA] = false,
 };
 const bool tasks_enabled_core1_descent[TASK_CORE1_COUNT] = {

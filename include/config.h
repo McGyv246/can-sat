@@ -19,8 +19,16 @@ extern "C"
 
 #define SYNC_WORD 0xA5A5
 
+// IDLE -> ASCENT: altitude must stay this far above the ground (lowest altitude seen in IDLE) for this long
+#define ASCENT_ALT_DELTA_M 15.0f
+#define ASCENT_HOLD_MS 1000
+
 // IDLE / ASCENT -> DESCENT: light must be seen continuously for this long
 #define EJECTION_LIGHT_HOLD_MS 1000
+
+// IDLE only: the light check is armed after it has been dark continuously for this long (rocket closed),
+// so the light seen while the CanSat is turned on with the rocket open doesn't trigger the ejection
+#define LIGHT_ARM_DARK_HOLD_MS 10000
 
 // DESCENT -> LANDED: altitude and acceleration must stay stable for this long
 #define LANDED_HOLD_MS 5000

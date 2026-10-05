@@ -77,6 +77,11 @@ static bool stable_update(stable_t *s, float value, bool valid, float tol, uint3
 typedef struct
 {
     persist_t light;
+    persist_t dark;
+    bool light_armed; /* IDLE only: the ejection is checked only after the rocket has been closed */
+    persist_t ascent;
+    float ground_alt_m; /* lowest altitude seen in IDLE, reference for the ascent */
+    bool has_ground_alt;
     stable_t altitude;
     persist_t accel_still;
 } detectors_t;
@@ -100,6 +105,60 @@ static bool is_there_light(datastore_t *ds)
 {
     return (ds->fotores.s.valid && ds->fotores.is_there_light) ||
            (ds->uv.s.valid && ds->uv.is_there_light);
+}
+
+// Dark only if at least one light sensor is valid and none of them sees light
+static bool is_dark(datastore_t *ds)
+{
+    return (ds->fotores.s.valid || ds->uv.s.valid) && !is_there_light(ds);
+}
+
+// The CanSat is turned on with the rocket open, so light in IDLE is ignored until it has
+// been dark long enough to say the rocket is closed. Once armed it stays armed.
+static bool is_light_armed(datastore_t *ds, uint32_t now_millis)
+{
+    if (!det.light_armed && persist_update(&det.dark, is_dark(ds), now_millis, LIGHT_ARM_DARK_HOLD_MS))
+    {
+        det.light_armed = true;
+        DBG_INFO("ejection check armed (dark for %lums)", (unsigned long)(now_millis - det.dark.since_ms));
+    }
+
+    return det.light_armed;
+}
+
+static bool is_ascending(datastore_t *ds, uint32_t now_millis)
+{
+    bool above_ground = false;
+
+    if (ds->env.s.valid)
+    {
+        // Tracking the minimum keeps the reference on the ground even if the first samples are noisy
+        if (!det.has_ground_alt || ds->env.altitude_m < det.ground_alt_m)
+        {
+            det.ground_alt_m = ds->env.altitude_m;
+            det.has_ground_alt = true;
+        }
+
+        above_ground = (ds->env.altitude_m - det.ground_alt_m) > ASCENT_ALT_DELTA_M;
+    }
+
+    return persist_update(&det.ascent, above_ground, now_millis, ASCENT_HOLD_MS);
+}
+
+// Returns true (and changes state) if the ejection was detected
+static bool check_ejection(datastore_t *ds, uint32_t now_millis)
+{
+    if (!persist_update(&det.light, is_there_light(ds), now_millis, EJECTION_LIGHT_HOLD_MS))
+        return false;
+
+#ifdef SERIAL_DEBUG_INFO
+    char reason[32];
+    snprintf(reason, sizeof(reason), "light held %lums", (unsigned long)(now_millis - det.light.since_ms));
+#else
+    const char *reason = NULL;
+#endif
+    change_state(ds->state, FLIGHT_STATE_DESCENT, now_millis, reason);
+    return true;
 }
 
 static bool is_landed(datastore_t *ds, uint32_t now_millis)
@@ -139,18 +198,15 @@ uint32_t mission_state_task_run(task_t *self, uint32_t now_millis)
         break;
 
     case FLIGHT_STATE_IDLE:
-        // TODO: eventually detect the ascent from accelerations, for now IDLE goes straight to DESCENT
+        // The ejection is still checked here: if the ascent is missed (e.g. no barometer) IDLE goes straight to DESCENT
+        if (is_light_armed(&ds, now_millis) && check_ejection(&ds, now_millis))
+            break;
+        if (is_ascending(&ds, now_millis))
+            change_state(ds.state, FLIGHT_STATE_ASCENT, now_millis, "altitude above ground");
+        break;
+
     case FLIGHT_STATE_ASCENT:
-        if (persist_update(&det.light, is_there_light(&ds), now_millis, EJECTION_LIGHT_HOLD_MS))
-        {
-#ifdef SERIAL_DEBUG_INFO
-            char reason[32];
-            snprintf(reason, sizeof(reason), "light held %lums", (unsigned long)(now_millis - det.light.since_ms));
-#else
-            const char *reason = NULL;
-#endif
-            change_state(ds.state, FLIGHT_STATE_DESCENT, now_millis, reason);
-        }
+        check_ejection(&ds, now_millis);
         break;
 
     case FLIGHT_STATE_DESCENT:
