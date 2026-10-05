@@ -10,14 +10,27 @@ All the tasks the scheduler runs, with their initial settings.
 Fields not listed start at 0 / NULL (due = 0, fail_count = 0, last_state = TASK_STATE_OK, no on_enable/on_disable).
 Tasks with a fast and a slow variant (UV, FOTORES) start with the slow period:
 change self->period at runtime when switching flight phase (fast: 150 ms, priority 0 for UV).
+
+THERMAL_LAUNCH (set by the sat_thermal env) picks the firmware of the thermal camera launch:
+every thermal read blocks core 0 for hundreds of ms, so the camera flies alone on its launch,
+with only what the flight state detection needs (polled less often, they'd be late anyway).
+Without it (sat env) the camera is never enabled in flight and the other sensors get core 0 for themselves.
 */
+#ifdef THERMAL_LAUNCH
+#define GPS_PERIOD_MS 1000
+#define IMU_PERIOD_MS 250 /* still enough for the 5 s landed accel window */
+#else
+#define GPS_PERIOD_MS 500
+#define IMU_PERIOD_MS 50
+#endif
+
 task_t tasks_core0[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = {
         .name = "GPS",
         .run = gps_task_run,
         .on_enable = gps_task_on_enable,
         .on_disable = gps_task_on_disable,
-        .period = 500,
+        .period = GPS_PERIOD_MS,
         .priority = 0,
     },
     [TASK_CORE0_IMU] = {
@@ -25,7 +38,7 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .run = imu_task_run,
         .on_enable = imu_task_on_enable,
         .on_disable = imu_task_on_disable,
-        .period = 50,
+        .period = IMU_PERIOD_MS,
         .priority = 1,
     },
     [TASK_CORE0_ENV] = {
@@ -139,7 +152,10 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = false,
 };
-/* Like IDLE, plus the thermal camera and the GPS: they boot in ASCENT so they're already running at the ejection */
+/*
+Like IDLE, plus the GPS: it boots in ASCENT so it already has a fix at the ejection.
+The thermal camera stays off in both launches: its blocking reads would break the light detection of the ejection.
+*/
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = false,
@@ -151,8 +167,27 @@ const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_SLOW] = false,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_THERMAL] = false,
+};
+#ifdef THERMAL_LAUNCH
+/*
+The camera boots here (mlx_init blocks for a while once, then the first frame comes after ~1 s).
+ENV and IMU are kept for the landed detection, GPS to find the CanSat, battery for the health.
+*/
+const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
+    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_IMU] = true,
+    [TASK_CORE0_ENV] = true,
+    [TASK_CORE0_GAS] = false,
+    [TASK_CORE0_UV_FAST] = false,
+    [TASK_CORE0_UV_SLOW] = false,
+    [TASK_CORE0_FOTORES_FAST] = false,
+    [TASK_CORE0_FOTORES_SLOW] = false,
+    [TASK_CORE0_BATTERY] = true,
+    [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = true,
 };
+#else
 const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = true,
@@ -164,8 +199,9 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_FOTORES_SLOW] = true,
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
-    [TASK_CORE0_THERMAL] = true,
+    [TASK_CORE0_THERMAL] = false,
 };
+#endif
 const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = true,
     [TASK_CORE0_IMU] = false,
