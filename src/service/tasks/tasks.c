@@ -104,6 +104,15 @@ task_t tasks_core0[TASK_CORE0_COUNT] = {
         .period = 1000,
         .priority = 3,
     },
+    [TASK_CORE0_LED] = {
+        // 50 ms is enough for the shortest flash of the patterns (100 ms)
+        .name = "LED",
+        .run = led_task_run,
+        .on_enable = led_task_on_enable,
+        .on_disable = led_task_on_disable,
+        .period = 50,
+        .priority = 7,
+    },
 };
 
 task_t tasks_core1[TASK_CORE1_COUNT] = {
@@ -134,9 +143,11 @@ bool tasks_enabled_core1[TASK_CORE1_COUNT] = {false};
 /*
 Per flight state profiles.
 TASK_CORE0_MISSION_STATE must be enabled in every profile, otherwise the state would never change again.
+TASK_CORE0_LED is enabled in every profile too: it decides by itself what to show in each state.
 */
 const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
     [TASK_CORE0_MISSION_STATE] = true,
+    [TASK_CORE0_LED] = true,
 };
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_GPS] = false,
@@ -151,6 +162,7 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = false,
+    [TASK_CORE0_LED] = true,
 };
 /*
 Like IDLE, plus the GPS: it boots in ASCENT so it already has a fix at the ejection.
@@ -186,6 +198,7 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = true,
+    [TASK_CORE0_LED] = true,
 };
 #else
 const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
@@ -200,6 +213,7 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = false,
+    [TASK_CORE0_LED] = true,
 };
 #endif
 const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
@@ -214,6 +228,7 @@ const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
     [TASK_CORE0_BATTERY] = true,
     [TASK_CORE0_MISSION_STATE] = true,
     [TASK_CORE0_THERMAL] = false,
+    [TASK_CORE0_LED] = true,
 };
 
 const bool tasks_enabled_core1_boot[TASK_CORE1_COUNT] = {

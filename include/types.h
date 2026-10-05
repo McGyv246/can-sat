@@ -494,6 +494,9 @@ For now the choice of the length of such integer has been made by Claude, we wil
 #define BLUE ((rgb_colors_t){0, 0, 255})
 #define YELLOW ((rgb_colors_t){255, 255, 0})
 #define VIOLET ((rgb_colors_t){255, 0, 255})
+#define CYAN ((rgb_colors_t){0, 255, 255})
+#define WHITE ((rgb_colors_t){255, 255, 255})
+#define BLACK ((rgb_colors_t){0, 0, 0}) /* led off */
 
 #pragma endregion
 
