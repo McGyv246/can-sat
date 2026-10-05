@@ -55,6 +55,24 @@ Inits only prepare the hardware (most sensors are left asleep): tasks are enable
 A failed init doesn't stop the boot, the task will count the failures once its profile enables it.
 */
 
+#define INIT_ATTEMPTS 3
+#define INIT_RETRY_DELAY_MS 200
+
+// Retries an init that can fail just because the device isn't ready yet after power up (e.g. the SD card).
+// Blocking is fine here: the flight state is still BOOT
+static bool init_with_retry(const char *name, sens_state_t (*init)(void))
+{
+  for (int attempt = 1; attempt <= INIT_ATTEMPTS; attempt++)
+  {
+    if (init() == SENS_STATE_READY)
+      return true;
+    DBG_ERR("%s init failed (attempt %d/%d)", name, attempt, INIT_ATTEMPTS);
+    if (attempt < INIT_ATTEMPTS)
+      delay(INIT_RETRY_DELAY_MS);
+  }
+  return false;
+}
+
 // Core 0 sensors
 static void sensors_init(void)
 {
@@ -66,8 +84,7 @@ static void sensors_init(void)
   uv_init();
 
   // Left asleep, the ENV task wakes it up
-  if (gybmep_init() != SENS_STATE_READY)
-    DBG_ERR("GYBMEP init failed");
+  init_with_retry("GYBMEP", gybmep_init);
 
   // Heater off, the GAS task turns it on
   mq_7_init();
@@ -82,12 +99,12 @@ static void sensors_init(void)
 static void sensors_init1(void)
 {
   // FAT 8.3 names only (max 8 chars + 3 of extension)
-  if (sd_init("/DATA", "/DATA/LOG.BIN") != SENS_STATE_READY)
-    DBG_ERR("SD init failed");
+  init_with_retry("SD", []
+                  { return sd_init("/DATA", "/DATA/LOG.BIN"); });
 
   // Sender, left asleep: the LORA task wakes it up
-  if (lora_init(false) != SENS_STATE_READY)
-    DBG_ERR("LORA init failed");
+  init_with_retry("LORA", []
+                  { return lora_init(false); });
 }
 #endif
 
