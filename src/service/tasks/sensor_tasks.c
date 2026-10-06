@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stdio.h>
+#include <math.h>
 
 #include "config.h"
 #include "types.h"
@@ -8,6 +10,8 @@
 #include "hal_time.h"
 #include "pack_data_sd.h"
 #include "thermal_summary.h"
+#include "gps_warmup.h"
+#include "debug_print.h"
 
 #include "fotores_drivers.h"
 #include "fuel_gauge_drivers.h"
@@ -99,26 +103,127 @@ void fuel_gauge_task_on_disable(task_t *self) { task_check(self, fuel_gauge_slee
 
 #pragma region gps
 
+/*
+The task doesn't keep the GPS always on: gps_warmup decides it from the flight state (see gps_warmup.h).
+In IDLE it's turned on until it locks, then off with the satellites saved; in the other states it's on.
+*/
+static gps_warmup_t gps_warmup;
+static bool gps_powered;
+static bool gps_fix_valid; /* valid field of the last sample, kept between the runs without a new one */
+
+#ifdef SERIAL_DEBUG_INFO
+#define GPS_DEBUG_PRINT_MS 5000
+
+/*
+Every GPS_DEBUG_PRINT_MS while the GPS is on, two lines to see why it doesn't lock (see the README), e.g.
+  GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
+  GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 ...
+*/
+static void gps_debug_print(uint32_t now_millis)
+{
+    static uint32_t last_print_ms;
+    static uint32_t last_chars;
+
+    if ((now_millis - last_print_ms) < GPS_DEBUG_PRINT_MS)
+        return;
+    uint32_t elapsed_ms = now_millis - last_print_ms;
+    last_print_ms = now_millis;
+
+    gps_debug_t d;
+    gps_get_debug(&d);
+    gps_t data;
+    gps_get(&data);
+
+    uint32_t rate = (d.chars - last_chars) * 1000u / elapsed_ms;
+    last_chars = d.chars;
+    unsigned hdop_x10 = isnan(data.hdop) ? 999u : (unsigned)(data.hdop * 10.0f + 0.5f);
+
+    DBG_INFO("GPS on %lus | rx %luB/s bad %lu ovf %lu boots %lu ant %s | mode %u view %u used %u hdop %u.%u time %s",
+             (unsigned long)(d.on_ms / 1000u), (unsigned long)rate, (unsigned long)d.failed_checksum,
+             (unsigned long)d.rx_overflows, (unsigned long)d.boots, d.antenna[0] ? d.antenna : "?",
+             (unsigned)d.fix_mode, (unsigned)d.sats_in_view, (unsigned)data.sats, hdop_x10 / 10u, hdop_x10 % 10u,
+             d.time_valid ? "ok" : "no");
+
+    char sats[GPS_DEBUG_MAX_SATS * 7 + 1];
+    size_t len = 0;
+    sats[0] = '\0';
+    for (uint8_t i = 0; i < d.sats_count && len < sizeof(sats); i++)
+        len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u", (unsigned)d.prn[i], (unsigned)d.snr[i]);
+    DBG_INFO("GPS snr (PRN:dB-Hz)%s", d.sats_count ? sats : " none in view");
+}
+#endif
+
+static void gps_set_power(task_t *self, bool on)
+{
+    if (on == gps_powered)
+        return;
+
+    task_check(self, on ? gps_wake() : gps_sleep());
+    gps_powered = on;
+    gps_fix_valid = false;
+    DBG_INFO("GPS powered %s", on ? "on" : "off");
+}
+
 uint32_t gps_task_run(task_t *self, uint32_t now_millis)
 {
-    sens_state_t state = gps_poll(now_millis);
+    sens_state_t state = SENS_STATE_NOT_READY;
 
-    if (state == SENS_STATE_READY)
+    if (gps_powered)
     {
-        gps_t data;
-        gps_get(&data);
-        ds_write_gps(&data, now_millis);
+        state = gps_poll(now_millis);
 
-        gps_sd_t packed_data;
-        gps_to_sd(&packed_data, &data);
-        buf_write(&packed_data, sizeof(packed_data));
+        if (state == SENS_STATE_READY)
+        {
+            gps_t data;
+            gps_get(&data);
+            ds_write_gps(&data, now_millis);
+
+            gps_sd_t packed_data;
+            gps_to_sd(&packed_data, &data);
+            buf_write(&packed_data, sizeof(packed_data));
+
+#ifdef SERIAL_DEBUG_INFO
+            if (data.s.valid != gps_fix_valid)
+            {
+                gps_debug_t d;
+                gps_get_debug(&d);
+                DBG_INFO("GPS fix %s (%u sats, %lus after power on)", data.s.valid ? "found" : "lost",
+                         (unsigned)data.sats, (unsigned long)(d.on_ms / 1000u));
+            }
+#endif
+            gps_fix_valid = data.s.valid;
+        }
+
+#ifdef SERIAL_DEBUG_INFO
+        gps_debug_print(now_millis);
+#endif
+    }
+
+    bool was_warm = gps_warmup.warm;
+    gps_set_power(self, gps_warmup_update(&gps_warmup, ds_read_state(), gps_fix_valid, now_millis));
+    if (gps_warmup.warm && !was_warm)
+        DBG_INFO("GPS locked, satellites saved");
+
+    if (!gps_powered)
+    {
+        // Off on purpose, waiting in IDLE: not a failure
+        self->last_state = TASK_STATE_OK;
+        return self->period;
     }
 
     return task_report(self, state);
 }
 
-void gps_task_on_enable(task_t *self) { task_check(self, gps_wake()); }
-void gps_task_on_disable(task_t *self) { task_check(self, gps_sleep()); }
+// The GPS is powered by the first run, gps_warmup decides if it must be
+void gps_task_on_enable(task_t *self)
+{
+    (void)self;
+    gps_warmup_reset(&gps_warmup);
+}
+
+void gps_task_on_disable(task_t *self) { gps_set_power(self, false); }
+
+bool gps_task_is_warm(uint32_t now_millis) { return gps_warmup_is_warm(&gps_warmup, now_millis); }
 
 #pragma endregion
 

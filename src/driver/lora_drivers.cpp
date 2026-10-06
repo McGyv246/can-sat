@@ -4,6 +4,7 @@
 #include "types.h"
 #include "config_arduino.h"
 #include "arduino_wrapper.h"
+#include "debug_print.h"
 
 // uncomment the chosen lora setting
 
@@ -74,7 +75,7 @@ static const int SYNC_WORD_LORA = 0x12;       // default
 static volatile bool busy = false;
 static volatile uint32_t tx_start_time;
 static volatile uint32_t tx_end_time;
-static volatile uint32_t wait_time = UINT32_MAX;
+static volatile uint32_t wait_time = 0; // no wait before the first packet, onTxDone sets it after each one
 static bool flushed = true;
 
 // receiver globals
@@ -145,14 +146,24 @@ extern "C"
             return SENS_STATE_NOT_READY;
         if (busy)
             return SENS_STATE_NOT_READY;
+        // on errors the chip version tells a dead SPI link (0x00 / 0xFF) from a radio that answers (0x12)
+        int16_t err;
         if (!flushed)
         {
-            if (lora.finishTransmit() != RADIOLIB_ERR_NONE)
+            err = lora.finishTransmit();
+            if (err != RADIOLIB_ERR_NONE)
+            {
+                DBG_ERR("LORA finishTransmit err %d, chip version 0x%02x", err, (unsigned)lora.getChipVersion());
                 return SENS_STATE_ERR;
+            }
             flushed = true;
         }
-        if (lora.startTransmit(buffer, len) != RADIOLIB_ERR_NONE)
+        err = lora.startTransmit(buffer, len);
+        if (err != RADIOLIB_ERR_NONE)
+        {
+            DBG_ERR("LORA startTransmit err %d, chip version 0x%02x", err, (unsigned)lora.getChipVersion());
             return SENS_STATE_ERR;
+        }
         tx_start_time = wrapper_millis();
         busy = true;
         flushed = false;
@@ -164,6 +175,11 @@ extern "C"
         *received_len = 0;
         if (!receiver)
             return SENS_STATE_ERR;
+#ifdef LORA_POLL_RX
+        // no DIO0 wire: the flag register is the only source, a floating pin could fire onReceive with no packet.
+        // readData clears the flags and the radio stays in continuous receive
+        packet_received = (lora.getIRQFlags() & RADIOLIB_SX127X_CLEAR_IRQ_FLAG_RX_DONE) != 0;
+#endif
         if (!packet_received)
             return SENS_STATE_NOT_READY;
         // cleared before reading: if a new packet arrives meanwhile the ISR sets it again and it's not lost
@@ -188,5 +204,10 @@ extern "C"
     {
         lora.sleep();
         return;
+    }
+
+    uint16_t lora_get_irq_flags(void)
+    {
+        return lora.getIRQFlags();
     }
 }

@@ -7,6 +7,7 @@
 #include "ring_buffer.h"
 #include "pack_data_lora.h"
 #include "datastore.h"
+#include "debug_print.h"
 
 uint32_t lora_task_run(task_t *self, uint32_t now_millis)
 {
@@ -22,10 +23,15 @@ uint32_t lora_task_run(task_t *self, uint32_t now_millis)
     {
         self->fail_count += 1;
         self->last_state = TASK_STATE_ERR;
+        DBG_ERR("LORA send failed (seq %u)", (unsigned)data_to_send.seq);
     }
     else // SENS_STATE_READY || SENS_STATE_NOT_READY
     {
         self->last_state = TASK_STATE_BUSY;
+        if (state == SENS_STATE_READY)
+            DBG_INFO("LORA sent seq %u (%u B)", (unsigned)data_to_send.seq, (unsigned)sizeof(data_to_send));
+        else /* previous packet still in the air (no TX done on DIO0) or duty cycle wait */
+            DBG_INFO("LORA skipped seq %u: radio busy or duty cycle wait", (unsigned)data_to_send.seq);
     }
 
     /*

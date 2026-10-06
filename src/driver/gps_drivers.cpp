@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <TinyGPS++.h>
 #include "types.h"
 #include "gps_drivers.h"
@@ -17,11 +19,87 @@ static bool is_on = false;
 static TinyGPSPlus gps;
 static gps_t latest_sample;
 
+#pragma region debug
+
+// Sentences TinyGPS++ doesn't parse by itself, only used by gps_get_debug
+static TinyGPSCustom gsa_mode(gps, "GPGSA", 2);
+static TinyGPSCustom gsv_msg_count(gps, "GPGSV", 1);
+static TinyGPSCustom gsv_msg_num(gps, "GPGSV", 2);
+static TinyGPSCustom gsv_in_view(gps, "GPGSV", 3);
+// every GSV message has up to 4 satellites, each one as PRN, elevation, azimuth, SNR
+static TinyGPSCustom gsv_prn[4] = {{gps, "GPGSV", 4}, {gps, "GPGSV", 8}, {gps, "GPGSV", 12}, {gps, "GPGSV", 16}};
+static TinyGPSCustom gsv_snr[4] = {{gps, "GPGSV", 7}, {gps, "GPGSV", 11}, {gps, "GPGSV", 15}, {gps, "GPGSV", 19}};
+static TinyGPSCustom txt(gps, "GPTXT", 4);
+
+static gps_debug_t dbg;
+static uint8_t gsv_prn_work[GPS_DEBUG_MAX_SATS]; // GSV cycle being collected, copied to dbg when complete
+static uint8_t gsv_snr_work[GPS_DEBUG_MAX_SATS];
+static uint8_t gsv_work_count;
+static uint32_t power_on_ms;
+
+// Called after every good sentence: GSV is split in many messages, the values of each one must be
+// read before the next one overwrites them
+static void debug_on_sentence(void)
+{
+    if (gsa_mode.isUpdated())
+        dbg.fix_mode = (uint8_t)atoi(gsa_mode.value());
+
+    if (txt.isUpdated())
+    {
+        const char *t = txt.value();
+        if (strncmp(t, "u-blox ag", 9) == 0) // first line of the boot banner
+            dbg.boots++;
+        else if (strncmp(t, "ANTSTATUS=", 10) == 0)
+        {
+            strncpy(dbg.antenna, t + 10, sizeof(dbg.antenna) - 1);
+            dbg.antenna[sizeof(dbg.antenna) - 1] = '\0';
+        }
+    }
+
+    if (!gsv_msg_num.isUpdated())
+        return;
+
+    int num = atoi(gsv_msg_num.value());
+    int count = atoi(gsv_msg_count.value());
+    int in_view = atoi(gsv_in_view.value());
+    if (num == 1)
+        gsv_work_count = 0;
+
+    // The last message can have less than 4 satellites. Its missing fields keep the values of the
+    // previous message in TinyGPSCustom, so how many to read comes from the satellites in view
+    int in_this_msg = in_view - (num - 1) * 4;
+    if (in_this_msg > 4)
+        in_this_msg = 4;
+
+    for (int i = 0; i < in_this_msg && gsv_work_count < GPS_DEBUG_MAX_SATS; i++)
+    {
+        gsv_prn_work[gsv_work_count] = (uint8_t)atoi(gsv_prn[i].value());
+        gsv_snr_work[gsv_work_count] = (uint8_t)atoi(gsv_snr[i].value()); // empty = not tracked = 0
+        gsv_work_count++;
+    }
+
+    if (num == count)
+    {
+        dbg.sats_in_view = (uint8_t)in_view;
+        memcpy(dbg.prn, gsv_prn_work, gsv_work_count);
+        memcpy(dbg.snr, gsv_snr_work, gsv_work_count);
+        dbg.sats_count = gsv_work_count;
+    }
+}
+
+#pragma endregion
+
 // feeds every byte received so far to the NMEA parser
 static void read_available(void)
 {
+    if (Serial1.overflow())
+        dbg.rx_overflows++;
+
     while (Serial1.available() > 0)
-        gps.encode(Serial1.read());
+    {
+        if (gps.encode(Serial1.read()))
+            debug_on_sentence();
+    }
 }
 
 // sets the command pin too, so gps_wake works even if gps_init was never called
@@ -32,6 +110,7 @@ static void power_on(void)
     Serial1.setFIFOSize(RX_BUFFER_SIZE); // must be called before begin
     Serial1.begin(GPS_BAUD);
     is_on = true;
+    power_on_ms = millis();
 }
 
 static bool has_fix(void)
@@ -121,6 +200,16 @@ extern "C"
     {
         *data = latest_sample;
         return;
+    }
+
+    void gps_get_debug(gps_debug_t *d)
+    {
+        dbg.chars = gps.charsProcessed();
+        dbg.passed_checksum = gps.passedChecksum();
+        dbg.failed_checksum = gps.failedChecksum();
+        dbg.time_valid = gps.time.isValid() && (gps.time.age() < MAX_SAMPLE_AGE);
+        dbg.on_ms = is_on ? millis() - power_on_ms : 0;
+        *d = dbg;
     }
 
     sens_state_t gps_sleep(void)

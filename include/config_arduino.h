@@ -19,9 +19,20 @@ extern "C"
 
 #define CHIPSELECT_SD WRAPPER_D7
 
+#ifdef GROUND_STATION
+/* Ground station board wiring (RFM95), see basestation/src/lora_config.h in
+ * https://github.com/ApoTed/cansat-2026-stazione-radio */
+#define DIO_LORA WRAPPER_D7
+#define CHIPSELECT_LORA WRAPPER_D9
+#define RESET_LORA WRAPPER_D8
+/* DIO0 isn't wired on the ground board: lora_read_packet polls the radio's RxDone flag over SPI
+ * instead of waiting for the interrupt. Remove it once IO0 is connected to D7 */
+#define LORA_POLL_RX
+#else
 #define DIO_LORA WRAPPER_D8
 #define CHIPSELECT_LORA WRAPPER_D9
 #define RESET_LORA WRAPPER_D10
+#endif
 
 #define A_IN_UV WRAPPER_D14
 

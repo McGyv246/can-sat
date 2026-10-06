@@ -25,9 +25,9 @@ extern "C"
         LED_STATUS_BATTERY_LOW,    /* yellow blink */
         LED_STATUS_SENSOR_WARNING, /* violet blink: the last run of an enabled sensor task failed */
         LED_STATUS_BOOT,           /* steady blue: BOOT, SELF_TEST */
-        LED_STATUS_GPS_SEARCHING,  /* cyan flash every second: GPS on, not enough satellites yet */
-        LED_STATUS_GPS_LOCKED,     /* green double flash every 2 s: ready, GPS locked */
-        LED_STATUS_READY,          /* green flash every 2 s: ready, GPS off */
+        LED_STATUS_GPS_SEARCHING,  /* cyan flash every second: GPS task on, not locked yet */
+        LED_STATUS_GPS_LOCKED,     /* green double flash every 2 s: ready, GPS locked (satellites saved) */
+        LED_STATUS_READY,          /* green flash every 2 s: ready, GPS task off */
         LED_STATUS_COUNT,          /* MUST BE LAST! */
     } led_status_t;
 
@@ -77,10 +77,11 @@ extern "C"
     bool led_battery_low(const battery_t *battery);
 
     /*
-    LOCKED if the last GPS sample is valid (fix with at least MIN_SATS satellites) and recent,
-    SEARCHING if the GPS task is running without that, OFF if the task is disabled
+    LOCKED if the GPS is warm (see gps_warmup_is_warm): it held a fix long enough and its satellites are
+    saved, even if it's now turned off waiting for the launch.
+    SEARCHING if the GPS task is enabled without that, OFF if the task is disabled
     */
-    led_gps_t led_gps_status(const gps_t *gps, bool gps_enabled, uint32_t now_millis);
+    led_gps_t led_gps_status(bool gps_enabled, bool gps_warm);
 
 #ifdef __cplusplus
 }

@@ -104,17 +104,64 @@ Errori e avvisi si vedono solo a terra prima del lancio (BOOT, SELF_TEST, IDLE).
 | BOOT, SELF_TEST, IDLE | Batteria sotto il 10% (`LED_BATTERY_LOW_PCT`) o allarme del sensore della batteria | Giallo, lampeggio (0.3 s acceso, 0.3 s spento) | Batteria scarica |
 | BOOT, SELF_TEST, IDLE | L'ultima esecuzione di un task acceso del core 0 è fallita | Viola, lampeggio (0.3 s acceso, 0.3 s spento) | Un sensore non risponde (con il comando `p` si vede quale) |
 | BOOT, SELF_TEST | Tutto ok | Blu fisso | Avvio in corso |
-| IDLE | GPS acceso, agganciato (fix con almeno `MIN_SATS` satelliti, ultimo dato di meno di 3 s) | Verde, due lampi brevi ogni 2 s | Pronto, GPS agganciato |
-| IDLE | GPS acceso, non ancora agganciato | Azzurro, un lampo breve ogni secondo | Pronto, il GPS sta cercando i satelliti |
-| IDLE | Tutto ok, GPS spento | Verde, un lampo breve ogni 2 s | Pronto |
+| IDLE | GPS agganciato: ha tenuto il fix (almeno `MIN_SATS` satelliti) per `GPS_LOCK_HOLD_MS` nelle ultime 2 ore (`GPS_WARM_VALID_MS`). Di solito è già spento con i satelliti salvati | Verde, due lampi brevi ogni 2 s | Pronto, GPS agganciato |
+| IDLE | Task GPS acceso, non ancora agganciato | Azzurro, un lampo breve ogni secondo | Il GPS sta cercando i satelliti (nei primi 10 s è ancora spento, vedi sotto) |
+| IDLE | Tutto ok, task GPS spento | Verde, un lampo breve ogni 2 s | Pronto |
 | ASCENT, DESCENT | Sempre | Spento | In volo nessuno lo vede, e in ASCENT la sua luce potrebbe far credere ai sensori di luce che c'è stata l'espulsione |
 | LANDED | Sempre | Bianco, un lampo breve ogni 2 s | Atterrato, serve per ritrovare il satellite |
 
 Note:
 
-- Gli schemi azzurro e verde doppio compaiono solo se il GPS è acceso in IDLE (`tasks_enabled_core0_idle` in `src/service/tasks/tasks.c`). Finché è spento si vede il lampo verde singolo.
+- Gli schemi azzurro e verde doppio compaiono solo se il task GPS è acceso in IDLE (`tasks_enabled_core0_idle` in `src/service/tasks/tasks.c`, acceso di default). Se lo si spegne si vede il lampo verde singolo. Come funziona l'aggancio è spiegato in [GPS: aggancio dei satelliti prima del lancio](#gps-aggancio-dei-satelliti-prima-del-lancio).
 - In IDLE i sensori di luce sono accesi e l'espulsione viene rilevata con `EJECTION_LIGHT_HOLD_MS` di luce continua. Per questo in IDLE il LED non resta mai acceso più di 0.3 s di fila (lo controlla `test/led_status_test.c`). La fotoresistenza però può essere lenta a tornare al buio: prima del volo va provato a satellite chiuso, con il LED che lampeggia rosso, che non passi a DESCENT da solo.
 - Al banco (env `sat_bench`) lo stato resta BOOT, quindi se è tutto ok il LED è blu fisso. Per vedere gli schemi degli altri stati si usa `s<N>`, ad esempio `s2` per IDLE.
+
+## GPS: aggancio dei satelliti prima del lancio
+
+Da spento il NEO-6M tiene i satelliti trovati nella sua memoria, alimentata dalla batteria tampone sul modulo (anche quando D17 gli toglie l'alimentazione). Quanto ci mette a riagganciarsi dipende da quanto sono vecchi:
+
+- **Effemeridi** (orbite precise, valgono circa 2-4 ore): fix in pochi secondi (hot start).
+- **Almanacco** (orbite approssimative, vale settimane): fix in circa 30 s - qualche minuto all'aperto.
+- **Niente** (cold start): almeno 12.5 minuti solo per scaricare l'almanacco, molto di più con poco segnale.
+
+Per questo il GPS si prepara in due passi.
+
+**1. Nei giorni prima, a casa (almanacco).** Con l'env `sat_bench`, all'aperto e con il cielo libero, `t0` accende il task GPS. Quando sulla Serial compare `GPS fix found (N sats)` lo si lascia acceso **almeno altri 15 minuti**, così scarica l'almanacco completo, poi si spegne il satellite e si carica l'env `sat`. Ricaricare il firmware non cancella niente: i dati sono nel modulo GPS, non nell'Arduino.
+
+**2. Al campo di lancio (effemeridi), in automatico con l'env `sat`.** Si accende il satellite all'aperto. In IDLE il task GPS (`src/service/gps_warmup.c`):
+
+1. aspetta `GPS_POWER_ON_DELAY_MS` (10 s) prima di accendere il GPS, perché accenderlo insieme al resto all'avvio fa andare in brownout la scheda. Il LED è già azzurro;
+2. accende il GPS e aspetta che tenga un fix valido per `GPS_LOCK_HOLD_MS` (60 s): ogni satellite manda le sue effemeridi ogni 30 s, così le salva per tutti quelli visibili. LED azzurro;
+3. spegne il GPS: le effemeridi restano salvate e il LED diventa **verde con due lampi**. Ora si può chiudere il satellite;
+4. se si resta in IDLE più di `GPS_REFRESH_MS` (1 ora) dall'ultimo aggancio, lo riaccende per aggiornare le effemeridi e poi lo rispegne. Se dentro al razzo non riesce a riagganciarsi resta acceso a cercare. Dopo `GPS_WARM_VALID_MS` (2 ore) senza un aggancio nuovo il LED torna azzurro: al lancio sarà un warm start, più lento ma comunque con un fix durante la discesa.
+
+In ASCENT (e in tutti gli stati dopo) il GPS resta sempre acceso e con le effemeridi salvate ha il fix in pochi secondi. I campioni prima del fix hanno `valid` a false (bit `GPS_OK` a 0) e vanno scartati nell'analisi dei dati.
+
+Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off`, `GPS fix found/lost (N sats, Xs after power on)` e `GPS locked, satellites saved`. Al banco lo stato resta BOOT, quindi `t0` tiene il GPS sempre acceso: per provare il ciclo di IDLE si usa `s2`.
+
+### Perché il GPS non si aggancia?
+
+Finché è acceso, ogni 5 s il task GPS stampa due righe:
+
+```
+GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
+GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 18:0 21:19 ...
+```
+
+| Campo | Cosa vuol dire | Cosa guardare |
+| --- | --- | --- |
+| `on` | Secondi da quando è stato acceso | Se torna a 0 da solo la scheda si è riavviata (brownout) |
+| `rx` | Byte al secondo arrivati dal GPS | Circa 300-500 è normale. **0: non arriva niente** (alimentazione, D17, fili TX/RX invertiti) |
+| `bad` | Frasi NMEA con checksum sbagliato (dall'avvio) | Se cresce: disturbi o baud sbagliato |
+| `ovf` | Volte che il buffer di ricezione era pieno (byte persi) | Se cresce il task legge troppo tardi (es. la termocamera blocca il core 0). Fa perdere dati, non l'aggancio |
+| `boots` | Volte che il modulo si è avviato (riga `u-blox ag` del suo messaggio di avvio) | Deve restare 1 per ogni accensione. **Se cresce da solo il modulo si riavvia**: la sua alimentazione cala (transistor su D17, picchi di corrente) e riparte ogni volta da capo |
+| `ant` | Stato dell'antenna dichiarato dal modulo (`OK`, `OPEN`, `SHORT`, `DONTKNOW`), `?` se non l'ha mai mandato | `OPEN`/`SHORT`: problema con l'antenna |
+| `mode` | Tipo di fix (frase GSA): 1 nessuno, 2 2D, 3 3D | Con `mode 3` ma senza `GPS fix found` i dati arrivano in ritardo (più di 2 s) |
+| `view` | Satelliti sopra l'orizzonte secondo l'almanacco | 0 o pochi per minuti: niente almanacco, sta ancora facendo il cold start |
+| `used` / `hdop` | Satelliti usati nel fix e la sua precisione | Ne servono almeno `MIN_SATS` (4) |
+| `time` | Ora UTC nota | `ok` vuol dire che ha decodificato almeno un satellite |
+| `snr` | Per ogni satellite in vista: numero e potenza del segnale in dB-Hz, 0 = non ricevuto | **Il dato più utile.** Servono almeno 4 satelliti sopra ~25 per agganciarsi. Tutti 0 o sotto 20: segnale troppo debole (al chiuso, antenna coperta o girata verso il basso, disturbi vicini) |
+
 
 ## Stazione di terra: formato dei dati su Serial
 

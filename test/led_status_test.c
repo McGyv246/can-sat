@@ -205,15 +205,12 @@ void when_batteryAlertOrBelowThreshold_expect_batteryLow(void)
     TEST_ASSERT_TRUE(led_battery_low(&battery));
 }
 
-void when_gpsSamples_expect_offSearchingOrLocked(void)
+void when_gpsTaskAndWarm_expect_offSearchingOrLocked(void)
 {
-    gps_t gps = {.s = {.valid = true, .t_ms = 10000}};
-    TEST_ASSERT_EQUAL(LED_GPS_OFF, led_gps_status(&gps, false, 10000));
-    TEST_ASSERT_EQUAL(LED_GPS_LOCKED, led_gps_status(&gps, true, 10000 + LED_GPS_STALE_MS));
-    TEST_ASSERT_EQUAL(LED_GPS_SEARCHING, led_gps_status(&gps, true, 10000 + LED_GPS_STALE_MS + 1));
-
-    gps.s.valid = false;
-    TEST_ASSERT_EQUAL(LED_GPS_SEARCHING, led_gps_status(&gps, true, 10000));
+    TEST_ASSERT_EQUAL(LED_GPS_OFF, led_gps_status(false, false));
+    TEST_ASSERT_EQUAL(LED_GPS_OFF, led_gps_status(false, true));
+    TEST_ASSERT_EQUAL(LED_GPS_SEARCHING, led_gps_status(true, false));
+    TEST_ASSERT_EQUAL(LED_GPS_LOCKED, led_gps_status(true, true));
 }
 
 #pragma endregion
@@ -238,7 +235,7 @@ int main(void)
     RUN_TEST(when_taskFailsMoreThanMax_expect_taskDead);
     RUN_TEST(when_taskFailed_expect_sensorWarningOnlyIfEnabled);
     RUN_TEST(when_batteryAlertOrBelowThreshold_expect_batteryLow);
-    RUN_TEST(when_gpsSamples_expect_offSearchingOrLocked);
+    RUN_TEST(when_gpsTaskAndWarm_expect_offSearchingOrLocked);
 
     return UNITY_END();
 }
