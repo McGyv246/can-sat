@@ -54,8 +54,9 @@ void bench_setup(scheduler_t *sched_core0)
   mq_7_init();
 
   // MLX90640 on I2C (0x33), no init: enabling the task boots the camera (it has no sleep mode).
-  // Reading a frame blocks core 0 for up to ~500 ms: use t10 to turn it off if it gets in the way
-  sched_change_enabled_i(sched_core0, true, TASK_CORE0_THERMAL);
+  // Not enabled at boot: reading a frame blocks core 0 for up to ~500 ms, which gets in the way of
+  // the other tasks (e.g. the GPS reads). Use t10 to turn it on/off at runtime
+  // sched_change_enabled_i(sched_core0, true, TASK_CORE0_THERMAL);
 
   // RGB led on D6 (R) / D5 (G) / D4 (B), enabling the task sets the pins. The state stays BOOT on the bench
   // (steady blue if all is ok): use the s command to see the patterns of the other flight states
