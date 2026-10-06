@@ -36,10 +36,9 @@ void bench_setup(scheduler_t *sched_core0)
   // LSM6DSOX on the Nano board itself (I2C 0x6A), no init: enabling the task starts it
   sched_change_enabled_i(sched_core0, true, TASK_CORE0_IMU);
 
-  // NEO-6M on Serial1 (GPS TX -> D0/RX, GPS RX -> D1/TX), 9600 baud. init powers it on and sets the
-  // command pin, it returns NOT_READY until there's a fix, that's expected here
+  // NEO-6M on Serial1 (GPS TX -> D0/RX, GPS RX -> D1/TX), 9600 baud. The task powers it on at its first run
+  // (the state stays BOOT here, so it stays on) and prints its diagnostics every 5 s (see the README)
   // Disabled: turning the GPS on at boot browns out the board. Use t0 to turn it on at runtime
-  // gps_init();
   // sched_change_enabled_i(sched_core0, true, TASK_CORE0_GPS);
 
   // MAX1704X on I2C (0x36), powered by the battery cell: it only answers with the battery connected.

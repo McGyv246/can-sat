@@ -137,7 +137,31 @@ Per questo il GPS si prepara in due passi.
 
 In ASCENT (e in tutti gli stati dopo) il GPS resta sempre acceso e con le effemeridi salvate ha il fix in pochi secondi. I campioni prima del fix hanno `valid` a false (bit `GPS_OK` a 0) e vanno scartati nell'analisi dei dati.
 
-Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off`, `GPS fix found/lost (N sats)` e `GPS locked, satellites saved`. Al banco lo stato resta BOOT, quindi `t0` tiene il GPS sempre acceso: per provare il ciclo di IDLE si usa `s2`.
+Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off`, `GPS fix found/lost (N sats, Xs after power on)` e `GPS locked, satellites saved`. Al banco lo stato resta BOOT, quindi `t0` tiene il GPS sempre acceso: per provare il ciclo di IDLE si usa `s2`.
+
+### Perché il GPS non si aggancia?
+
+Finché è acceso, ogni 5 s il task GPS stampa due righe:
+
+```
+GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
+GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 18:0 21:19 ...
+```
+
+| Campo | Cosa vuol dire | Cosa guardare |
+| --- | --- | --- |
+| `on` | Secondi da quando è stato acceso | Se torna a 0 da solo la scheda si è riavviata (brownout) |
+| `rx` | Byte al secondo arrivati dal GPS | Circa 300-500 è normale. **0: non arriva niente** (alimentazione, D17, fili TX/RX invertiti) |
+| `bad` | Frasi NMEA con checksum sbagliato (dall'avvio) | Se cresce: disturbi o baud sbagliato |
+| `ovf` | Volte che il buffer di ricezione era pieno (byte persi) | Se cresce il task legge troppo tardi (es. la termocamera blocca il core 0). Fa perdere dati, non l'aggancio |
+| `boots` | Volte che il modulo si è avviato (riga `u-blox ag` del suo messaggio di avvio) | Deve restare 1 per ogni accensione. **Se cresce da solo il modulo si riavvia**: la sua alimentazione cala (transistor su D17, picchi di corrente) e riparte ogni volta da capo |
+| `ant` | Stato dell'antenna dichiarato dal modulo (`OK`, `OPEN`, `SHORT`, `DONTKNOW`), `?` se non l'ha mai mandato | `OPEN`/`SHORT`: problema con l'antenna |
+| `mode` | Tipo di fix (frase GSA): 1 nessuno, 2 2D, 3 3D | Con `mode 3` ma senza `GPS fix found` i dati arrivano in ritardo (più di 2 s) |
+| `view` | Satelliti sopra l'orizzonte secondo l'almanacco | 0 o pochi per minuti: niente almanacco, sta ancora facendo il cold start |
+| `used` / `hdop` | Satelliti usati nel fix e la sua precisione | Ne servono almeno `MIN_SATS` (4) |
+| `time` | Ora UTC nota | `ok` vuol dire che ha decodificato almeno un satellite |
+| `snr` | Per ogni satellite in vista: numero e potenza del segnale in dB-Hz, 0 = non ricevuto | **Il dato più utile.** Servono almeno 4 satelliti sopra ~25 per agganciarsi. Tutti 0 o sotto 20: segnale troppo debole (al chiuso, antenna coperta o girata verso il basso, disturbi vicini) |
+
 
 ## Stazione di terra: formato dei dati su Serial
 
