@@ -74,7 +74,7 @@ static const int SYNC_WORD_LORA = 0x12;       // default
 static volatile bool busy = false;
 static volatile uint32_t tx_start_time;
 static volatile uint32_t tx_end_time;
-static volatile uint32_t wait_time = UINT32_MAX;
+static volatile uint32_t wait_time = 0; // no wait before the first packet, onTxDone sets it after each one
 static bool flushed = true;
 
 // receiver globals
@@ -188,5 +188,10 @@ extern "C"
     {
         lora.sleep();
         return;
+    }
+
+    uint16_t lora_get_irq_flags(void)
+    {
+        return lora.getIRQFlags();
     }
 }

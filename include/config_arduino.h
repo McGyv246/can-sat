@@ -19,9 +19,17 @@ extern "C"
 
 #define CHIPSELECT_SD WRAPPER_D7
 
+#ifdef GROUND_STATION
+/* Ground station board wiring (RFM95), see basestation/src/lora_config.h in
+ * https://github.com/ApoTed/cansat-2026-stazione-radio */
+#define DIO_LORA WRAPPER_D7
+#define CHIPSELECT_LORA WRAPPER_D9
+#define RESET_LORA WRAPPER_D8
+#else
 #define DIO_LORA WRAPPER_D8
 #define CHIPSELECT_LORA WRAPPER_D9
 #define RESET_LORA WRAPPER_D10
+#endif
 
 #define A_IN_UV WRAPPER_D14
 

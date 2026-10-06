@@ -31,6 +31,10 @@ extern "C"
 
     void lora_sleep(void);
 
+    // debug: raw IRQ flags register of the radio (LoRa mode: 0x40 RxDone, 0x20 PayloadCrcError,
+    // 0x10 ValidHeader, 0x08 TxDone). Doesn't clear them
+    uint16_t lora_get_irq_flags(void);
+
 #ifdef __cplusplus
 }
 #endif

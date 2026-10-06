@@ -3,6 +3,7 @@
 #include "debug_print.h"
 #include "lora_drivers.h"
 #include "pack_data_lora.h"
+#include "config_arduino.h"
 
 /*
 Ground station firmware (env:ground in platformio.ini): receives the LoRa packets sent by the satellite.
@@ -148,6 +149,10 @@ static void print_stats(uint32_t now)
   print_field(stats.bad_version);
   print_field(stats.lost);
   Serial.println();
+
+  // Radio side vs pin side: RxDone/ValidHeader set but DIO0 low (and ok/radio_err stuck at 0) means the radio
+  // receives but the DIO0 -> board wire is broken. Flags at 0 means the radio hears nothing at all
+  DBG_INFO("LORA irq flags 0x%02x, DIO0 pin %d", (unsigned)lora_get_irq_flags(), digitalRead(DIO_LORA));
 }
 
 #pragma endregion
@@ -212,7 +217,7 @@ void setup()
   while (!Serial && millis() < GROUND_SERIAL_WAIT_MS)
     ;
 
-  // SX1276 on SPI (CS D9, DIO0 D8, RESET D10), same wiring as the satellite. As receiver it starts listening right away
+  // SX1276 on SPI (CS D9, DIO0 D7, RESET D8), the ground board wiring (see config_arduino.h). As receiver it starts listening right away
   if (lora_init(true) == SENS_STATE_READY)
     DBG_INFO("LORA receiver ready");
   else
