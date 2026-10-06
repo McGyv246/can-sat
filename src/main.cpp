@@ -90,7 +90,7 @@ static void sensors_init(void)
   mq_7_init();
 
   // No init for:
-  // - GPS: gps_wake (on_enable) powers it on. Powering it on at boot browns out the board
+  // - GPS: the GPS task powers it on GPS_POWER_ON_DELAY_MS after IDLE starts. Powering it on at boot browns out the board
   // - IMU: imu_wake (on_enable) starts it
   // - MLX90640: mlx_init is its on_enable
 }

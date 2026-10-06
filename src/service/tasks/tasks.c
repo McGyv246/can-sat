@@ -150,7 +150,7 @@ const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = false,
+    [TASK_CORE0_GPS] = true, /* locks once, then stays off with the satellites saved (see gps_warmup.h) */
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true, /* altitude for the ascent detection */
     [TASK_CORE0_GAS] = false,
@@ -165,7 +165,8 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 /*
-Like IDLE, plus the GPS: it boots in ASCENT so it already has a fix at the ejection.
+Like IDLE, but here the GPS task keeps the GPS on: with the satellites saved in IDLE it gets a fix
+in a few seconds, so it already has one at the ejection.
 The thermal camera stays off in both launches: its blocking reads would break the light detection of the ejection.
 */
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {

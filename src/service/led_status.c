@@ -98,14 +98,10 @@ bool led_battery_low(const battery_t *battery)
     return battery->s.valid && (battery->is_alert_active || battery->percentage < LED_BATTERY_LOW_PCT);
 }
 
-led_gps_t led_gps_status(const gps_t *gps, bool gps_enabled, uint32_t now_millis)
+led_gps_t led_gps_status(bool gps_enabled, bool gps_warm)
 {
     if (!gps_enabled)
         return LED_GPS_OFF;
 
-    // a sample every second is expected: an old valid one means the GPS stopped talking
-    if (gps->s.valid && (now_millis - gps->s.t_ms) <= LED_GPS_STALE_MS)
-        return LED_GPS_LOCKED;
-
-    return LED_GPS_SEARCHING;
+    return gps_warm ? LED_GPS_LOCKED : LED_GPS_SEARCHING;
 }
