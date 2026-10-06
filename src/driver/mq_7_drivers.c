@@ -61,6 +61,7 @@ void mq_7_sleep(void)
 {
     wrapper_digital_write(D_OUT_GAS_COMMAND, WRAPPER_LOW);
     current_sample.heater_enabled = false;
+    current_sample.heater_on_s = 0;
     state = SENS_STATE_IDLE;
     return;
 }

@@ -305,6 +305,12 @@ void mq_7_task_on_enable(task_t *self)
 void mq_7_task_on_disable(task_t *self)
 {
     mq_7_sleep();
+
+    // The task doesn't run anymore to write the datastore: publish the heater off here,
+    // otherwise heater_enabled / heater_on_s stay at the last sample taken with the heater on
+    gas_t data;
+    mq_7_get(&data);
+    ds_write_gas(&data, hal_millis());
 }
 
 #pragma endregion
