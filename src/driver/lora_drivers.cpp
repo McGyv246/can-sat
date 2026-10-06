@@ -4,6 +4,7 @@
 #include "types.h"
 #include "config_arduino.h"
 #include "arduino_wrapper.h"
+#include "debug_print.h"
 
 // uncomment the chosen lora setting
 
@@ -145,14 +146,24 @@ extern "C"
             return SENS_STATE_NOT_READY;
         if (busy)
             return SENS_STATE_NOT_READY;
+        // on errors the chip version tells a dead SPI link (0x00 / 0xFF) from a radio that answers (0x12)
+        int16_t err;
         if (!flushed)
         {
-            if (lora.finishTransmit() != RADIOLIB_ERR_NONE)
+            err = lora.finishTransmit();
+            if (err != RADIOLIB_ERR_NONE)
+            {
+                DBG_ERR("LORA finishTransmit err %d, chip version 0x%02x", err, (unsigned)lora.getChipVersion());
                 return SENS_STATE_ERR;
+            }
             flushed = true;
         }
-        if (lora.startTransmit(buffer, len) != RADIOLIB_ERR_NONE)
+        err = lora.startTransmit(buffer, len);
+        if (err != RADIOLIB_ERR_NONE)
+        {
+            DBG_ERR("LORA startTransmit err %d, chip version 0x%02x", err, (unsigned)lora.getChipVersion());
             return SENS_STATE_ERR;
+        }
         tx_start_time = wrapper_millis();
         busy = true;
         flushed = false;
