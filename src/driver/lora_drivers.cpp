@@ -164,6 +164,11 @@ extern "C"
         *received_len = 0;
         if (!receiver)
             return SENS_STATE_ERR;
+#ifdef LORA_POLL_RX
+        // no DIO0 wire: the flag register is the only source, a floating pin could fire onReceive with no packet.
+        // readData clears the flags and the radio stays in continuous receive
+        packet_received = (lora.getIRQFlags() & RADIOLIB_SX127X_CLEAR_IRQ_FLAG_RX_DONE) != 0;
+#endif
         if (!packet_received)
             return SENS_STATE_NOT_READY;
         // cleared before reading: if a new packet arrives meanwhile the ISR sets it again and it's not lost

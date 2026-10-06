@@ -25,6 +25,9 @@ extern "C"
 #define DIO_LORA WRAPPER_D7
 #define CHIPSELECT_LORA WRAPPER_D9
 #define RESET_LORA WRAPPER_D8
+/* DIO0 isn't wired on the ground board: lora_read_packet polls the radio's RxDone flag over SPI
+ * instead of waiting for the interrupt. Remove it once IO0 is connected to D7 */
+#define LORA_POLL_RX
 #else
 #define DIO_LORA WRAPPER_D8
 #define CHIPSELECT_LORA WRAPPER_D9
