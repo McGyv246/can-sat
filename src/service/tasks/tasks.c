@@ -150,7 +150,7 @@ const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true, /* locks once, then stays off with the satellites saved (see gps_warmup.h) */
+    [TASK_CORE0_GPS] = false, /* GPS not working, kept off (t0 turns it on at the bench) */
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true, /* altitude for the ascent detection */
     [TASK_CORE0_GAS] = false,
@@ -165,12 +165,11 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 /*
-Like IDLE, but here the GPS task keeps the GPS on: with the satellites saved in IDLE it gets a fix
-in a few seconds, so it already has one at the ejection.
+Like IDLE.
 The thermal camera stays off in both launches: its blocking reads would break the light detection of the ejection.
 */
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = false,
@@ -185,10 +184,10 @@ const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {
 #ifdef THERMAL_LAUNCH
 /*
 The camera boots here (mlx_init blocks for a while once, then the first frame comes after ~1 s).
-ENV and IMU are kept for the landed detection, GPS to find the CanSat, battery for the health.
+ENV and IMU are kept for the landed detection, battery for the health.
 */
 const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = true,
     [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = false,
@@ -203,7 +202,7 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
 };
 #else
 const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = true,
     [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = true,
@@ -218,7 +217,7 @@ const bool tasks_enabled_core0_descent[TASK_CORE0_COUNT] = {
 };
 #endif
 const bool tasks_enabled_core0_landed[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true,
+    [TASK_CORE0_GPS] = false,
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true,
     [TASK_CORE0_GAS] = true,

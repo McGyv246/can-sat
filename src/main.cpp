@@ -76,6 +76,10 @@ static bool init_with_retry(const char *name, sens_state_t (*init)(void))
 // Core 0 sensors
 static void sensors_init(void)
 {
+  // GPS power off: it doesn't work, so no flight profile turns it on. Driven low so its switch can't float on
+  wrapper_pin_mode(D_OUT_GPS_COMMAND, WRAPPER_OUTPUT);
+  wrapper_digital_write(D_OUT_GPS_COMMAND, WRAPPER_LOW);
+
   // First: the SOC estimate needs the battery at rest, before any big load is on (blocks ~750 ms)
   if (fuel_gauge_init() == SENS_STATE_ERR)
     DBG_ERR("FUEL_GAUGE init failed");
@@ -90,7 +94,7 @@ static void sensors_init(void)
   mq_7_init();
 
   // No init for:
-  // - GPS: the GPS task powers it on GPS_POWER_ON_DELAY_MS after IDLE starts. Powering it on at boot browns out the board
+  // - GPS: off in every flight profile (t0 turns it on at the bench)
   // - IMU: imu_wake (on_enable) starts it
   // - MLX90640: mlx_init is its on_enable
 }

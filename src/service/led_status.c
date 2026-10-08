@@ -18,8 +18,6 @@ const led_pattern_t led_patterns[LED_STATUS_COUNT] = {
     [LED_STATUS_BATTERY_LOW] = {.color = YELLOW, .on_ms = 300, .off_ms = 300, .blinks = 1},
     [LED_STATUS_SENSOR_WARNING] = {.color = VIOLET, .on_ms = 300, .off_ms = 300, .blinks = 1},
     [LED_STATUS_BOOT] = {.color = BLUE, .on_ms = 1000, .blinks = 1},
-    [LED_STATUS_GPS_SEARCHING] = {.color = CYAN, .on_ms = 100, .blinks = 1, .pause_ms = 900},
-    [LED_STATUS_GPS_LOCKED] = {.color = GREEN, .on_ms = 100, .off_ms = 150, .blinks = 2, .pause_ms = 1500},
     [LED_STATUS_READY] = {.color = GREEN, .on_ms = 100, .blinks = 1, .pause_ms = 1900},
 };
 
@@ -45,10 +43,6 @@ led_status_t led_status_choose(const led_inputs_t *in)
             return LED_STATUS_SENSOR_WARNING;
         if (in->state != FLIGHT_STATE_IDLE)
             return LED_STATUS_BOOT;
-        if (in->gps == LED_GPS_LOCKED)
-            return LED_STATUS_GPS_LOCKED;
-        if (in->gps == LED_GPS_SEARCHING)
-            return LED_STATUS_GPS_SEARCHING;
         return LED_STATUS_READY;
 
     default:
@@ -96,12 +90,4 @@ bool led_battery_low(const battery_t *battery)
 {
     // the gauge clears its alert right after reading it, so the percentage is what keeps the led on
     return battery->s.valid && (battery->is_alert_active || battery->percentage < LED_BATTERY_LOW_PCT);
-}
-
-led_gps_t led_gps_status(bool gps_enabled, bool gps_warm)
-{
-    if (!gps_enabled)
-        return LED_GPS_OFF;
-
-    return gps_warm ? LED_GPS_LOCKED : LED_GPS_SEARCHING;
 }

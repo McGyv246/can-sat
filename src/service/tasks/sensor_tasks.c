@@ -10,7 +10,6 @@
 #include "hal_time.h"
 #include "pack_data_sd.h"
 #include "thermal_summary.h"
-#include "gps_warmup.h"
 #include "debug_print.h"
 
 #include "fotores_drivers.h"
@@ -104,10 +103,9 @@ void fuel_gauge_task_on_disable(task_t *self) { task_check(self, fuel_gauge_slee
 #pragma region gps
 
 /*
-The task doesn't keep the GPS always on: gps_warmup decides it from the flight state (see gps_warmup.h).
-In IDLE it's turned on until it locks, then off with the satellites saved; in the other states it's on.
+The GPS is on while the task is enabled. The module doesn't work, so the task is off in every flight
+profile (see tasks.c): turn it on at the bench with t0 to debug it.
 */
-static gps_warmup_t gps_warmup;
 static bool gps_powered;
 static bool gps_fix_valid; /* valid field of the last sample, kept between the runs without a new one */
 
@@ -227,31 +225,12 @@ uint32_t gps_task_run(task_t *self, uint32_t now_millis)
 #endif
     }
 
-    bool was_warm = gps_warmup.warm;
-    gps_set_power(self, gps_warmup_update(&gps_warmup, ds_read_state(), gps_fix_valid, now_millis));
-    if (gps_warmup.warm && !was_warm)
-        DBG_INFO("GPS locked, satellites saved");
-
-    if (!gps_powered)
-    {
-        // Off on purpose, waiting in IDLE: not a failure
-        self->last_state = TASK_STATE_OK;
-        return self->period;
-    }
-
     return task_report(self, state);
 }
 
-// The GPS is powered by the first run, gps_warmup decides if it must be
-void gps_task_on_enable(task_t *self)
-{
-    (void)self;
-    gps_warmup_reset(&gps_warmup);
-}
+void gps_task_on_enable(task_t *self) { gps_set_power(self, true); }
 
 void gps_task_on_disable(task_t *self) { gps_set_power(self, false); }
-
-bool gps_task_is_warm(uint32_t now_millis) { return gps_warmup_is_warm(&gps_warmup, now_millis); }
 
 #pragma endregion
 
