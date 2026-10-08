@@ -21,7 +21,7 @@ Without it (sat env) the camera is never enabled in flight and the other sensors
 #define IMU_PERIOD_MS 250 /* still enough for the 5 s landed accel window */
 #else
 #define GPS_PERIOD_MS 500
-#define IMU_PERIOD_MS 50
+#define IMU_PERIOD_MS 20
 #endif
 
 task_t tasks_core0[TASK_CORE0_COUNT] = {
@@ -150,7 +150,7 @@ const bool tasks_enabled_core0_boot[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
-    [TASK_CORE0_GPS] = true, /* locks once, then stays off with the satellites saved (see gps_warmup.h) */
+    [TASK_CORE0_GPS] = false, /* off on the ground to save the battery, turned on at the ascent */
     [TASK_CORE0_IMU] = false,
     [TASK_CORE0_ENV] = true, /* altitude for the ascent detection */
     [TASK_CORE0_GAS] = false,
@@ -165,8 +165,7 @@ const bool tasks_enabled_core0_idle[TASK_CORE0_COUNT] = {
     [TASK_CORE0_LED] = true,
 };
 /*
-Like IDLE, but here the GPS task keeps the GPS on: with the satellites saved in IDLE it gets a fix
-in a few seconds, so it already has one at the ejection.
+Like IDLE, plus the GPS: powered on once here (on_enable) and kept on until LANDED.
 The thermal camera stays off in both launches: its blocking reads would break the light detection of the ejection.
 */
 const bool tasks_enabled_core0_ascent[TASK_CORE0_COUNT] = {

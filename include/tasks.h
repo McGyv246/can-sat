@@ -74,8 +74,6 @@ extern "C"
     uint32_t gps_task_run(task_t *self, uint32_t now_millis);
     void gps_task_on_enable(task_t *self);
     void gps_task_on_disable(task_t *self);
-    // Used by the led task. Core 0 only, like the GPS task
-    bool gps_task_is_warm(uint32_t now_millis);
 
     uint32_t gybmep_task_run(task_t *self, uint32_t now_millis);
     void gybmep_task_on_enable(task_t *self);

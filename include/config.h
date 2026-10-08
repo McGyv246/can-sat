@@ -38,12 +38,6 @@ extern "C"
 // Status led (see led_status.h)
 #define LED_BATTERY_LOW_PCT 10.0f /* same as the fuel gauge alert threshold */
 
-// GPS warm up in IDLE (see gps_warmup.h)
-#define GPS_POWER_ON_DELAY_MS 10000UL  /* GPS off for this long after IDLE starts: powering it on at boot browns out the board */
-#define GPS_LOCK_HOLD_MS 60000UL       /* valid fix kept this long before turning it off */
-#define GPS_REFRESH_MS 3600000UL       /* turned on again this long after the last lock to refresh the ephemeris */
-#define GPS_WARM_VALID_MS 7200000UL    /* a lock older than this is too old for a hot start */
-
 #ifdef __cplusplus
 }
 #endif

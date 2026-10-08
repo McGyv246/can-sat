@@ -25,18 +25,9 @@ extern "C"
         LED_STATUS_BATTERY_LOW,    /* yellow blink */
         LED_STATUS_SENSOR_WARNING, /* violet blink: the last run of an enabled sensor task failed */
         LED_STATUS_BOOT,           /* steady blue: BOOT, SELF_TEST */
-        LED_STATUS_GPS_SEARCHING,  /* cyan flash every second: GPS task on, not locked yet */
-        LED_STATUS_GPS_LOCKED,     /* green double flash every 2 s: ready, GPS locked (satellites saved) */
-        LED_STATUS_READY,          /* green flash every 2 s: ready, GPS task off */
+        LED_STATUS_READY,          /* green flash every 2 s: IDLE, ready for the launch */
         LED_STATUS_COUNT,          /* MUST BE LAST! */
     } led_status_t;
-
-    typedef enum
-    {
-        LED_GPS_OFF,
-        LED_GPS_SEARCHING,
-        LED_GPS_LOCKED,
-    } led_gps_t;
 
     /* Everything led_status_choose looks at, gathered by the led task */
     typedef struct
@@ -45,7 +36,6 @@ extern "C"
         bool error;          /* a task was disabled after too many fails, or the last SD write failed */
         bool battery_low;    /* see led_battery_low */
         bool sensor_warning; /* see led_sensor_warning */
-        led_gps_t gps;       /* see led_gps_status */
     } led_inputs_t;
 
     /*
@@ -75,13 +65,6 @@ extern "C"
     bool led_sensor_warning(const task_t *tasks, const bool *enabled, size_t n);
 
     bool led_battery_low(const battery_t *battery);
-
-    /*
-    LOCKED if the GPS is warm (see gps_warmup_is_warm): it held a fix long enough and its satellites are
-    saved, even if it's now turned off waiting for the launch.
-    SEARCHING if the GPS task is enabled without that, OFF if the task is disabled
-    */
-    led_gps_t led_gps_status(bool gps_enabled, bool gps_warm);
 
 #ifdef __cplusplus
 }

@@ -186,7 +186,7 @@ static void execute_command(const char *cmd)
     if (gps_cold_start())
       DBG_INFO("CMD GPS cold start sent, saved satellites erased");
     else
-      DBG_ERR("GPS is off: turn it on first (t0, or wait for IDLE)");
+      DBG_ERR("GPS is off: turn it on first with t0");
   }
 #ifdef SERIAL_DEBUG_DATA
   else if (cmd[0] == 'd' && cmd[1] == '\0')

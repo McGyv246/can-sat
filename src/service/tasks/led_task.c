@@ -42,7 +42,6 @@ uint32_t led_task_run(task_t *self, uint32_t now_millis)
                  (tasks_enabled_core1[TASK_CORE1_SD] && tasks_core1[TASK_CORE1_SD].last_state == TASK_STATE_ERR),
         .battery_low = led_battery_low(&ds.battery),
         .sensor_warning = led_sensor_warning(tasks_core0, tasks_enabled_core0, TASK_CORE0_COUNT),
-        .gps = led_gps_status(tasks_enabled_core0[TASK_CORE0_GPS], gps_task_is_warm(now_millis)),
     };
 
     led_status_t status = led_status_choose(&in);
