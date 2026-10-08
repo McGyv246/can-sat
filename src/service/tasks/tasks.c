@@ -21,7 +21,7 @@ Without it (sat env) the camera is never enabled in flight and the other sensors
 #define IMU_PERIOD_MS 250 /* still enough for the 5 s landed accel window */
 #else
 #define GPS_PERIOD_MS 500
-#define IMU_PERIOD_MS 50
+#define IMU_PERIOD_MS 20
 #endif
 
 task_t tasks_core0[TASK_CORE0_COUNT] = {
