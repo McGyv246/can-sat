@@ -115,9 +115,10 @@ static bool gps_fix_valid; /* valid field of the last sample, kept between the r
 #define GPS_DEBUG_PRINT_MS 5000
 
 /*
-Every GPS_DEBUG_PRINT_MS while the GPS is on, two lines to see why it doesn't lock (see the README), e.g.
+Every GPS_DEBUG_PRINT_MS while the GPS is on, three lines to see why it doesn't lock (see the README), e.g.
   GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
   GPS snr (PRN:dB-Hz/elev) orbit 2/9 05:31/42 12:0/-- 15:24/17 ...
+  GPS hw | jam 4/255 state ok | noise 87 agc 2950/8191 | monitor on | replies 24/25
 */
 static void gps_debug_print(uint32_t now_millis)
 {
@@ -165,6 +166,18 @@ static void gps_debug_print(uint32_t now_millis)
         DBG_INFO("GPS snr (PRN:dB-Hz/elev) orbit %u/%u%s", with_orbit, (unsigned)d.sats_count, sats);
     else
         DBG_INFO("GPS snr (PRN:dB-Hz/elev) none in view");
+
+    // Interference measured by the module, from the reply to the request of the previous print
+    static const char *const jam_states[] = {"?", "ok", "WARNING", "CRITICAL"};
+    static const char *const itfm_states[] = {"not sent", "no answer", "on", "NAK"};
+    if (d.hw_replies)
+        DBG_INFO("GPS hw | jam %u/255 state %s | noise %u agc %u/8191 | monitor %s | replies %lu/%lu",
+                 (unsigned)d.jam_ind, jam_states[d.jam_state & 3], (unsigned)d.noise_per_ms, (unsigned)d.agc_cnt,
+                 itfm_states[d.itfm_ack & 3], (unsigned long)d.hw_replies, (unsigned long)d.hw_requests);
+    else
+        DBG_INFO("GPS hw | no MON-HW reply yet (%lu requests): if it stays 0 the GPS RX wire (board TX) may be missing",
+                 (unsigned long)d.hw_requests);
+    gps_request_hw_status();
 }
 #endif
 

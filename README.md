@@ -78,6 +78,7 @@ Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le p
 | `d` | Stampa subito il datastore, una volta sola |
 | `d1` / `d0` | Accende / spegne la stampa periodica del datastore (ogni 2 secondi, spenta all'avvio) |
 | `g1` / `g0` | Accende / spegne la stampa delle frasi NMEA grezze del GPS, righe `GPS> $GPGSV,...` (spenta all'avvio, stampa solo mentre il GPS è acceso) |
+| `gc` | Cold start del GPS: il modulo cancella dalla sua memoria tampone effemeridi, almanacco, ultima posizione e ora, e ricomincia a cercare da zero (le impostazioni restano). Il GPS deve essere acceso. Il contatore `on` delle righe di debug riparte da 0, così si vede quanto ci mette ad agganciarsi |
 
 Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
 
@@ -142,11 +143,12 @@ Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off`, `GPS fix 
 
 ### Perché il GPS non si aggancia?
 
-Finché è acceso, ogni 5 s il task GPS stampa due righe:
+Finché è acceso, ogni 5 s il task GPS stampa tre righe:
 
 ```
 GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
 GPS snr (PRN:dB-Hz/elev) orbit 3/9 05:31/42 12:0/-- 15:24/17 18:0/-- 21:19/8 ...
+GPS hw | jam 4/255 state ok | noise 87 agc 2950/8191 | monitor on | replies 24/25
 ```
 
 | Campo | Cosa vuol dire | Cosa guardare |
@@ -162,6 +164,16 @@ GPS snr (PRN:dB-Hz/elev) orbit 3/9 05:31/42 12:0/-- 15:24/17 18:0/-- 21:19/8 ...
 | `used` / `hdop` | Satelliti usati nel fix e la sua precisione | Ne servono almeno `MIN_SATS` (4) |
 | `time` | Ora UTC nota | `ok` vuol dire che l'ha decodificata da un satellite **oppure** che l'orologio del modulo (tenuto dalla batteria tampone) era già avviato: da sola non prova che riceva qualcosa |
 | `snr` | Per ogni satellite in vista: numero, potenza del segnale in dB-Hz (0 = non ricevuto) e, dopo la `/`, elevazione in gradi (`--` = il modulo non ha ancora la sua orbita). `orbit X/Y`: quanti degli Y satelliti hanno l'orbita | **Il dato più utile.** Servono almeno 4 satelliti sopra ~25 per agganciarsi. Tutti 0 o sotto 20: segnale troppo debole (al chiuso, antenna coperta o girata verso il basso, disturbi vicini). Molti satelliti sopra 30 ma `orbit` fermo a 0 per minuti: riceve qualcosa ma non riesce a decodificare i dati, probabile disturbo vicino all'antenna o modulo difettoso. Anche segnali tutti uguali (es. tutti 33-37) e più di ~12 satelliti GPS insieme non sono un cielo vero |
+
+La terza riga è lo stato dell'hardware misurato dal modulo stesso (messaggio UBX-MON-HW, chiesto ogni 5 s; solo su Serial, non viene salvato su SD). Per averlo la scheda manda dei comandi al GPS, quindi serve anche il filo RX del GPS (TX della scheda, D1). Con l'env `sat` (senza `SERIAL_DEBUG_INFO`) non viene mai chiesto.
+
+| Campo | Cosa vuol dire | Cosa guardare |
+| --- | --- | --- |
+| `jam` | Indicatore di disturbo a frequenza fissa (CW) sulla banda GPS, da 0 (niente) a 255 (fortissimo) | Pochi punti è normale. **Alto e stabile: c'è un disturbo vicino all'antenna** (spegnere/allontanare le cose una alla volta e vedere quando scende) |
+| `state` | Giudizio del monitor dei disturbi del modulo: `ok`, `WARNING`, `CRITICAL`, `?` se il monitor è spento | `WARNING`/`CRITICAL`: disturbo |
+| `noise` / `agc` | Rumore misurato e quanto il modulo amplifica il segnale d'ingresso (0-8191) | Vanno confrontati tra due prove (es. con e senza USB, al chiuso e all'aperto): se con un disturbo il rumore sale o l'agc scende di molto, è quello |
+| `monitor` | Accensione del monitor dei disturbi (comando UBX-CFG-ITFM, rimandato finché il modulo non risponde): `on`, `NAK` (il modulo l'ha rifiutato), `no answer` | `NAK` o `no answer` per sempre: il firmware del modulo non lo supporta (possibile clone). `state` resta `?`, `jam` di solito funziona lo stesso |
+| `replies` | Risposte ricevute / richieste mandate dall'accensione | Se non arriva mai una risposta la riga diventa `no MON-HW reply yet`: filo RX del GPS non collegato, oppure modulo che non parla il protocollo UBX (clone) |
 
 Per vedere le frasi NMEA complete si usa il comando `g1` (vedi [Comandi di debug via Serial](#comandi-di-debug-via-serial)).
 
