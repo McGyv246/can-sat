@@ -11,8 +11,9 @@ extern "C"
 #include "types.h"
 
     // initializes the sd module and creates a working directory or path of directories. path has to be a C-string type
-    // so that string length is not needed
-    sens_state_t sd_init(const char *path, const char *filepath);
+    // so that string length is not needed. Each call opens a new <path>/<prefix>_<n>.BIN, with n the first index
+    // not on the card yet (0..999), so every session gets its own file. prefix is at most 4 chars (FAT 8.3 names)
+    sens_state_t sd_init(const char *path, const char *prefix);
 
     sens_state_t sd_write_uint8_buf(uint8_t *buf, size_t len);
 

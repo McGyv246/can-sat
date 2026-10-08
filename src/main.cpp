@@ -98,9 +98,9 @@ static void sensors_init(void)
 // Core 1 (SD / LoRa), both on the shared SPI bus owned by core 1
 static void sensors_init1(void)
 {
-  // FAT 8.3 names only (max 8 chars + 3 of extension)
+  // New /DATA/LOG_<n>.BIN every session
   init_with_retry("SD", []
-                  { return sd_init("/DATA", "/DATA/LOG.BIN"); });
+                  { return sd_init("/DATA", "LOG"); });
 
   // Sender, left asleep: the LORA task wakes it up
   init_with_retry("LORA", []

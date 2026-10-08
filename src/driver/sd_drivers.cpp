@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 #include <SPI.h>
 #include <SD.h>
 #include "types.h"
@@ -10,6 +11,9 @@ static bool flushed = true;
 static const char *current_path = nullptr;
 static File current_file;
 static bool file_open = false;
+static char current_filepath[32];
+
+#define SD_MAX_LOG_FILES 1000
 
 #pragma region internal_utils
 
@@ -26,6 +30,21 @@ static bool sd_chng_path(const char *path)
     {
         current_path = path;
         return true;
+    }
+    return false;
+}
+
+// Finds the first <path>/<prefix>_<n>.BIN that does not exist yet, so every session gets its own file.
+// FAT 8.3 names: prefix + "_" + up to 3 digits must stay within 8 chars, so prefix is at most 4 chars
+static bool sd_next_log_file(const char *path, const char *prefix, char *out, size_t out_len)
+{
+    for (unsigned i = 0; i < SD_MAX_LOG_FILES; i++)
+    {
+        int n = snprintf(out, out_len, "%s/%s_%u.BIN", path, prefix, i);
+        if (n < 0 || (size_t)n >= out_len)
+            return false;
+        if (!SD.exists(out))
+            return true;
     }
     return false;
 }
@@ -75,7 +94,7 @@ static void sd_print_begin_error(void)
 
 extern "C"
 {
-    sens_state_t sd_init(const char *path, const char *filepath)
+    sens_state_t sd_init(const char *path, const char *prefix)
     {
         deselect_other_spi_devices();
         if (!SD.begin(CHIPSELECT_SD))
@@ -95,11 +114,17 @@ extern "C"
             DBG_ERR("SD %s not found after mkdir", path);
             return SENS_STATE_ERR;
         }
-        if (!sd_open_file(filepath))
+        if (!sd_next_log_file(path, prefix, current_filepath, sizeof(current_filepath)))
         {
-            DBG_ERR("SD open %s failed", filepath);
+            DBG_ERR("SD no free %s/%s_<n>.BIN name", path, prefix);
             return SENS_STATE_ERR;
         }
+        if (!sd_open_file(current_filepath))
+        {
+            DBG_ERR("SD open %s failed", current_filepath);
+            return SENS_STATE_ERR;
+        }
+        DBG_INFO("SD logging to %s", current_filepath);
         return SENS_STATE_READY;
     }
 
