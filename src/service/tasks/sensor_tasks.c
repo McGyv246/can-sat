@@ -103,8 +103,8 @@ void fuel_gauge_task_on_disable(task_t *self) { task_check(self, fuel_gauge_slee
 #pragma region gps
 
 /*
-The GPS is on while the task is enabled. The module doesn't work, so the task is off in every flight
-profile (see tasks.c): turn it on at the bench with t0 to debug it.
+The GPS is on while the task is enabled: from ASCENT to LANDED (see tasks.c), with t0 at the bench.
+Without data from the module the task is only BUSY, never failing.
 */
 static bool gps_powered;
 static bool gps_fix_valid; /* valid field of the last sample, kept between the runs without a new one */

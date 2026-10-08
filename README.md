@@ -117,7 +117,7 @@ Note:
 
 ## GPS
 
-Il GPS non funziona, quindi è spento in tutti gli stati di volo (`TASK_CORE0_GPS` a `false` in tutti i profili di `src/service/tasks/tasks.c`) e all'avvio D17 viene messo basso, così il modulo non è alimentato. I campi GPS del pacchetto LoRa e della SD restano, ma valgono 0 e il bit `GPS_OK` è a 0.
+In BOOT e IDLE il GPS è spento per non consumare batteria (all'avvio D17 viene messo basso, così il modulo non è alimentato). Il task GPS viene acceso una sola volta al passaggio in ASCENT e resta acceso in DESCENT e LANDED (profili in `src/service/tasks/tasks.c`). Se il modulo non manda dati il task resta solo in attesa, senza contare errori. Finché non c'è un fix i campi GPS del pacchetto LoRa e della SD non hanno senso e il bit `GPS_OK` è a 0.
 
 Al banco (env `sat_bench`) `t0` accende il task GPS, che tiene il GPS acceso finché il task non viene spento. Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off` e `GPS fix found/lost (N sats, Xs after power on)`.
 

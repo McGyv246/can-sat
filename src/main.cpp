@@ -76,7 +76,7 @@ static bool init_with_retry(const char *name, sens_state_t (*init)(void))
 // Core 0 sensors
 static void sensors_init(void)
 {
-  // GPS power off: it doesn't work, so no flight profile turns it on. Driven low so its switch can't float on
+  // GPS power off until the ascent turns its task on. Driven low so its switch can't float on
   wrapper_pin_mode(D_OUT_GPS_COMMAND, WRAPPER_OUTPUT);
   wrapper_digital_write(D_OUT_GPS_COMMAND, WRAPPER_LOW);
 
@@ -94,7 +94,7 @@ static void sensors_init(void)
   mq_7_init();
 
   // No init for:
-  // - GPS: off in every flight profile (t0 turns it on at the bench)
+  // - GPS: its task powers it on at the ascent
   // - IMU: imu_wake (on_enable) starts it
   // - MLX90640: mlx_init is its on_enable
 }
