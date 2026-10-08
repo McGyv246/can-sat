@@ -10,7 +10,7 @@
 #include "serial_print_types.h"
 
 #define FLOAT_DIGITS 3
-#define LOG_BUF_SIZE 160
+#define LOG_BUF_SIZE 256 /* the GPS snr line with 16 satellites is ~215 chars */
 #define LINE_BUF_SIZE 128
 #define LAT_LON_DIGITS 6
 

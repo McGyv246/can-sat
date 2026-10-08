@@ -7,6 +7,7 @@
 #include "arduino_wrapper.h"
 #include "config.h"
 #include "config_arduino.h"
+#include "debug_print.h"
 
 static const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
 static const uint32_t GPS_BAUD = 9600;
@@ -28,14 +29,57 @@ static TinyGPSCustom gsv_msg_num(gps, "GPGSV", 2);
 static TinyGPSCustom gsv_in_view(gps, "GPGSV", 3);
 // every GSV message has up to 4 satellites, each one as PRN, elevation, azimuth, SNR
 static TinyGPSCustom gsv_prn[4] = {{gps, "GPGSV", 4}, {gps, "GPGSV", 8}, {gps, "GPGSV", 12}, {gps, "GPGSV", 16}};
+static TinyGPSCustom gsv_elev[4] = {{gps, "GPGSV", 5}, {gps, "GPGSV", 9}, {gps, "GPGSV", 13}, {gps, "GPGSV", 17}};
 static TinyGPSCustom gsv_snr[4] = {{gps, "GPGSV", 7}, {gps, "GPGSV", 11}, {gps, "GPGSV", 15}, {gps, "GPGSV", 19}};
 static TinyGPSCustom txt(gps, "GPTXT", 4);
 
 static gps_debug_t dbg;
 static uint8_t gsv_prn_work[GPS_DEBUG_MAX_SATS]; // GSV cycle being collected, copied to dbg when complete
 static uint8_t gsv_snr_work[GPS_DEBUG_MAX_SATS];
+static int8_t gsv_elev_work[GPS_DEBUG_MAX_SATS];
 static uint8_t gsv_work_count;
 static uint32_t power_on_ms;
+
+// NMEA lines are at most 82 chars, longer ones are cut
+static bool raw_echo = false;
+static char raw_line[96];
+static size_t raw_len;
+
+/*
+UBX binary messages (u-blox protocol), only the ones used for debugging:
+  b5 62 <class> <id> <len LE16> <payload> <ck_a> <ck_b>
+The replies arrive mixed with the NMEA: 0xb5 is never in NMEA (ASCII only), so it starts a UBX frame
+and its bytes go to the UBX parser instead of TinyGPS++.
+*/
+#define UBX_SYNC1 0xB5
+#define UBX_SYNC2 0x62
+#define UBX_CLASS_ACK 0x05
+#define UBX_ID_ACK_NAK 0x00
+#define UBX_ID_ACK_ACK 0x01
+#define UBX_CLASS_CFG 0x06
+#define UBX_ID_CFG_ITFM 0x39
+#define UBX_ID_CFG_RST 0x04
+#define UBX_CLASS_MON 0x0A
+#define UBX_ID_MON_HW 0x09
+#define UBX_MAX_PAYLOAD 72 // MON-HW: 68 bytes on u-blox 6, 60 on u-blox 7/8
+
+typedef enum
+{
+    UBX_IDLE,
+    UBX_SYNC,
+    UBX_CLASS,
+    UBX_ID,
+    UBX_LEN1,
+    UBX_LEN2,
+    UBX_PAYLOAD,
+    UBX_CK_A,
+    UBX_CK_B,
+} ubx_state_t;
+
+static ubx_state_t ubx_state = UBX_IDLE;
+static uint8_t ubx_class, ubx_id, ubx_ck_a, ubx_ck_b;
+static uint16_t ubx_len, ubx_pos;
+static uint8_t ubx_payload[UBX_MAX_PAYLOAD];
 
 // Called after every good sentence: GSV is split in many messages, the values of each one must be
 // read before the next one overwrites them
@@ -51,7 +95,9 @@ static void debug_on_sentence(void)
             dbg.boots++;
         else if (strncmp(t, "ANTSTATUS=", 10) == 0)
         {
-            strncpy(dbg.antenna, t + 10, sizeof(dbg.antenna) - 1);
+            // TinyGPSCustom keeps 14 chars, so "ANTSTATUS=DONTKNOW" arrives as "ANTSTATUS=DONT"
+            const char *status = strcmp(t + 10, "DONT") == 0 ? "DONTKNOW" : t + 10;
+            strncpy(dbg.antenna, status, sizeof(dbg.antenna) - 1);
             dbg.antenna[sizeof(dbg.antenna) - 1] = '\0';
         }
     }
@@ -75,6 +121,8 @@ static void debug_on_sentence(void)
     {
         gsv_prn_work[gsv_work_count] = (uint8_t)atoi(gsv_prn[i].value());
         gsv_snr_work[gsv_work_count] = (uint8_t)atoi(gsv_snr[i].value()); // empty = not tracked = 0
+        const char *elev = gsv_elev[i].value();
+        gsv_elev_work[gsv_work_count] = elev[0] ? (int8_t)atoi(elev) : -1; // empty = orbit not known yet
         gsv_work_count++;
     }
 
@@ -83,13 +131,131 @@ static void debug_on_sentence(void)
         dbg.sats_in_view = (uint8_t)in_view;
         memcpy(dbg.prn, gsv_prn_work, gsv_work_count);
         memcpy(dbg.snr, gsv_snr_work, gsv_work_count);
+        memcpy(dbg.elev, gsv_elev_work, gsv_work_count);
         dbg.sats_count = gsv_work_count;
     }
 }
 
+// Collects the bytes of a line and prints it when complete, if raw_echo is on
+static void debug_echo_char(char c)
+{
+    if (c == '\r')
+        return;
+    if (c != '\n')
+    {
+        if (raw_len < sizeof(raw_line) - 1)
+            raw_line[raw_len++] = c;
+        return;
+    }
+    raw_line[raw_len] = '\0';
+    raw_len = 0;
+    if (raw_echo && raw_line[0] != '\0')
+        DBG_INFO("GPS> %s", raw_line);
+}
+
+// 8-bit Fletcher checksum of the UBX protocol
+static void ubx_checksum(uint8_t *ck_a, uint8_t *ck_b, const uint8_t *data, uint16_t len)
+{
+    for (uint16_t i = 0; i < len; i++)
+    {
+        *ck_a += data[i];
+        *ck_b += *ck_a;
+    }
+}
+
+static void ubx_checksum_add(uint8_t b) { ubx_checksum(&ubx_ck_a, &ubx_ck_b, &b, 1); }
+
+// Own checksum variables: a reply may be half parsed when a request is sent
+static void ubx_send(uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t len)
+{
+    uint8_t head[6] = {UBX_SYNC1, UBX_SYNC2, cls, id, (uint8_t)(len & 0xFF), (uint8_t)(len >> 8)};
+    uint8_t ck[2] = {0, 0};
+    ubx_checksum(&ck[0], &ck[1], head + 2, 4);
+    ubx_checksum(&ck[0], &ck[1], payload, len);
+
+    Serial1.write(head, sizeof(head));
+    if (len)
+        Serial1.write(payload, len);
+    Serial1.write(ck, sizeof(ck));
+}
+
+static uint16_t read_u16_le(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+
+static void ubx_on_message(void)
+{
+    if (ubx_class == UBX_CLASS_MON && ubx_id == UBX_ID_MON_HW && (ubx_len == 68 || ubx_len == 60))
+    {
+        dbg.hw_replies++;
+        dbg.noise_per_ms = read_u16_le(ubx_payload + 16);
+        dbg.agc_cnt = read_u16_le(ubx_payload + 18);
+        dbg.jam_state = (ubx_payload[22] >> 2) & 0x03;
+        // jamInd comes after the VP array, 25 bytes on u-blox 6 and 17 on u-blox 7/8
+        dbg.jam_ind = ubx_payload[ubx_len == 68 ? 53 : 45];
+    }
+    else if (ubx_class == UBX_CLASS_ACK && ubx_len == 2 && ubx_payload[0] == UBX_CLASS_CFG && ubx_payload[1] == UBX_ID_CFG_ITFM)
+    {
+        dbg.itfm_ack = ubx_id == UBX_ID_ACK_ACK ? 2 : 3;
+    }
+}
+
+// Returns true if c belongs to a UBX frame (so it must not go to the NMEA parser)
+static bool ubx_parse(uint8_t c)
+{
+    switch (ubx_state)
+    {
+    case UBX_IDLE:
+        if (c != UBX_SYNC1)
+            return false;
+        ubx_state = UBX_SYNC;
+        return true;
+    case UBX_SYNC:
+        ubx_state = c == UBX_SYNC2 ? UBX_CLASS : UBX_IDLE;
+        return true;
+    case UBX_CLASS:
+        ubx_ck_a = 0;
+        ubx_ck_b = 0;
+        ubx_checksum_add(c);
+        ubx_class = c;
+        ubx_state = UBX_ID;
+        return true;
+    case UBX_ID:
+        ubx_checksum_add(c);
+        ubx_id = c;
+        ubx_state = UBX_LEN1;
+        return true;
+    case UBX_LEN1:
+        ubx_checksum_add(c);
+        ubx_len = c;
+        ubx_state = UBX_LEN2;
+        return true;
+    case UBX_LEN2:
+        ubx_checksum_add(c);
+        ubx_len |= (uint16_t)c << 8;
+        ubx_pos = 0;
+        ubx_state = ubx_len ? UBX_PAYLOAD : UBX_CK_A;
+        return true;
+    case UBX_PAYLOAD:
+        ubx_checksum_add(c);
+        if (ubx_pos < UBX_MAX_PAYLOAD)
+            ubx_payload[ubx_pos] = c; // longer payloads are checked but not kept (and not used)
+        if (++ubx_pos == ubx_len)
+            ubx_state = UBX_CK_A;
+        return true;
+    case UBX_CK_A:
+        ubx_state = c == ubx_ck_a ? UBX_CK_B : UBX_IDLE;
+        return true;
+    case UBX_CK_B:
+        ubx_state = UBX_IDLE;
+        if (c == ubx_ck_b && ubx_len <= UBX_MAX_PAYLOAD)
+            ubx_on_message();
+        return true;
+    }
+    return false;
+}
+
 #pragma endregion
 
-// feeds every byte received so far to the NMEA parser
+// feeds every byte received so far to the NMEA parser (UBX replies go to the debug parser)
 static void read_available(void)
 {
     if (Serial1.overflow())
@@ -97,7 +263,11 @@ static void read_available(void)
 
     while (Serial1.available() > 0)
     {
-        if (gps.encode(Serial1.read()))
+        char c = (char)Serial1.read();
+        if (ubx_parse((uint8_t)c))
+            continue;
+        debug_echo_char(c);
+        if (gps.encode(c))
             debug_on_sentence();
     }
 }
@@ -111,6 +281,11 @@ static void power_on(void)
     Serial1.begin(GPS_BAUD);
     is_on = true;
     power_on_ms = millis();
+    // the module lost the jamming monitor setting with the power
+    dbg.hw_requests = 0;
+    dbg.hw_replies = 0;
+    dbg.itfm_ack = 0;
+    ubx_state = UBX_IDLE;
 }
 
 static bool has_fix(void)
@@ -210,6 +385,53 @@ extern "C"
         dbg.time_valid = gps.time.isValid() && (gps.time.age() < MAX_SAMPLE_AGE);
         dbg.on_ms = is_on ? millis() - power_on_ms : 0;
         *d = dbg;
+    }
+
+    void gps_set_raw_echo(bool on)
+    {
+        raw_echo = on;
+        raw_len = 0; // the line being collected may have started before
+    }
+
+    void gps_request_hw_status(void)
+    {
+        if (!is_on)
+            return;
+
+        // sent again until answered: right after the power on the module may still be booting
+        if (dbg.itfm_ack < 2)
+        {
+            /*
+            CFG-ITFM, values recommended by u-blox: bbThreshold 3, cwThreshold 15, the fixed algorithm
+            bits 0x16B156 and enable (bit 31); config2 the fixed bits 0x31E, antenna type unknown
+            */
+            const uint32_t config = 3u | (15u << 4) | (0x16B156u << 9) | (1u << 31);
+            const uint32_t config2 = 0x31Eu;
+            uint8_t payload[8];
+            for (int i = 0; i < 4; i++)
+            {
+                payload[i] = (uint8_t)(config >> (8 * i));
+                payload[4 + i] = (uint8_t)(config2 >> (8 * i));
+            }
+            ubx_send(UBX_CLASS_CFG, UBX_ID_CFG_ITFM, payload, sizeof(payload));
+            dbg.itfm_ack = 1; // until the ACK/NAK arrives
+        }
+
+        ubx_send(UBX_CLASS_MON, UBX_ID_MON_HW, NULL, 0);
+        dbg.hw_requests++;
+    }
+
+    bool gps_cold_start(void)
+    {
+        if (!is_on)
+            return false;
+
+        // navBbrMask 0xFFFF = clear everything (cold start), resetMode 0x02 = software reset of the GPS
+        // part only (the UART keeps working, no boot banner), the module doesn't answer it
+        const uint8_t payload[4] = {0xFF, 0xFF, 0x02, 0x00};
+        ubx_send(UBX_CLASS_CFG, UBX_ID_CFG_RST, payload, sizeof(payload));
+        power_on_ms = millis();
+        return true;
     }
 
     sens_state_t gps_sleep(void)

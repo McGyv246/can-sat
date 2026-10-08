@@ -7,6 +7,7 @@
 #include "tasks.h"
 #include "scheduler.h"
 #include "datastore.h"
+#include "gps_drivers.h"
 
 #define DATASTORE_PRINT_INTERVAL_MS 2000
 
@@ -117,6 +118,8 @@ Commands for bench tests, one per line (read on core 0):
   u<X>   fakes UV index X, e.g. u3.5 (light if > 2), u alone stops faking
   d      prints the datastore once (needs SERIAL_DEBUG_DATA, like d1/d0)
   d1/d0  turns the periodic datastore print on/off (off at boot)
+  g1/g0  turns the echo of the raw GPS NMEA lines on/off (off at boot, prints only while the GPS is on)
+  gc     GPS cold start: the module forgets the saved satellites, position and time (needs the GPS on)
 The tasks profile applied on every state change overrides the t/T toggles.
 */
 static void execute_command(const char *cmd)
@@ -172,6 +175,19 @@ static void execute_command(const char *cmd)
     unsigned value_x100 = (unsigned)(value * 100.0f + 0.5f);
     DBG_INFO("CMD faking UV index %u.%02u (%s)", value_x100 / 100, value_x100 % 100, value > FAKE_UV_LIGHT_THRESH ? "light" : "dark");
   }
+  else if (cmd[0] == 'g' && (cmd[1] == '0' || cmd[1] == '1') && cmd[2] == '\0')
+  {
+    gps_set_raw_echo(cmd[1] == '1');
+    DBG_INFO("CMD GPS raw NMEA echo %s", cmd[1] == '1' ? "on" : "off");
+  }
+  else if (cmd[0] == 'g' && cmd[1] == 'c' && cmd[2] == '\0')
+  {
+    // GPS task and console both run on core 0: no concurrent access to Serial1
+    if (gps_cold_start())
+      DBG_INFO("CMD GPS cold start sent, saved satellites erased");
+    else
+      DBG_ERR("GPS is off: turn it on first (t0, or wait for IDLE)");
+  }
 #ifdef SERIAL_DEBUG_DATA
   else if (cmd[0] == 'd' && cmd[1] == '\0')
   {
@@ -189,7 +205,7 @@ static void execute_command(const char *cmd)
 #endif
   else
   {
-    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d1/d0)",
+    DBG_ERR("unknown command '%s' (s<0-%d>, p, t<0-%d>, T<0-%d>, l1/l0/l, u<X>/u, d/d1/d0, g1/g0, gc)",
             cmd, FLIGHT_STATE_COUNT - 1, TASK_CORE0_COUNT - 1, TASK_CORE1_COUNT - 1);
   }
 }

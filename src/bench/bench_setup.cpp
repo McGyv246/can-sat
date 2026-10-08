@@ -65,10 +65,9 @@ void bench_setup(scheduler_t *sched_core0)
 
 void bench_setup1(scheduler_t *sched_core1)
 {
-  // SD module on SPI (CS D7), shared with LoRa. The file is opened in append mode, so data from previous
-  // runs is kept. The task writes what the sensor tasks put in the ring buffer (pack_data_sd format).
-  // FAT 8.3 names only (max 8 chars + 3 of extension)
-  if (sd_init("/DATA", "/DATA/LOG.BIN") == SENS_STATE_READY)
+  // SD module on SPI (CS D7), shared with LoRa. Every run writes to a new /DATA/LOG_<n>.BIN, so data from
+  // previous runs is kept. The task writes what the sensor tasks put in the ring buffer (pack_data_sd format)
+  if (sd_init("/DATA", "LOG") == SENS_STATE_READY)
     sched_change_enabled_i(sched_core1, true, TASK_CORE1_SD);
   else
     DBG_ERR("SD init failed, task not enabled");

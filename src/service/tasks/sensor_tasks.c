@@ -115,9 +115,10 @@ static bool gps_fix_valid; /* valid field of the last sample, kept between the r
 #define GPS_DEBUG_PRINT_MS 5000
 
 /*
-Every GPS_DEBUG_PRINT_MS while the GPS is on, two lines to see why it doesn't lock (see the README), e.g.
+Every GPS_DEBUG_PRINT_MS while the GPS is on, three lines to see why it doesn't lock (see the README), e.g.
   GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
-  GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 ...
+  GPS snr (PRN:dB-Hz/elev) orbit 2/9 05:31/42 12:0/-- 15:24/17 ...
+  GPS hw | jam 4/255 state ok | noise 87 agc 2950/8191 | monitor on | replies 24/25
 */
 static void gps_debug_print(uint32_t now_millis)
 {
@@ -144,12 +145,39 @@ static void gps_debug_print(uint32_t now_millis)
              (unsigned)d.fix_mode, (unsigned)d.sats_in_view, (unsigned)data.sats, hdop_x10 / 10u, hdop_x10 % 10u,
              d.time_valid ? "ok" : "no");
 
-    char sats[GPS_DEBUG_MAX_SATS * 7 + 1];
+    // " PPP:SS/EE" per satellite, elevation "--" if the module has no orbit for it yet
+    char sats[GPS_DEBUG_MAX_SATS * 11 + 1];
     size_t len = 0;
+    unsigned with_orbit = 0;
     sats[0] = '\0';
     for (uint8_t i = 0; i < d.sats_count && len < sizeof(sats); i++)
-        len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u", (unsigned)d.prn[i], (unsigned)d.snr[i]);
-    DBG_INFO("GPS snr (PRN:dB-Hz)%s", d.sats_count ? sats : " none in view");
+    {
+        if (d.elev[i] >= 0)
+        {
+            with_orbit++;
+            len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u/%d", (unsigned)d.prn[i],
+                                    (unsigned)d.snr[i], (int)d.elev[i]);
+        }
+        else
+            len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u/--", (unsigned)d.prn[i],
+                                    (unsigned)d.snr[i]);
+    }
+    if (d.sats_count)
+        DBG_INFO("GPS snr (PRN:dB-Hz/elev) orbit %u/%u%s", with_orbit, (unsigned)d.sats_count, sats);
+    else
+        DBG_INFO("GPS snr (PRN:dB-Hz/elev) none in view");
+
+    // Interference measured by the module, from the reply to the request of the previous print
+    static const char *const jam_states[] = {"?", "ok", "WARNING", "CRITICAL"};
+    static const char *const itfm_states[] = {"not sent", "no answer", "on", "NAK"};
+    if (d.hw_replies)
+        DBG_INFO("GPS hw | jam %u/255 state %s | noise %u agc %u/8191 | monitor %s | replies %lu/%lu",
+                 (unsigned)d.jam_ind, jam_states[d.jam_state & 3], (unsigned)d.noise_per_ms, (unsigned)d.agc_cnt,
+                 itfm_states[d.itfm_ack & 3], (unsigned long)d.hw_replies, (unsigned long)d.hw_requests);
+    else
+        DBG_INFO("GPS hw | no MON-HW reply yet (%lu requests): if it stays 0 the GPS RX wire (board TX) may be missing",
+                 (unsigned long)d.hw_requests);
+    gps_request_hw_status();
 }
 #endif
 
@@ -305,6 +333,12 @@ void mq_7_task_on_enable(task_t *self)
 void mq_7_task_on_disable(task_t *self)
 {
     mq_7_sleep();
+
+    // The task doesn't run anymore to write the datastore: publish the heater off here,
+    // otherwise heater_enabled / heater_on_s stay at the last sample taken with the heater on
+    gas_t data;
+    mq_7_get(&data);
+    ds_write_gas(&data, hal_millis());
 }
 
 #pragma endregion
