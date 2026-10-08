@@ -41,11 +41,15 @@ extern "C"
         uint8_t sats_count;       /* entries in prn / snr, from the last complete GSV cycle */
         uint8_t prn[GPS_DEBUG_MAX_SATS];
         uint8_t snr[GPS_DEBUG_MAX_SATS]; /* C/N0 in dB-Hz, 0 = not tracked. ~25+ is needed to lock */
-        bool time_valid;                 /* UTC time known: at least one satellite was decoded */
+        int8_t elev[GPS_DEBUG_MAX_SATS]; /* elevation in degrees, -1 = empty: no orbit (almanac/ephemeris) for it yet */
+        bool time_valid;                 /* UTC time known: decoded from a satellite, or kept by the module's RTC */
         uint32_t on_ms;                  /* ms since the last power on */
     } gps_debug_t;
 
     void gps_get_debug(gps_debug_t *d);
+
+    // When on, every NMEA line received is printed on Serial with DBG_INFO (needs SERIAL_DEBUG_INFO). Off at boot
+    void gps_set_raw_echo(bool on);
 
 #ifdef __cplusplus
 }

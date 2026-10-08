@@ -117,7 +117,7 @@ static bool gps_fix_valid; /* valid field of the last sample, kept between the r
 /*
 Every GPS_DEBUG_PRINT_MS while the GPS is on, two lines to see why it doesn't lock (see the README), e.g.
   GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
-  GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 ...
+  GPS snr (PRN:dB-Hz/elev) orbit 2/9 05:31/42 12:0/-- 15:24/17 ...
 */
 static void gps_debug_print(uint32_t now_millis)
 {
@@ -144,12 +144,27 @@ static void gps_debug_print(uint32_t now_millis)
              (unsigned)d.fix_mode, (unsigned)d.sats_in_view, (unsigned)data.sats, hdop_x10 / 10u, hdop_x10 % 10u,
              d.time_valid ? "ok" : "no");
 
-    char sats[GPS_DEBUG_MAX_SATS * 7 + 1];
+    // " PPP:SS/EE" per satellite, elevation "--" if the module has no orbit for it yet
+    char sats[GPS_DEBUG_MAX_SATS * 11 + 1];
     size_t len = 0;
+    unsigned with_orbit = 0;
     sats[0] = '\0';
     for (uint8_t i = 0; i < d.sats_count && len < sizeof(sats); i++)
-        len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u", (unsigned)d.prn[i], (unsigned)d.snr[i]);
-    DBG_INFO("GPS snr (PRN:dB-Hz)%s", d.sats_count ? sats : " none in view");
+    {
+        if (d.elev[i] >= 0)
+        {
+            with_orbit++;
+            len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u/%d", (unsigned)d.prn[i],
+                                    (unsigned)d.snr[i], (int)d.elev[i]);
+        }
+        else
+            len += (size_t)snprintf(sats + len, sizeof(sats) - len, " %02u:%u/--", (unsigned)d.prn[i],
+                                    (unsigned)d.snr[i]);
+    }
+    if (d.sats_count)
+        DBG_INFO("GPS snr (PRN:dB-Hz/elev) orbit %u/%u%s", with_orbit, (unsigned)d.sats_count, sats);
+    else
+        DBG_INFO("GPS snr (PRN:dB-Hz/elev) none in view");
 }
 #endif
 

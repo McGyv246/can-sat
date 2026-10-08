@@ -7,6 +7,7 @@
 #include "arduino_wrapper.h"
 #include "config.h"
 #include "config_arduino.h"
+#include "debug_print.h"
 
 static const uint32_t MAX_SAMPLE_AGE = 2000; // in ms
 static const uint32_t GPS_BAUD = 9600;
@@ -28,14 +29,21 @@ static TinyGPSCustom gsv_msg_num(gps, "GPGSV", 2);
 static TinyGPSCustom gsv_in_view(gps, "GPGSV", 3);
 // every GSV message has up to 4 satellites, each one as PRN, elevation, azimuth, SNR
 static TinyGPSCustom gsv_prn[4] = {{gps, "GPGSV", 4}, {gps, "GPGSV", 8}, {gps, "GPGSV", 12}, {gps, "GPGSV", 16}};
+static TinyGPSCustom gsv_elev[4] = {{gps, "GPGSV", 5}, {gps, "GPGSV", 9}, {gps, "GPGSV", 13}, {gps, "GPGSV", 17}};
 static TinyGPSCustom gsv_snr[4] = {{gps, "GPGSV", 7}, {gps, "GPGSV", 11}, {gps, "GPGSV", 15}, {gps, "GPGSV", 19}};
 static TinyGPSCustom txt(gps, "GPTXT", 4);
 
 static gps_debug_t dbg;
 static uint8_t gsv_prn_work[GPS_DEBUG_MAX_SATS]; // GSV cycle being collected, copied to dbg when complete
 static uint8_t gsv_snr_work[GPS_DEBUG_MAX_SATS];
+static int8_t gsv_elev_work[GPS_DEBUG_MAX_SATS];
 static uint8_t gsv_work_count;
 static uint32_t power_on_ms;
+
+// NMEA lines are at most 82 chars, longer ones are cut
+static bool raw_echo = false;
+static char raw_line[96];
+static size_t raw_len;
 
 // Called after every good sentence: GSV is split in many messages, the values of each one must be
 // read before the next one overwrites them
@@ -51,7 +59,9 @@ static void debug_on_sentence(void)
             dbg.boots++;
         else if (strncmp(t, "ANTSTATUS=", 10) == 0)
         {
-            strncpy(dbg.antenna, t + 10, sizeof(dbg.antenna) - 1);
+            // TinyGPSCustom keeps 14 chars, so "ANTSTATUS=DONTKNOW" arrives as "ANTSTATUS=DONT"
+            const char *status = strcmp(t + 10, "DONT") == 0 ? "DONTKNOW" : t + 10;
+            strncpy(dbg.antenna, status, sizeof(dbg.antenna) - 1);
             dbg.antenna[sizeof(dbg.antenna) - 1] = '\0';
         }
     }
@@ -75,6 +85,8 @@ static void debug_on_sentence(void)
     {
         gsv_prn_work[gsv_work_count] = (uint8_t)atoi(gsv_prn[i].value());
         gsv_snr_work[gsv_work_count] = (uint8_t)atoi(gsv_snr[i].value()); // empty = not tracked = 0
+        const char *elev = gsv_elev[i].value();
+        gsv_elev_work[gsv_work_count] = elev[0] ? (int8_t)atoi(elev) : -1; // empty = orbit not known yet
         gsv_work_count++;
     }
 
@@ -83,8 +95,26 @@ static void debug_on_sentence(void)
         dbg.sats_in_view = (uint8_t)in_view;
         memcpy(dbg.prn, gsv_prn_work, gsv_work_count);
         memcpy(dbg.snr, gsv_snr_work, gsv_work_count);
+        memcpy(dbg.elev, gsv_elev_work, gsv_work_count);
         dbg.sats_count = gsv_work_count;
     }
+}
+
+// Collects the bytes of a line and prints it when complete, if raw_echo is on
+static void debug_echo_char(char c)
+{
+    if (c == '\r')
+        return;
+    if (c != '\n')
+    {
+        if (raw_len < sizeof(raw_line) - 1)
+            raw_line[raw_len++] = c;
+        return;
+    }
+    raw_line[raw_len] = '\0';
+    raw_len = 0;
+    if (raw_echo && raw_line[0] != '\0')
+        DBG_INFO("GPS> %s", raw_line);
 }
 
 #pragma endregion
@@ -97,7 +127,9 @@ static void read_available(void)
 
     while (Serial1.available() > 0)
     {
-        if (gps.encode(Serial1.read()))
+        char c = (char)Serial1.read();
+        debug_echo_char(c);
+        if (gps.encode(c))
             debug_on_sentence();
     }
 }
@@ -210,6 +242,12 @@ extern "C"
         dbg.time_valid = gps.time.isValid() && (gps.time.age() < MAX_SAMPLE_AGE);
         dbg.on_ms = is_on ? millis() - power_on_ms : 0;
         *d = dbg;
+    }
+
+    void gps_set_raw_echo(bool on)
+    {
+        raw_echo = on;
+        raw_len = 0; // the line being collected may have started before
     }
 
     sens_state_t gps_sleep(void)

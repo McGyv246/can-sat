@@ -77,6 +77,7 @@ Le lettere tra `< >` sono dei segnaposto da sostituire con un numero, senza le p
 | `u` | Smette di simulare l'UV |
 | `d` | Stampa subito il datastore, una volta sola |
 | `d1` / `d0` | Accende / spegne la stampa periodica del datastore (ogni 2 secondi, spenta all'avvio) |
+| `g1` / `g0` | Accende / spegne la stampa delle frasi NMEA grezze del GPS, righe `GPS> $GPGSV,...` (spenta all'avvio, stampa solo mentre il GPS è acceso) |
 
 Valori di `N` per `s<N>` (`flight_state_t` in `types.h`): 0 BOOT, 1 SELF_TEST, 2 IDLE, 3 ASCENT, 4 DESCENT, 5 LANDED.
 
@@ -145,7 +146,7 @@ Finché è acceso, ogni 5 s il task GPS stampa due righe:
 
 ```
 GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
-GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 18:0 21:19 ...
+GPS snr (PRN:dB-Hz/elev) orbit 3/9 05:31/42 12:0/-- 15:24/17 18:0/-- 21:19/8 ...
 ```
 
 | Campo | Cosa vuol dire | Cosa guardare |
@@ -159,8 +160,10 @@ GPS snr (PRN:dB-Hz) 05:31 12:0 15:24 18:0 21:19 ...
 | `mode` | Tipo di fix (frase GSA): 1 nessuno, 2 2D, 3 3D | Con `mode 3` ma senza `GPS fix found` i dati arrivano in ritardo (più di 2 s) |
 | `view` | Satelliti sopra l'orizzonte secondo l'almanacco | 0 o pochi per minuti: niente almanacco, sta ancora facendo il cold start |
 | `used` / `hdop` | Satelliti usati nel fix e la sua precisione | Ne servono almeno `MIN_SATS` (4) |
-| `time` | Ora UTC nota | `ok` vuol dire che ha decodificato almeno un satellite |
-| `snr` | Per ogni satellite in vista: numero e potenza del segnale in dB-Hz, 0 = non ricevuto | **Il dato più utile.** Servono almeno 4 satelliti sopra ~25 per agganciarsi. Tutti 0 o sotto 20: segnale troppo debole (al chiuso, antenna coperta o girata verso il basso, disturbi vicini) |
+| `time` | Ora UTC nota | `ok` vuol dire che l'ha decodificata da un satellite **oppure** che l'orologio del modulo (tenuto dalla batteria tampone) era già avviato: da sola non prova che riceva qualcosa |
+| `snr` | Per ogni satellite in vista: numero, potenza del segnale in dB-Hz (0 = non ricevuto) e, dopo la `/`, elevazione in gradi (`--` = il modulo non ha ancora la sua orbita). `orbit X/Y`: quanti degli Y satelliti hanno l'orbita | **Il dato più utile.** Servono almeno 4 satelliti sopra ~25 per agganciarsi. Tutti 0 o sotto 20: segnale troppo debole (al chiuso, antenna coperta o girata verso il basso, disturbi vicini). Molti satelliti sopra 30 ma `orbit` fermo a 0 per minuti: riceve qualcosa ma non riesce a decodificare i dati, probabile disturbo vicino all'antenna o modulo difettoso. Anche segnali tutti uguali (es. tutti 33-37) e più di ~12 satelliti GPS insieme non sono un cielo vero |
+
+Per vedere le frasi NMEA complete si usa il comando `g1` (vedi [Comandi di debug via Serial](#comandi-di-debug-via-serial)).
 
 
 ## Stazione di terra: formato dei dati su Serial
