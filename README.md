@@ -4,19 +4,23 @@ Questo repository contiene il codice sviluppato per il nostro CanSat, realizzato
 
 Un CanSat è un satellite in miniatura, grande quanto una lattina (115 mm × 66 mm, 100–210 g), lanciato da un razzo fino a circa 150–250 m di quota. Dopo il rilascio all'apogeo scende con un paracadute, raccoglie dati e li trasmette alla stazione di terra.
 
-## Obiettivi obbligatori
+## Obiettivi
+
+### Obbligatori
 
 - Misurare dati sulla presenza di uno o più gas (abbiamo scelto il CO) durante la discesa e trasmetterli in telemetria alla stazione di terra almeno ogni 2 secondi
 - Garantire la localizzazione per il recupero (GPS, beacon radio o beeper)
 - Rispettare specifici requisiti in attesa del lancio (requisiti di alimentazione e di silenzio radio)
 - Rilevare l'espulsione dal razzo e attivare la missione solo dopo il rilascio
 
-## Obiettivi facoltativi scelti da noi
+### Facoltativi scelti da noi
 
 - Ricostruzione della traiettoria di volo
 - Identificazione potenziali fonti inquinanti con telecamera termica
 
-## Lista strumenti necessari
+# Sviluppo
+
+## Strumenti necessari
 
 L'ambiente di sviluppo consigliato per questo progetto è Visual Studio Code (VS Code) con l'estensione PlatformIO.
 
@@ -30,7 +34,7 @@ Ci sono molte parti di codice che non richiedono l'utilizzo di Arduino e quindi 
 
 Parte della struttura è così per via di come funziona PlatformIO senza configurarlo in modo specifico (cosa che fa perdere tempo e rischia di rompere cose).
 
-In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Nello stesso progetto ci sono più firmware, ognuno è un env di `platformio.ini` che compila solo i suoi file (con `build_src_filter`), quindi c'è un solo `setup()`/`loop()` per firmware:
+In generale il codice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Nello stesso progetto ci sono più firmware, ognuno è un env di `platformio.ini` che compila solo i suoi file (con `build_src_filter`), quindi c'è un solo `setup()`/`loop()` per firmware:
 
 | Env | Firmware | File principale |
 | --- | --- | --- |
@@ -48,7 +52,7 @@ Nella cartella `mocks/` ci sono i file mock scritti da noi.
 
 Nella cartella `test/` ci andranno tutti i file dei test. I file dei test sarà comodo non metterli in sottocartelle. Mentre eventuali file di utilità andranno messi in sottocartelle. La cartella `test/unity/` contiene il "framework" di testing e non va toccata.
 
-## Esecuzione codice e test
+## Compilazione e test
 
 Per compilare e flashare i firmware bisogna selezionare quello desiderato e utilizzare PlatformIO. Il codice quindi eseguirà sull'Arduino.
 
@@ -80,6 +84,8 @@ Variabili           snake_case
 File                snake_case.*
 File test           nome_cosa_testata_test.c
 ```
+
+# Diagnostica del satellite
 
 ## Comandi di debug via Serial
 
@@ -173,11 +179,11 @@ La terza riga è lo stato dell'hardware misurato dal modulo stesso (messaggio UB
 Per vedere le frasi NMEA complete si usa il comando `g1` (vedi [Comandi di debug via Serial](#comandi-di-debug-via-serial)).
 
 
-## Stazione di terra: formato dei dati su Serial
+# Stazione di terra: formato dei dati su Serial
 
 Questa sezione è per chi scrive il programma sul PC che legge i dati della stazione di terra (env `ground`, `src/ground/main_ground.cpp`).
 
-### Come funziona
+## Come funziona
 
 ```
 Satellite --LoRa--> Arduino di terra --USB Serial--> programma sul PC
@@ -185,14 +191,14 @@ Satellite --LoRa--> Arduino di terra --USB Serial--> programma sul PC
 
 L'Arduino di terra riceve i pacchetti LoRa (il formato binario `data_to_lora_t` in `include/types.h`), controlla che siano integri, li converte in unità fisiche (°C, Pa, g, ...) e li scrive sulla Serial come **testo**, una riga per ogni evento. Il PC non deve fare nessuna conversione: deve solo leggere le righe, dividerle sulle virgole e usare i numeri.
 
-### Connessione
+## Connessione
 
 - Porta seriale USB dell'Arduino (su Windows `COMx`, su Linux `/dev/ttyACMx`), 115200 baud, 8N1. Con la USB dell'RP2040 il baud rate in realtà non conta, ma è meglio impostarlo comunque.
 - Testo ASCII, ogni riga finisce con `\r\n`. Conviene togliere sempre `\r\n`.
 - Separatore dei campi: `,` (senza spazi). Decimali con il punto (`21.37`).
 - Quando ci si collega a metà trasmissione la prima riga letta può essere tagliata: va scartata se non si riesce a interpretarla.
 
-### Tipi di righe
+## Tipi di righe
 
 Il primo campo di ogni riga dice che riga è. **Il programma deve ignorare tutte le righe che non iniziano con uno di questi prefissi**: sulla stessa Serial ci sono anche le stampe di debug, che iniziano con `[` (ad esempio `[INF 1234ms c0] LORA receiver ready`) e in futuro potrebbero aggiungersi altri tipi di riga.
 
@@ -221,7 +227,7 @@ STAT,20000,1,0,0,1,0,0,0
 
 Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programma sul PC si collega dopo, non le vede. **L'ordine delle colonne va quindi scritto anche nel programma** (è quello delle tabelle qui sotto); se arriva una riga `HDR` si può usare per controllare che corrisponda.
 
-### Riga `PKT`
+## Riga `PKT`
 
 `PKT` seguito da 32 campi, in questo ordine. Le cifre decimali stampate corrispondono alla risoluzione con cui il dato viaggia via LoRa: non ha senso aspettarsi più precisione.
 
@@ -256,14 +262,14 @@ Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programm
 | 31 | `vbatt_v` | decimale | V | 0.01 | Tensione della batteria, da 2.00 a 4.55 |
 | 32 | `status` | intero | - | - | Bit di stato dei sensori (vedi sotto), stampato in decimale |
 
-#### Valori validi e valori al limite
+### Valori validi e valori al limite
 
 - Un valore è affidabile solo se il bit `_OK` del suo sensore in `status` è a 1. Se un sensore non funziona i suoi campi contengono l'ultimo valore letto oppure 0: **vanno ignorati** (ad esempio non disegnati nel grafico).
 - I valori fuori dall'intervallo della tabella vengono "schiacciati" al limite: una temperatura di 400 °C arriva come 327.67. Se un valore è esattamente uguale al minimo o al massimo, probabilmente è fuori scala.
 - Se sul satellite un valore non è un numero (NaN, ad esempio un sensore che restituisce un errore) arriva come il **minimo** del suo intervallo (ad esempio `temp_c` = -327.68, `pressure_pa` = 30000).
 - Finché il GPS non ha un fix (`fix_type` = 0 o bit `GPS_OK` a 0) `lat`, `lon` e `altitude_gps_m` non hanno senso (di solito sono 0).
 
-#### Bit di `status`
+### Bit di `status`
 
 | Bit | Valore | Nome | Significato se 1 |
 | --- | --- | --- | --- |
@@ -280,7 +286,7 @@ Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programm
 
 Sono definiti come `STATUS_*` in `include/pack_data_lora.h`.
 
-#### Pacchetti persi (`lost`)
+### Pacchetti persi (`lost`)
 
 `lost` è calcolato dalla stazione di terra dalla differenza tra il `seq` di questo pacchetto e quello del pacchetto integro precedente. Ad esempio se arrivano i `seq` 10, 11, 14, la riga del 14 ha `lost` = 2 (il 12 e il 13 sono andati persi o sono arrivati rovinati).
 
@@ -289,7 +295,7 @@ Sono definiti come `STATUS_*` in `include/pack_data_lora.h`.
 - Se anche la stazione di terra si riavvia, i conteggi ripartono da zero.
 - Se il satellite salta dei pacchetti perché ha raggiunto il limite di duty cycle incrementa comunque seq, quindi dalla stazione a terra apparirà che alcuni pacchetti sono stati persi.
 
-### Riga `BAD`
+## Riga `BAD`
 
 ```
 BAD,<rx_ms>,<rssi_dbm>,<snr_db>,<reason>
@@ -307,7 +313,7 @@ Le prime tre colonne sono come in `PKT`. `reason` è una di queste parole:
 
 Le righe `BAD` servono solo per statistiche e debug: i dati di quei pacchetti non vanno usati.
 
-### Riga `STAT`
+## Riga `STAT`
 
 ```
 STAT,<rx_ms>,<ok>,<radio_err>,<bad_length>,<bad_crc>,<bad_sync>,<bad_version>,<lost>
@@ -315,7 +321,7 @@ STAT,<rx_ms>,<ok>,<radio_err>,<bad_length>,<bad_crc>,<bad_sync>,<bad_version>,<l
 
 Totali dall'accensione della stazione di terra: `ok` pacchetti integri (= righe `PKT`), i successivi sono i conteggi dei vari `reason` delle righe `BAD`, `lost` è la somma di tutti i `lost` delle righe `PKT`. Ad esempio la percentuale di pacchetti ricevuti è `ok / (ok + lost)`.
 
-### Riga `RAW`
+## Riga `RAW`
 
 ```
 RAW,<rx_ms>,<byte in esadecimale>
@@ -353,6 +359,6 @@ Il pacchetto è la struct `data_to_lora_t` di `include/types.h`: little-endian (
 | 51 | 2 | uint16 | `status` | - |
 | 53 | 2 | uint16 | `crc16` | CRC-16/MODBUS dei byte da 0 a 52 |
 
-### Se il formato cambia
+## Se il formato cambia
 
 Se si modifica `data_to_lora_t` vanno aggiornati insieme: `ds_to_lora` e `lora_decode` in `src/codec/pack_data_lora.c` (aumentando `LORA_VERSION` in `include/pack_data_lora.h`), la stampa in `src/ground/main_ground.cpp`, questa sezione del README e il programma sul PC. Le colonne nuove vanno aggiunte **in fondo** alla riga `PKT`, così un programma che usa i nomi delle colonne continua a funzionare.
