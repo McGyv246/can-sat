@@ -1,41 +1,40 @@
 # CanSat
 
-## Lista strumenti necessari
+Questo repository contiene il codice sviluppato per il nostro CanSat, realizzato per la **Competizione Europea CanSat 2026** organizzata dall'[IEEE Student Branch Brescia](https://ieeesb.unibs.it/).
 
-Per programmare parti che richiedono l'arduino è necessario utilizzare **Arduino IDE**. Se invece si stanno programmando parti che non richiedono l'utilizzo della board io utilizzero Visual Studio Code (VSCode). Lo consiglio perché permette di programmare in modo semplice in puro C. Per le parti legate all'arduino per comodità consiglio di usare sempre VSCode con l'estensione PlatformIO.
+Un CanSat è un satellite in miniatura, grande quanto una lattina (115 mm × 66 mm, 100–210 g), lanciato da un razzo fino a circa 150–250 m di quota. Dopo il rilascio all'apogeo scende con un paracadute, raccoglie dati e li trasmette alla stazione di terra.
 
-Per programmare in C su Windows consiglio l'utilizzo di WSL. WSL è una macchina virtuale che simula Linux all'interno di Windows. Non espone un'interfaccia grafica ma ha solo un terminale. Lo consiglio perché installare programmi come il compilatore per C in windows è molto complicato (non sono mai riuscito a farlo funzionare bene). Mentre se lo si installa all'interno di WSL va utilizzato da linea di comando ma funziona molto bene.
+## Obiettivi
 
-Per installare WSL conviene seguire la [guida ufficiale di Microsoft](https://learn.microsoft.com/it-it/windows/wsl/install).
+### Obbligatori
 
-Per poter programmare in VSCode tramite WSL bisogna seguire [questa guida per il setup](https://code.visualstudio.com/docs/remote/wsl). Una volta completato il setup basterà aprire il terminale di windows (che sia PowerShell o CMD non cambia), navigare alla cartella del progetto e lì eseguire il comando `wsl`. Questo comando aprirà il terminale di WSL all'interno della cartella. In quel terminale basterà eseguire `code .` e verrà aperto VSCode all'interno di WSL.
+- Misurare dati sulla presenza di uno o più gas (abbiamo scelto il CO) durante la discesa e trasmetterli in telemetria alla stazione di terra almeno ogni 2 secondi
+- Garantire la localizzazione per il recupero (GPS, beacon radio o beeper)
+- Rispettare specifici requisiti in attesa del lancio (requisiti di alimentazione e di silenzio radio)
+- Rilevare l'espulsione dal razzo e attivare la missione solo dopo il rilascio
 
-Gli strumenti necessari, che consiglio di installare all'interno di WSL, sono:
+### Facoltativi scelti da noi
 
-- `gcc`: compilatore C
-- `gdb`: debugger C
-- `g++`: compilatore C++
-- `make`: permette di eseguire comandi che compilano in automatico, eseguono i test ecc.
+- Ricostruzione della traiettoria di volo
+- Identificazione potenziali fonti inquinanti con telecamera termica
 
-Per installarli sarà sufficiente eseguire `sudo apt install gcc gdb g++ make`.
+# Sviluppo
 
-Se state leggendo questo probabilmente avete già installato git su Windows. Se volete potete installarlo anche in WSL in modo da utilizzare solo il terminale WSL e non dover usare il terminale Windows. Io lo uso da Windows.
+## Strumenti necessari
 
-Per VSCode consiglio le seguenti estensioni:
+L'ambiente di sviluppo consigliato per questo progetto è Visual Studio Code (VS Code) con l'estensione PlatformIO.
 
-- C/C++ (di microsoft)
-- Git Graph (di mhutchie)
-- PlatformIO (di platformio.org)
+Per l'installazione di PlatformIO conviene seguire le istruzioni a [questo link](https://docs.platformio.org/en/latest/integration/ide/pioide.html#pioide).
 
-L'estensione C/C++ è importante averla perché è collegata al compilatore e individua errori di codice (altrimenti VSCode dice cose a caso). Inoltre permette di formattare il codice decentemente in automatico quando si salva un file. Oltre a quello permetterebbe di eseguire codice e debuggarlo ma il setup non è così facile e conviene imparare ad utilizzare i comandi da terminale.
+PlatformIO permette di compilare il programma e flasharlo sull'Arduino, supportando diverse configurazioni predefinite.
 
-Per l'installazione di PlatformIO conviene seguire le istruzioni [questo link](https://docs.platformio.org/en/latest/integration/ide/pioide.html#pioide). Purtroppo con PlatformIO non conviene utilizzare WSL perché bisogna fare un po' di giri per poter vedere il dispositivo USB.
+Ci sono molte parti di codice che non richiedono l'utilizzo di Arduino e quindi sono state programmate in C. Per la compilazione di queste e l'esecuzione dei test di unità è consigliato utilizzare `gcc` con `make`.
 
-## Struttura
+## Struttura delle cartelle
 
-La struttura potrà essere cambiata in caso di necessità. Parte della struttura è fissa per via di come funziona PlatformIO senza configurarlo in modo specifico (cosa che fa perdere tempo e rischia di rompere cose).
+Parte della struttura è così per via di come funziona PlatformIO senza configurarlo in modo specifico (cosa che fa perdere tempo e rischia di rompere cose).
 
-In generale in cordice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Nello stesso progetto ci sono più firmware, ognuno è un env di `platformio.ini` che compila solo i suoi file (con `build_src_filter`), quindi c'è un solo `setup()`/`loop()` per firmware:
+In generale il codice sorgente da mettere sull'arduino si trova in `src/`. Le cartelle al suo interno seguono i nomi assegnati nel documento del progetto. Nello stesso progetto ci sono più firmware, ognuno è un env di `platformio.ini` che compila solo i suoi file (con `build_src_filter`), quindi c'è un solo `setup()`/`loop()` per firmware:
 
 | Env | Firmware | File principale |
 | --- | --- | --- |
@@ -53,11 +52,40 @@ Nella cartella `mocks/` ci sono i file mock scritti da noi.
 
 Nella cartella `test/` ci andranno tutti i file dei test. I file dei test sarà comodo non metterli in sottocartelle. Mentre eventuali file di utilità andranno messi in sottocartelle. La cartella `test/unity/` contiene il "framework" di testing e non va toccata.
 
-## Esecuzione codice
+## Compilazione e test
 
-Sarà possibile eseguire il codice solamente su Arduino IDE. Per farlo funzionare bene in futuro sarà necessario guardare un po' come far lavorare assieme Arduino IDE e le cose scritte in C separatamente.
+Per compilare e flashare i firmware bisogna selezionare quello desiderato e utilizzare PlatformIO. Il codice quindi eseguirà sull'Arduino.
 
-L'unico modo per eseguire il programma senza l'arduino sarà tramite i test.
+I test utilizzano [Unity](https://www.throwtheswitch.org/unity).
+
+Per eseguire in automatico i test utilizzare il comando `make test`. Questo comando compila ed esegue tutti i test, per poi in aggiunta stampare un summary con i risultati dei test. Per far sì che questo comando funzioni è necessario che la prima riga di ogni file di test contenga il comando per compilare il test nel formato seguente:
+
+```c
+// compile: gcc <arguments>
+```
+
+Da notare che questa cartella di test è considerata da PlatformIO la sua cartella dei suoi test. Noi non la utilizzeremo in questo senso perché tanto non ci servirà mai fare tali test.
+
+## Convenzioni codice
+
+Per il codice già l'utilizzo dell'estensione per VSCode C/C++ permette di averlo formattato decentemente.
+
+Convenzioni per i nomi utilizzate:
+
+```
+Struct              snake_case_s
+Campi struct        snake_case
+Tipi di dato        snake_case_t
+
+Funzioni (normali)  snake_case
+Funzioni (test)     when_condizioniInizialiTest_expect_risultatoAtteso
+Variabili           snake_case
+
+File                snake_case.*
+File test           nome_cosa_testata_test.c
+```
+
+# Diagnostica del satellite
 
 ## Comandi di debug via Serial
 
@@ -110,20 +138,13 @@ Errori e avvisi si vedono solo a terra prima del lancio (BOOT, SELF_TEST, IDLE).
 | ASCENT, DESCENT | Sempre | Spento | In volo nessuno lo vede, e in ASCENT la sua luce potrebbe far credere ai sensori di luce che c'è stata l'espulsione |
 | LANDED | Sempre | Bianco, un lampo breve ogni 2 s | Atterrato, serve per ritrovare il satellite |
 
-Note:
-
-- In IDLE i sensori di luce sono accesi e l'espulsione viene rilevata con `EJECTION_LIGHT_HOLD_MS` di luce continua. Per questo in IDLE il LED non resta mai acceso più di 0.3 s di fila (lo controlla `test/led_status_test.c`). La fotoresistenza però può essere lenta a tornare al buio: prima del volo va provato a satellite chiuso, con il LED che lampeggia rosso, che non passi a DESCENT da solo.
-- Al banco (env `sat_bench`) lo stato resta BOOT, quindi se è tutto ok il LED è blu fisso. Per vedere gli schemi degli altri stati si usa `s<N>`, ad esempio `s2` per IDLE.
-
 ## GPS
-
-In BOOT e IDLE il GPS è spento per non consumare batteria (all'avvio D17 viene messo basso, così il modulo non è alimentato). Il task GPS viene acceso una sola volta al passaggio in ASCENT e resta acceso in DESCENT e LANDED (profili in `src/service/tasks/tasks.c`). Se il modulo non manda dati il task resta solo in attesa, senza contare errori. Finché non c'è un fix i campi GPS del pacchetto LoRa e della SD non hanno senso e il bit `GPS_OK` è a 0.
 
 Al banco (env `sat_bench`) `t0` accende il task GPS, che tiene il GPS acceso finché il task non viene spento. Sulla Serial (con `SERIAL_DEBUG_INFO`) si vedono `GPS powered on/off` e `GPS fix found/lost (N sats, Xs after power on)`.
 
-### Perché il GPS non si aggancia?
+### Dati di debug
 
-Finché è acceso, ogni 5 s il task GPS stampa tre righe:
+Finché è acceso, ogni 5 s il task GPS stampa tre righe su interfaccia seriale:
 
 ```
 GPS on 125s | rx 452B/s bad 0 ovf 0 boots 1 ant OK | mode 1 view 9 used 0 hdop 99.9 time no
@@ -158,11 +179,11 @@ La terza riga è lo stato dell'hardware misurato dal modulo stesso (messaggio UB
 Per vedere le frasi NMEA complete si usa il comando `g1` (vedi [Comandi di debug via Serial](#comandi-di-debug-via-serial)).
 
 
-## Stazione di terra: formato dei dati su Serial
+# Stazione di terra: formato dei dati su Serial
 
 Questa sezione è per chi scrive il programma sul PC che legge i dati della stazione di terra (env `ground`, `src/ground/main_ground.cpp`).
 
-### Come funziona
+## Come funziona
 
 ```
 Satellite --LoRa--> Arduino di terra --USB Serial--> programma sul PC
@@ -170,14 +191,14 @@ Satellite --LoRa--> Arduino di terra --USB Serial--> programma sul PC
 
 L'Arduino di terra riceve i pacchetti LoRa (il formato binario `data_to_lora_t` in `include/types.h`), controlla che siano integri, li converte in unità fisiche (°C, Pa, g, ...) e li scrive sulla Serial come **testo**, una riga per ogni evento. Il PC non deve fare nessuna conversione: deve solo leggere le righe, dividerle sulle virgole e usare i numeri.
 
-### Connessione
+## Connessione
 
 - Porta seriale USB dell'Arduino (su Windows `COMx`, su Linux `/dev/ttyACMx`), 115200 baud, 8N1. Con la USB dell'RP2040 il baud rate in realtà non conta, ma è meglio impostarlo comunque.
-- Testo ASCII, ogni riga finisce con `\r\n`. Conviene togliere sempre `\r\n` (in Python `line.strip()`).
+- Testo ASCII, ogni riga finisce con `\r\n`. Conviene togliere sempre `\r\n`.
 - Separatore dei campi: `,` (senza spazi). Decimali con il punto (`21.37`).
 - Quando ci si collega a metà trasmissione la prima riga letta può essere tagliata: va scartata se non si riesce a interpretarla.
 
-### Tipi di righe
+## Tipi di righe
 
 Il primo campo di ogni riga dice che riga è. **Il programma deve ignorare tutte le righe che non iniziano con uno di questi prefissi**: sulla stessa Serial ci sono anche le stampe di debug, che iniziano con `[` (ad esempio `[INF 1234ms c0] LORA receiver ready`) e in futuro potrebbero aggiungersi altri tipi di riga.
 
@@ -206,7 +227,7 @@ STAT,20000,1,0,0,1,0,0,0
 
 Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programma sul PC si collega dopo, non le vede. **L'ordine delle colonne va quindi scritto anche nel programma** (è quello delle tabelle qui sotto); se arriva una riga `HDR` si può usare per controllare che corrisponda.
 
-### Riga `PKT`
+## Riga `PKT`
 
 `PKT` seguito da 32 campi, in questo ordine. Le cifre decimali stampate corrispondono alla risoluzione con cui il dato viaggia via LoRa: non ha senso aspettarsi più precisione.
 
@@ -241,16 +262,14 @@ Le righe `HDR` vengono stampate solo all'accensione dell'Arduino: se il programm
 | 31 | `vbatt_v` | decimale | V | 0.01 | Tensione della batteria, da 2.00 a 4.55 |
 | 32 | `status` | intero | - | - | Bit di stato dei sensori (vedi sotto), stampato in decimale |
 
-#### Valori validi e valori al limite
+### Valori validi e valori al limite
 
 - Un valore è affidabile solo se il bit `_OK` del suo sensore in `status` è a 1. Se un sensore non funziona i suoi campi contengono l'ultimo valore letto oppure 0: **vanno ignorati** (ad esempio non disegnati nel grafico).
 - I valori fuori dall'intervallo della tabella vengono "schiacciati" al limite: una temperatura di 400 °C arriva come 327.67. Se un valore è esattamente uguale al minimo o al massimo, probabilmente è fuori scala.
 - Se sul satellite un valore non è un numero (NaN, ad esempio un sensore che restituisce un errore) arriva come il **minimo** del suo intervallo (ad esempio `temp_c` = -327.68, `pressure_pa` = 30000).
 - Finché il GPS non ha un fix (`fix_type` = 0 o bit `GPS_OK` a 0) `lat`, `lon` e `altitude_gps_m` non hanno senso (di solito sono 0).
 
-#### Bit di `status`
-
-Per leggere un bit: `(status >> bit) & 1` (in Python), oppure `status & valore != 0`.
+### Bit di `status`
 
 | Bit | Valore | Nome | Significato se 1 |
 | --- | --- | --- | --- |
@@ -267,15 +286,16 @@ Per leggere un bit: `(status >> bit) & 1` (in Python), oppure `status & valore !
 
 Sono definiti come `STATUS_*` in `include/pack_data_lora.h`.
 
-#### Pacchetti persi (`lost`)
+### Pacchetti persi (`lost`)
 
 `lost` è calcolato dalla stazione di terra dalla differenza tra il `seq` di questo pacchetto e quello del pacchetto integro precedente. Ad esempio se arrivano i `seq` 10, 11, 14, la riga del 14 ha `lost` = 2 (il 12 e il 13 sono andati persi o sono arrivati rovinati).
 
 - Il primo pacchetto ricevuto ha sempre `lost` = 0.
 - Se il satellite si riavvia `seq` riparte da 0: la stazione se ne accorge perché `ms_since_boot` torna indietro, mette `lost` = 0 e stampa una riga di debug `[INF ...] satellite rebooted`.
 - Se anche la stazione di terra si riavvia, i conteggi ripartono da zero.
+- Se il satellite salta dei pacchetti perché ha raggiunto il limite di duty cycle incrementa comunque seq, quindi dalla stazione a terra apparirà che alcuni pacchetti sono stati persi.
 
-### Riga `BAD`
+## Riga `BAD`
 
 ```
 BAD,<rx_ms>,<rssi_dbm>,<snr_db>,<reason>
@@ -293,7 +313,7 @@ Le prime tre colonne sono come in `PKT`. `reason` è una di queste parole:
 
 Le righe `BAD` servono solo per statistiche e debug: i dati di quei pacchetti non vanno usati.
 
-### Riga `STAT`
+## Riga `STAT`
 
 ```
 STAT,<rx_ms>,<ok>,<radio_err>,<bad_length>,<bad_crc>,<bad_sync>,<bad_version>,<lost>
@@ -301,7 +321,7 @@ STAT,<rx_ms>,<ok>,<radio_err>,<bad_length>,<bad_crc>,<bad_sync>,<bad_version>,<l
 
 Totali dall'accensione della stazione di terra: `ok` pacchetti integri (= righe `PKT`), i successivi sono i conteggi dei vari `reason` delle righe `BAD`, `lost` è la somma di tutti i `lost` delle righe `PKT`. Ad esempio la percentuale di pacchetti ricevuti è `ok / (ok + lost)`.
 
-### Riga `RAW`
+## Riga `RAW`
 
 ```
 RAW,<rx_ms>,<byte in esadecimale>
@@ -339,155 +359,6 @@ Il pacchetto è la struct `data_to_lora_t` di `include/types.h`: little-endian (
 | 51 | 2 | uint16 | `status` | - |
 | 53 | 2 | uint16 | `crc16` | CRC-16/MODBUS dei byte da 0 a 52 |
 
-Il CRC è CRC-16/MODBUS (polinomio 0xA001 riflesso, valore iniziale 0xFFFF). Un trucco per controllarlo: calcolando il CRC su **tutti** i 55 byte, CRC compreso, il risultato è 0 se il pacchetto è integro.
-
-Decoder in Python di una riga `RAW` (dà gli stessi valori della riga `PKT`):
-
-```python
-import struct
-
-LORA_FORMAT = "<HBHIBHhHBh3h3hhBBBHBiihBBHH"  # 55 byte, little-endian, senza padding
-LORA_FIELDS = [
-    "sync", "version", "seq", "ms_since_boot", "flight_state", "records_dropped",
-    "temp_c", "pressure", "humidity_pct", "altitude_baro_m",
-    "accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z", "accel_mag",
-    "light_uv", "light_fotores", "uv", "gas_raw", "heater_on_s",
-    "lat", "lon", "altitude_gps_m", "satfix", "vbatt", "status", "crc16",
-]
-
-def crc16_modbus(data: bytes) -> int:
-    crc = 0xFFFF
-    for b in data:
-        crc ^= b
-        for _ in range(8):
-            crc = (crc >> 1) ^ 0xA001 if crc & 1 else crc >> 1
-    return crc
-
-def decode_raw(hex_str: str) -> dict | None:
-    data = bytes.fromhex(hex_str)
-    if len(data) != 55 or crc16_modbus(data) != 0:  # CRC su tutto il pacchetto (crc incluso) = 0 se integro
-        return None
-    r = dict(zip(LORA_FIELDS, struct.unpack(LORA_FORMAT, data)))
-    if r["sync"] != 0xA5A5 or r["version"] != 1:
-        return None
-    return {
-        "seq": r["seq"],
-        "ms_since_boot": r["ms_since_boot"],
-        "flight_state": r["flight_state"],
-        "records_dropped": r["records_dropped"],
-        "temp_c": r["temp_c"] / 100,
-        "pressure_pa": r["pressure"] * 2 + 30000,
-        "humidity_pct": r["humidity_pct"] / 2,
-        "altitude_baro_m": r["altitude_baro_m"],
-        "accel_g": [r[k] / 1000 for k in ("accel_x", "accel_y", "accel_z")],
-        "gyro_dps": [r[k] / 10 for k in ("gyro_x", "gyro_y", "gyro_z")],
-        "accel_mag_g": r["accel_mag"] / 1000,
-        "light_uv": r["light_uv"],
-        "light_fotores": r["light_fotores"],
-        "uv_index": r["uv"] / 10,
-        "gas_raw": r["gas_raw"],
-        "heater_on_s": r["heater_on_s"],
-        "lat": r["lat"] / 1e7,
-        "lon": r["lon"] / 1e7,
-        "altitude_gps_m": r["altitude_gps_m"],
-        "sats": r["satfix"] >> 3,
-        "fix_type": r["satfix"] & 0x07,
-        "vbatt_v": r["vbatt"] / 100 + 2.0,
-        "status": r["status"],
-    }
-```
-
-### Esempio di lettura in Python
-
-Con la libreria `pyserial` (`pip install pyserial`). Legge le righe, salva tutto in un file e trasforma le righe `PKT` in dizionari pronti per il grafico:
-
-```python
-import serial
-
-PKT_COLUMNS = (
-    "rx_ms,rssi_dbm,snr_db,seq,lost,version,ms_since_boot,flight_state,records_dropped,"
-    "temp_c,pressure_pa,humidity_pct,altitude_baro_m,"
-    "accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,accel_mag_g,"
-    "light_uv,light_fotores,uv_index,gas_raw,heater_on_s,"
-    "lat,lon,altitude_gps_m,sats,fix_type,vbatt_v,status"
-).split(",")
-
-STATUS_ENV_OK = 1 << 0
-
-with serial.Serial("COM5", 115200, timeout=1) as port, open("ground_log.txt", "a") as log:
-    while True:
-        line = port.readline().decode("ascii", errors="replace").strip()
-        if not line:
-            continue
-        log.write(line + "\n")  # tutto, anche RAW e debug, per poterlo rileggere dopo
-
-        fields = line.split(",")
-        if fields[0] == "HDR" and fields[1] == "PKT" and fields[2:] != PKT_COLUMNS:
-            print("ATTENZIONE: il formato delle righe PKT è cambiato, aggiornare PKT_COLUMNS")
-        elif fields[0] == "PKT" and len(fields) == len(PKT_COLUMNS) + 1:
-            pkt = {name: float(value) for name, value in zip(PKT_COLUMNS, fields[1:])}
-            status = int(pkt["status"])
-            if status & STATUS_ENV_OK:
-                print(f"seq {int(pkt['seq'])}: {pkt['temp_c']} °C, {pkt['pressure_pa']} Pa")
-        elif fields[0] == "BAD":
-            print("pacchetto scartato:", fields[-1])
-        # tutte le altre righe (RAW, STAT, debug "[...") qui vengono ignorate
-```
-
-### Se il formato cambia
+## Se il formato cambia
 
 Se si modifica `data_to_lora_t` vanno aggiornati insieme: `ds_to_lora` e `lora_decode` in `src/codec/pack_data_lora.c` (aumentando `LORA_VERSION` in `include/pack_data_lora.h`), la stampa in `src/ground/main_ground.cpp`, questa sezione del README e il programma sul PC. Le colonne nuove vanno aggiunte **in fondo** alla riga `PKT`, così un programma che usa i nomi delle colonne continua a funzionare.
-
-
-## Test
-
-I test utilizzano [Unity](https://www.throwtheswitch.org/unity). Saranno in futuro creati comandi Make per eseguirli in automatico. Per ora è presente un test di esempio in `test/`, con comandi di compilazione ed esecuzione commentati all'inizio del file.
-
-Da notare che questa cartella di test è considerata da PlatformIO la sua cartella dei suoi test. Noi non la utilizzeremo in questo senso perché tanto non ci servirà mai fare tali test.
-
-## Convenzioni git (importanti)
-
-Ogni volta che si sta facendo un task è necessario creare un ramo di git dedicato. Ad esempio per il setup ho creato il ramo `initial-setup`. Il nome del ramo deve essere tutto minuscolo e contenere solo trattini alti `-` e mai trattini bassi `_`, perché altrimenti git potrebbe avere problemi.
-
-Ricordatevi di farlo perché **non potrete** pushare modifiche direttamente al main (vi darà errore). Per aggiungere modifiche al main sarà necessario fare una pull request. La pull request si fa dal browser (dopo aver pushato le ultime modifiche del proprio ramo) come spiegato [in questo articolo](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/creating-a-pull-request). Impostate me ed edoardo come reviewer che gli diamo un'occhiata e la mergiamo noi. Se facendo la pull request GitHub dovesse dire che ci sono conflitti, risolveteli.
-
-Se mentre si sta facendo qualcosa si incontra un bug in codice pre-esistente, sarebbe meglio tornare al ramo `main` creare un altro ramo apposito, risolvere il bug e fare una pull request, e mergiare il ramo con il bug sistemato all'interno del proprio ramo principale. Questo serve per risparmiare tempo perché altrimenti se due persone trovano lo stesso bug e lo risolvono, magari in modi diversi, poi ci saranno dei conflitti nel mergiare le modifiche del main (oltre al fatto che è stato fatto il doppio del lavoro per niente).
-
-Per la gestione dei rami il modo più semplice che consiglio è di mergiare il main nel proprio ramo (invece di fare rebase). Questo perché rebase potrebbe creare problemi. Quindi se ci fossero modifiche nuove nel ramo main e si volesse integrarle nel proprio ramo my-branch basterebbe assicurarsi di essere sul proprio ramo (NON sul main), eseguire `git fetch` e poi `git merge origin/main`.
-
-## Convenzioni aggiuntive
-
-### Git
-
-Se volete, per ordine vostro, i rami potete organizzarli mettendo un nome e uno slash davanti. Per esempio io di solito li organizzo così:
-
-- `feat/` (per le aggiunte, da "feature")
-- `bug/` (per risolvere i bug)
-- `refactor/` (per fare refactoring, cioè riscrivere meglio il codice senza aggiungere nuove funzionalità)
-- `chore/` (per le robe che sono una rottura di palle lol)
-
-Quindi ad esempio se volessi aggiungere il driver del GPS chiamerei il ramo `feat/lora-driver`.
-
-Io lo faccio per abitudine siete liberi di non farlo.
-
-### Codice
-
-Per il codice già l'utilizzo dell'estensione per VSCode C/C++ permette di averlo formattato decentemente.
-
-Come linea guida generale evitate i commenti nel codice a meno che non siano strettamente necessari. Di solito il codice si può scrivere dando nomi alle variabili in modo che si spieghi da solo. Inoltre i commenti spesso ci si dimentica di aggiornarli quando si modifica il codice rendendoli fuorvianti.
-
-Per i nomi delle varie cose sarebbe meglio seguire le seguenti convenzioni (che sono abbastanza standard in C):
-
-```
-Struct              TitleCase
-Campi struct        lowerCase
-
-Funzioni (normali)  snake_case
-Funzioni (test)     when_condizioniInizialiTest_expect_risultatoAtteso
-Variabili           lowerCase
-
-```
-
-Inoltre chiedo di dare nomi a variabili e funzioni in inglese perché leggere le funzioni built-in di C o di arduino assieme alle proprie scritte in italiano è orribile.
-
-Per i file non c'è convenzione, direi di seguire usare anche qui lo `snake_case`. Per i nomi dei file di test preferirei il formato `nome_cosa_che_si_testa_test`, ad esempio per testare il file `hal_time` si usa il file `hal_time_test`.
